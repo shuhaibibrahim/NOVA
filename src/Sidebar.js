@@ -1,0 +1,77 @@
+import React, { useState } from 'react'
+import {Link} from "react-router-dom";
+
+function Sidebar({spareData, selectedLink, setSelectedLink}) {
+
+    
+
+    return (
+    <div className='flex flex-row bg-primary h-full text-sm'>
+        <div className='flex flex-col w-full bg-white overflow-y-auto pt-4'>
+            {/* <div className='flex flex-row items-center px-2 py-4 space-x-3'>
+                <div className='bg-white border border-solid border-black rounded-full w-12 aspect-square'/>
+                <div>Name</div>
+            </div> */}
+            {/* <hr className='h-px bg-stone-800 w-full' /> */}
+
+            <div className='flex flex-col items-start w-full px-2' id="main-links">
+
+                <Link 
+                    to="spareview" state={{spareData:spareData}} 
+                    className={" flex flex-row space-x-2 px-2 hover:bg-blue-300 w-full py-3 "+ (selectedLink==="spareview"?" bg-gray-300 border-r-4 border-blue-500":"")}>
+                    <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5l4.879-4.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242z" />
+                        </svg>
+                    </div>
+                    <div className="font-medium text-base">Spare View</div>
+                </Link>
+
+                <Link to="sparehistory" state={{spareData:spareData}} 
+                    className={" flex flex-row space-x-2 px-2 hover:bg-blue-300 w-full py-3 "+ (selectedLink==="sparehistory"?" bg-gray-300 border-r-4 border-blue-500":"")}>
+                    <div>
+                        <svg className="h-6 w-6"  viewBox="0 0 48 48" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M25.99 6c-9.95 0-17.99 8.06-17.99 18h-6l7.79 7.79.14.29 8.07-8.08h-6c0-7.73 6.27-14 14-14s14 6.27 14 14-6.27 14-14 14c-3.87 0-7.36-1.58-9.89-4.11l-2.83 2.83c3.25 3.26 7.74 5.28 12.71 5.28 9.95 0 18.01-8.06 18.01-18s-8.06-18-18.01-18zm-1.99 10v10l8.56 5.08 1.44-2.43-7-4.15v-8.5h-3z" opacity=".9"/>
+                        </svg>
+                    </div>
+                    <div className="font-medium text-base">Spare History</div>
+                </Link>
+
+                <Link 
+                    to="sparein" state={{spareData:spareData}} 
+                    className={" flex flex-row space-x-2 px-2 hover:bg-blue-300 w-full py-3 "+ (selectedLink==="sparein"?" bg-gray-300 border-r-4 border-blue-500":"")}>
+                    <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 13l-7 7-7-7m14-8l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    <div className="font-medium text-base">Spare In</div>
+                </Link>
+                
+                <Link 
+                    to="spareout" state={{spareData:spareData}} 
+                    className={" flex flex-row space-x-2 px-2 hover:bg-blue-300 w-full py-3 "+ (selectedLink==="spareout"?" bg-gray-300 border-r-4 border-blue-500":"")}>
+                    <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                        </svg>
+                    </div>
+                    <div className="font-medium text-base">Spare Out</div>
+                </Link>
+                {/* <Link to="admin" state={{spareData:spareData}} className="home-button flex flex-row space-x-2 px-2 hover:bg-blue-300 w-full py-3">
+                    <div>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" f6ll="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    </div>
+                    <div className="font-medium text-base">ADMIN</div>
+                </Link> */}
+
+
+            </div>
+        </div>
+    </div>
+  )
+}
+
+export default Sidebar

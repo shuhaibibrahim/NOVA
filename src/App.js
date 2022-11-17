@@ -27,6 +27,19 @@ import { db } from "./firebase_config";
 import AdminAddExcel from './AdminAddExcel';
 import UserLogin from './UserLogin';
 import HomePage from './HomePage';
+import KnittingPlan from './PlanningDesk/KnittingPlan';
+import PreviousKnittingPlan from './PlanningDesk/PreviousKnittingPlan';
+import ClickingPlan from './PlanningDesk/ClickingPlan';
+import PreviousClickingPlan from './PlanningDesk/PreviousClickingPlan';
+import PrintingPlan from './PlanningDesk/PrintingPlan';
+import PreviousPrintingPlan from './PlanningDesk/PreviousPrintingPlan';
+import StitchingPlan from './PlanningDesk/StitchingPlan';
+import PreviousStitchingPlan from './PlanningDesk/PreviousStitchingPlan';
+import StuckonPlan from './PlanningDesk/StuckonPlan';
+import PreviousStuckonPlan from './PlanningDesk/PreviousStuckonPlan';
+import DataEntry from './AdminDesk/DataEntry';
+import RequirementEntry from './AdminDesk/RequirementEntry';
+import BOMDataEntry from './AdminDesk/BomDataEntry';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -44,8 +57,8 @@ function App() {
                 const data = snapshot.val();
                 ;
                   
-                setIsAdmin(data.admin)
-                console.log(data.admin)
+                // setIsAdmin(data.admin)
+                // console.log(data.admin)
               });
           } else {
               setUser(null);
@@ -65,12 +78,28 @@ function App() {
               <Route path="sparein" element={<SpareIn/>} />
               <Route path="spareout" element={<SpareOut/>} />
               <Route path="sparehistory" element={<SpareHistory/>}/>
+
+              <Route path="planning-desk">
+                <Route path="knitting-plan" element={<KnittingPlan/>}/>
+                <Route path="previous-knitting-plan" element={<PreviousKnittingPlan/>}/>
+                <Route path="clicking-plan" element={<ClickingPlan />}/>
+                <Route path="previous-clicking-plan" element={ <PreviousClickingPlan /> }/>
+                <Route path="printing-plan" element={<PrintingPlan/>}/>
+                <Route path="previous-printing-plan" element={<PreviousPrintingPlan/>}/>
+                <Route path="stitching-plan" element={<StitchingPlan/>}/>
+                <Route path="previous-stitching-plan" element={<PreviousStitchingPlan/>}/>
+                <Route path="stuckon-plan" element={<StuckonPlan/>}/>
+                <Route path="previous-stuckon-plan" element={<PreviousStuckonPlan/>}/>
+              </Route>
               
               {/* <Route path="admin" element={<AdminHome setUser={setUser} user={user}/>} > */}
               <Route path="admin">
                 <Route path="adminadd" element={<AdminAddExcel/>} />
                 <Route path="admindelete" element={<AdminDelete/>} />
                 <Route path="adminedit" element={<AdminEdit/>} />
+                <Route path="data-entry" element={<DataEntry/>}/>
+                <Route path="bom-data-entry" element={<BOMDataEntry />}/>
+                <Route path="requirement-entry" element={<RequirementEntry/>}/>
               </Route>
             </Route>
             )}

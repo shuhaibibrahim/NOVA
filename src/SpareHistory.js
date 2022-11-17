@@ -10,9 +10,10 @@ function SpareHistory() {
     // const {historyData}=location.state
     const location = useLocation()
 
-    const [setSelectedLink] = useOutletContext();
+    const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
       setSelectedLink("sparehistory")
+      setOpenedTab("spare")
     }, [])
 
     const { spareId } = location.state || {undefined}

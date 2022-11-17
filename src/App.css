@@ -8,6 +8,31 @@
   overflow:auto;
 }
 
+.sidebar-visible{
+  width: 16.666667%;
+  transition: width .7s ease-out;
+  overflow: hidden;
+
+}
+
+.siderbar-hidden{
+  overflow: hidden;
+  width: auto;
+  transition: width .3s ease-out;
+}
+
+.dropdown-visible{
+  max-height: 500px;
+  transition: max-height .7s ease-out;
+  overflow: hidden;
+}
+
+.dropdown-hidden{
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .3s ease-out;
+}
+
 .home-button{
   @apply flex flex-col justify-between items-center border-l-4 border-b-4 rounded-xl border-green-700 p-10 m-5 bg-green-300 hover:border-green-900 h-full;
 }
@@ -18,4 +43,23 @@
 
 .btn {
   @apply inline-flex justify-center py-2 px-4 border-transparent font-medium rounded-md text-white bg-blue-600 border-2 border-blue-400 hover:border-blue-300 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-600 transition;
+}
+
+.nav__menu-item {
+  position: relative;
+
+}
+
+.nav__menu-item:hover .nav__submenu{ 
+    display: block;
+    position: absolute;
+    right:0;
+    top: 25px;
+    background-color: white;
+    color: black;
+    z-index: 40;
+}
+
+.nav__submenu {
+  display: none
 }

@@ -8,9 +8,10 @@ function SpareIn() {
     // const location = useLocation()
     // const {spareData}=location.state
 
-    const [setSelectedLink] = useOutletContext();
+    const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
       setSelectedLink("sparein")
+      setOpenedTab("spare")
     }, [])
 
     const [spareData, setSpareData] = useState([])

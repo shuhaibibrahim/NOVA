@@ -9,7 +9,9 @@ module.exports = {
         mxl: '27rem',
         xl: '28rem',
         '2xl': '32rem',
-        lg: '26rem'
+        '3xl':'35rem',
+        lg: '23rem',
+        xlg: '25rem'
       }
     },
     fontSize:{

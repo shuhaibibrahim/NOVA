@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { ref, set, onValue } from "firebase/database";
-import { db } from "./firebase_config";
+import { db } from "../firebase_config";
 import * as XLSX from 'xlsx';
-import {fieldHeadings, fieldKeys} from "./Requirements"
+import {fieldHeadings, fieldKeys} from "../Requirements"
 
 
-function SpareView() {
+function PreviousStuckonPlan() {
     // const location = useLocation()
     // const {spareData}=location.state
     let navigate = useNavigate();
 
     const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
-      setSelectedLink("spareview")
-      setOpenedTab("spare")
+      setSelectedLink("planning-desk/stuckon-plan")
+      setOpenedTab("planningDesk")
     }, [])
     
 
@@ -433,84 +433,58 @@ function SpareView() {
             }
 
             <div className="h-5/12 pt-6 pb-6 flex flex-col items-center filter drop-shadow-lg">
-                
                 <div className='flex flex-row w-full justify-between'>
-                    <div className="bg-white pl-2 flex flex-row self-start items-center space-x-3 w-fit ring ring-1 ring-gray-300 rounded-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input 
-                            value={search} 
-                            onChange={e=>{setSearch(e.target.value)}} 
-                            type="text" 
-                            className="w-5/12 py-2 focus:outline-none w-full" 
-                            placeholder="Search by keyword"
+                    <div className="bg-white pl-2 w-fit flex flex-row self-start items-center space-x-3 w-auto ring ring-1 ring-gray-300 rounded-sm">
+                        <div className='font-medium w-auto'>Date : </div>
+                        <input  
+                            type="date" 
+                            className="w-fit py-2 focus:outline-none" 
                         />
                     </div>
 
-                    <Link to="/admin/adminadd">
-                        <div className='text-center rounded py-2 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
-                            + Add New
-                        </div>
-                    </Link>
+                    <div className='flex flex-row font-medium bg-white rounded items-center'>
+                        <div className='border border-gray-300 p-2'>Total Qty in Pair : </div>
+                        {/* <div className='border border-gray-300 p-2'>Last Created Plan Code : </div> */}
+                    </div>
 
                 </div>
 
-                <div className="flex flex-row mt-6 justify-between items-center relative w-full">
-                    <div className='grid grid-cols-7 gap-4 w-full'>
-                        {filterKeys.map(key=>(
-                            <select 
-                                key={key} 
-                                placeholder={key} 
-                                className="text-black text-sm bg-white p-2 outline-none " 
-                                onChange={e=>{
-                                    var items={...filterItems}
-                                    // if(items[filter]===undefined)
-                                    //     items[filter]=[]
-                                    // items[filter].push(filterText)
-                                    items[key]=e.target.value
-                                    setFilterItems(items)
-                                }}
-                            >
-                                <option value="text-black p-2 ">{key.toLocaleUpperCase()}</option>
-                                {filterSet[key]&&filterSet[key].map(filterText=>(
-                                    <option value={filterText} className="text-black p-2 " key={filterText} >{filterText}</option>
-                                ))}
-                            </select>
-                        ))}
+                <div className='mt-6 space-y-2 flex flex-col items-start w-full justify-start'>
+                    {/* <div className='text-xl'>Previous Plan</div> */}
+                    <div className='text-sm flex space-x-2 items-center'>
+                        <Link to="../stuckon-plan" > 
+                            <span className='text-black opacity-70 cursor-pointer hover:opacity-100'>Stuck On Production Planning Sheet</span> 
+                        </Link>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black opacity-70 " fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                        <span>Previous Plan</span>
                     </div>
                 </div>
+
+                {/* <div className="flex flex-row mt-6 justify-between items-center relative w-full">
+                    <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                        Previous Plan
+                    </div>
+
+                    <div className='flex flex-row space-x-1'>
+                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                            Verify
+                        </div>
+                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                            Update
+                        </div>
+                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                            Mail
+                        </div>
+                    </div>
+                </div> */}
             </div>
             
-            {filterDisp.length>0&&(<div className="flex flex-row space-x-4 my-3 items-center w-full self-center">
-                {filterDisp.map(text=>(
-                    <div className="flex flex-row align-center space-x-2 bg-blue-50 rounded-full border-2 border-blue-500 text-blue-500 p-1 text-sm">
-                        <div className='h-fit'>{text}</div>
-                        <div 
-                            className="text-blue-500 hover:text-blue-800"
-                            onClick={()=>{
-                                var newFilter={...filterItems}
-                                newFilter[text.split(" : ")[0]]=""
-                                setFilterItems(newFilter)
-                            }}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                    </div>))}
-                <div 
-                    className='text-base cursor-pointer' 
-                    onClick={()=>{
-                        setFilterItems([])
-                    }}
-                >
-                        Reset All
-                </div>
-            </div>)}
+            
             <div className="flex flex-col h-lg space-y-2 items-center justify center items-center bg-white rounded-xl p-4">
                 <div className='flex flex-row justify-between py-3 w-full align-center'>
-                    <div className='font-semibold text-lg'>Spare View</div>
+                    <div className='font-semibold text-lg'>Previous Plan</div>
 
                     <button
                         className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
@@ -519,16 +493,18 @@ function SpareView() {
                             Export Excel
                     </button>
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-8 gap-2 bg-gray-200">
-                    <div className="text-sm py-2 ">CODE</div>
-                    <div className="text-sm py-2 ">NICKNAME</div>
-                    <div className="text-sm py-2 ">MACHINE</div>
-                    <div className="text-sm py-2 ">NEW QTY</div>
-                    <div className="text-sm py-2 ">LOCAL QTY</div>
-                    <div className="text-sm py-2 ">SERVICE QTY</div>
-                    {/* <div className="font-bold">Part Name</div>
-                    <div className="font-bold">Part Number</div>
-                    <div className="font-bold">Specification</div> */}
+                <div className="w-full sticky top-0 p-3 grid grid-cols-11 gap-1 bg-gray-200">
+                    <div className="text-sm py-2 ">SI NO</div>
+                    <div className="text-sm py-2 ">PLAN CODE</div>
+                    <div className="text-sm py-2 ">ARTICLE</div>
+                    <div className="text-sm py-2 ">COLOUR</div>
+                    <div className="text-sm py-2 ">MODEL</div>
+                    <div className="text-sm py-2 ">CATEGORY</div>
+                    <div className="text-sm py-2 ">SIZE</div>
+                    <div className="text-sm py-2 ">LEFT QTY</div>
+                    <div className="text-sm py-2 ">RIGHT QTY</div>
+                    <div className="text-sm py-2 ">PLAN TYPE</div>
+                    <div className="text-sm py-2 ">REMARKS</div>
                 </div>
                 
                 {
@@ -559,4 +535,4 @@ function SpareView() {
     )
 }
 
-export default SpareView
+export default PreviousStuckonPlan

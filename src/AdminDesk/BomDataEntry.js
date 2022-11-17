@@ -362,7 +362,7 @@ function BOMDataEntry() {
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         /> */}
                         <select
-                            value={editData.itemType.toUpperCase()}
+                            className='bg-white text-sm w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                             onChange={e=>{
                                 setEditingInputElement(e.target)
                                 setEditData({
@@ -569,7 +569,7 @@ function BOMDataEntry() {
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         /> */}
                         <select
-                            value={newbomData.itemType.toUpperCase()}
+                            className='bg-white text-sm w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                             onChange={e=>{
                                 setNewbomData({
                                     ...newbomData,
@@ -577,7 +577,7 @@ function BOMDataEntry() {
                                 })
                             }}
                         >
-                            <option>--select--</option>
+                            <option value="">--select--</option>
                             <option value="Raw material">Raw material</option>
                             <option value="Knitted">Knitted</option>
                             <option value="SFG">SFG</option>

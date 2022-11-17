@@ -349,7 +349,7 @@ function BOMDataEntry() {
                     </div> 
 
                     <div className="flex w-full flex flex-col items-start justify-items-start">
-                        <input 
+                        {/* <input 
                             value={editData.itemType.toUpperCase()}
                             onChange={e=>{
                                 setEditingInputElement(e.target)
@@ -360,7 +360,24 @@ function BOMDataEntry() {
                             }}
                             type="text" 
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
+                        /> */}
+                        <select
+                            value={editData.itemType.toUpperCase()}
+                            onChange={e=>{
+                                setEditingInputElement(e.target)
+                                setEditData({
+                                    ...editData,
+                                    itemType: e.target.value.toUpperCase()
+                                })
+                            }}
+                        >
+                            <option>--select--</option>
+                            <option value="Raw material">Raw material</option>
+                            <option value="Knitted">Knitted</option>
+                            <option value="SFG">SFG</option>
+                            <option value="FIU">FIU</option>
+                            <option value="Pair">Pair</option>
+                        </select>
                     </div> 
 
                     <div className="flex w-full flex flex-col items-start justify-items-start">
@@ -540,7 +557,7 @@ function BOMDataEntry() {
                     </div> 
 
                     <div className="flex w-full flex flex-col items-start justify-items-start">
-                        <input 
+                        {/* <input 
                             value={newbomData.itemType.toUpperCase()}
                             onChange={e=>{
                                 setNewbomData({
@@ -550,7 +567,23 @@ function BOMDataEntry() {
                             }}
                             type="text" 
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
+                        /> */}
+                        <select
+                            value={newbomData.itemType.toUpperCase()}
+                            onChange={e=>{
+                                setNewbomData({
+                                    ...newbomData,
+                                    itemType: e.target.value.toUpperCase()
+                                })
+                            }}
+                        >
+                            <option>--select--</option>
+                            <option value="Raw material">Raw material</option>
+                            <option value="Knitted">Knitted</option>
+                            <option value="SFG">SFG</option>
+                            <option value="FIU">FIU</option>
+                            <option value="Pair">Pair</option>
+                        </select>
                     </div> 
 
                     <div className="flex w-full flex flex-col items-start justify-items-start">

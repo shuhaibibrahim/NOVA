@@ -248,7 +248,9 @@ function DataEntry() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.size}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">
+                            {item.size} <span className='text-md font-bold'>{item.sizeType}</span>
+                        </div>
                     </div>
                 </>)}
 
@@ -313,7 +315,9 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+
+
+                    <div className="w-12/12 flex flex-row space-x-2 items-start justify-items-start">
                         <input 
                             value={editData.size}
                             onChange={e=>{
@@ -326,7 +330,43 @@ function DataEntry() {
                             type="number" 
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         />
-                    </div> 
+
+                        <div className='flex flex-row space-x-2 items-center'>
+                            <label className='flex flex-row items-center'>
+                                <input 
+                                    required
+                                    name="sizeType"
+                                    value={"IN"}
+                                    onChange={e=>{
+                                        setEditingInputElement(e.target)
+                                        setEditData({
+                                            ...editData,
+                                            sizeType: e.target.value
+                                        })
+                                    }}
+                                    type="radio" 
+                                    // className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                                /><span>IN</span>
+                            </label>
+
+                            <label className='flex flex-row items-center'>
+                                <input 
+                                    required
+                                    name="sizeType"
+                                    value={"EU"}
+                                    onChange={e=>{
+                                        setEditingInputElement(e.target)
+                                        setEditData({
+                                            ...editData,
+                                            sizeType: e.target.value
+                                        })
+                                    }}
+                                    type="radio" 
+                                    // className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                                /><span>EU</span>
+                            </label>
+                        </div>
+                    </div>
                 </>)}
 
                 <div className='grid grid-cols-2 gap-x-2'>
@@ -523,7 +563,7 @@ function DataEntry() {
         if(articleData.length>0)
         {
             setRenderItems(
-                <div className='w-full overflow-y-auto'>
+                <div className='w-full overflow-y-auto h-full'>
                     {[...articleData].reverse().map((item, index)=>RenderItem(item,index))}
                     {/* <RenderInputRow/> */}
                 </div>

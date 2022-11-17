@@ -78,7 +78,7 @@ function BOMDataEntry() {
 
         if(window.confirm("Please confirm deleting "))
         {
-            const bomRef = ref(db, `bomData/${articleItem.id}/bomData/${item.id}`); 
+            const bomRef = ref(db, `articleData/${articleItem.id}/bomData/${item.id}`); 
         
             remove(bomRef).then(()=>{
                 // alert("Removed article successfully")
@@ -89,7 +89,7 @@ function BOMDataEntry() {
     const pushToDatabase = () => {
             // setUpdateLoad(true)
 
-            const bomRef = ref(db, `bomData/${articleItem.id}/bomData/`);
+            const bomRef = ref(db, `articleData/${articleItem.id}/bomData/`);
             const newbomRef = push(bomRef);
 
             set(newbomRef, {
@@ -118,7 +118,7 @@ function BOMDataEntry() {
         // setUpdateLoad(true)
         item={...editData, id:item.id}
 
-        const bomRef = ref(db, `bomData/${articleItem.id}/bomData/${item.id}`);
+        const bomRef = ref(db, `articleData/${articleItem.id}/bomData/${item.id}`);
 
         set(bomRef, {
             ...item
@@ -250,19 +250,55 @@ function BOMDataEntry() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-center">{item.clicking?"true":"false"}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-center">
+                            {item.clicking
+                            ?
+                            // <img src="green-tick.png" height="20" className='h-2'/>
+                            <span className='text-sm font-bold text-green-500'>yes</span>
+                            :
+                            // <img src="red-cross.png" height="20" className='h-2'/>
+                            <span className='text-sm font-bold text-red-500'>no</span>
+                            }
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-center">{item.printing?"true":"false"}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-center">
+                            {item.printing
+                            ?
+                            // <img src="green-tick.png" height="20" className='h-2'/>
+                            <span className='text-sm font-bold text-green-500'>yes</span>
+                            :
+                            // <img src="red-cross.png" height="20" className='h-2'/>
+                            <span className='text-sm font-bold text-red-500'>no</span>
+                            }
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-center">{item.stitching?"true":"false"}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-center">
+                            {item.stitching
+                            ?
+                            // <img src="green-tick.png" height="20" className='h-2'/>
+                            <span className='text-sm font-bold text-green-500'>yes</span>
+                            :
+                            // <img src="red-cross.png" height="20" className='h-2'/>
+                            <span className='text-sm font-bold text-red-500'>no</span>
+                            }
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-center">{item.stuckon?"true":"false"}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-center">
+                            {item.stuckon
+                            ?
+                            // <img src="green-tick.png" height="20" className='h-2'/>
+                            <span className='text-sm font-bold text-green-500'>yes</span>
+                            :
+                            // <img src="red-cross.png" height="20" className='h-2'/>
+                            <span className='text-sm font-bold text-red-500'>no</span>
+                            }
+                        </div>
                     </div>
                 </>)}
 
@@ -460,7 +496,7 @@ function BOMDataEntry() {
                         pushToDatabase();
                 }}
             >
-                <div className='text-left'>New Entry : </div>
+                <div className='text-left text-sm font-semibold'>New Entry : </div>
                 <div className="flex w-full flex flex-col items-start justify-items-start">
                         <input 
                             value={newbomData.item.toUpperCase()}
@@ -608,7 +644,7 @@ function BOMDataEntry() {
 
 
     useEffect(() => {
-        const bomRef = ref(db, `bomData/${articleItem.id}/bomData/`);
+        const bomRef = ref(db, `articleData/${articleItem.id}/bomData/`);
 
         onValue(bomRef, (snapshot) => {
             const data = snapshot.val();

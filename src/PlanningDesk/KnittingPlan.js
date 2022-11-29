@@ -589,7 +589,7 @@ function KnittingPlan() {
                 </div>
                 
                 <div 
-                    class="w-7 h-7 bg-white p-1 rounded-lg text-red-800 hover:text-red-500"
+                    class="w-7 h-7 bg-white p-1 rounded-lg text-red-800 hover:text-red-500 self-center"
                     onClick={()=>{deleteFromDatabase(item)}}
                 >
                     <svg  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >

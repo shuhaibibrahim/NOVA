@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { db} from "../firebase_config";
-import { ref, set, push, onValue } from "firebase/database";
+import { ref, set, push, onValue, remove } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 
@@ -175,6 +175,18 @@ function KnittingPlan() {
         setCategorySelectList([...tempCatList])
 
     }, [newKnittingPlan.article, newKnittingPlan.colour, newKnittingPlan.model, newKnittingPlan])
+
+    const deleteFromDatabase=(item)=>{
+
+        if(window.confirm("Please confirm deleting "+item.article))
+        {
+            const articleRef = ref(db, `knittingPlan/${item.id}`); 
+        
+            remove(articleRef).then(()=>{
+                // alert("Removed article successfully")
+            })
+        }
+    }
     
 
     const pushToDatabase = () => {
@@ -535,7 +547,7 @@ function KnittingPlan() {
 
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
-            <div key={index} className="grid grid-cols-10 text-sm gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+            <div key={index} className="grid grid-cols-11 text-sm gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
                 <div className="flex items-center justify-center">
                     <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
                 </div>
@@ -575,6 +587,16 @@ function KnittingPlan() {
                 <div className="flex items-center justify-center">
                     <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
                 </div>
+                
+                <div 
+                    class="w-7 h-7 bg-white p-1 rounded-lg text-red-800 hover:text-red-500"
+                    onClick={()=>{deleteFromDatabase(item)}}
+                >
+                    <svg  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                </div>
+            
                 
             </div>
         )
@@ -681,7 +703,7 @@ function KnittingPlan() {
                         </div>
                     </div>
                 </div>
-                <div className="w-full text-xs font-bold sticky top-0 p-3 grid grid-cols-10 gap-1 bg-gray-200">
+                <div className="w-full text-xs font-bold sticky top-0 p-3 grid grid-cols-11 gap-1 bg-gray-200">
                     <div className="py-2 text-left">SI NO</div>
                     <div className="py-2 text-left">DATE</div>
                     <div className="py-2 text-left">ARTICLE</div>

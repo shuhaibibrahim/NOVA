@@ -204,10 +204,9 @@ function KnittingPlan() {
                 alert("Successfully updated")
 
                 setNewKnittingPlan({
+                    ...newKnittingPlan,
                     planCode:"",
                     planType:"",
-                    // remarks:""
-                    date:newKnittingPlan.date,
                     article:"",
                     colour:"",
                     model:"",
@@ -216,7 +215,6 @@ function KnittingPlan() {
                     sizeGrid:"",
                     caseQty:"",
                     packingComb:"",
-                    date:""
                 })
             })
             .catch((error)=>{

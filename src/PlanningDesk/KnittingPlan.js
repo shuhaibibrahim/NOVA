@@ -207,7 +207,7 @@ function KnittingPlan() {
                     planCode:"",
                     planType:"",
                     // remarks:""
-                    date:"",
+                    date:newKnittingPlan.date,
                     article:"",
                     colour:"",
                     model:"",

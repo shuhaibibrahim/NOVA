@@ -327,6 +327,7 @@ function KnittingPlan() {
                                 onChange={e=>{
                                     setNewKnittingPlan({
                                         ...item,
+                                        date:newKnittingPlan.date,
                                         caseQty:e.target.value
                                     })
                                 }}

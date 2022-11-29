@@ -74,6 +74,8 @@ function KnittingPlan() {
         date:""
     })
 
+    const [planData, setPlanData] = useState([])
+
     useEffect(() => {
         const reqRef = ref(db, 'requirementsData/');
 
@@ -123,6 +125,23 @@ function KnittingPlan() {
             setArticleSelectList([...tempArticleList])
             // setSpareData(spareArray);
             // setLoading(false);
+        });
+    }, [])
+
+    useEffect(() => {
+        const planRef = ref(db, 'knittingPlan/');
+
+        onValue(planRef, (snapshot) => {
+            const data = snapshot.val();
+            
+            var planArray=[];
+            for(var key in data)
+            {
+                var item=data[key]
+                planArray.push(item)
+            }
+            
+            setPlanData([...planArray])
         });
     }, [])
 
@@ -512,285 +531,74 @@ function KnittingPlan() {
             RenderModal('planEntry')
     }, [newKnittingPlan.caseQty,enableCaseQtyInput]);
 
-    const RenderItem=({item, index})=>{
-        var rowclass=" w-full p-2 grid grid-cols-8 gap-2 text-sm "
-        var totalQty=parseInt(item.totalQty)
-        var minStock=parseInt(item.minStock)
-
-        if(totalQty<minStock && totalQty!="0")
-            rowclass+="bg-yellow-300 bg-opacity-90 "
-        else if(minStock>0 && totalQty=="0")
-        {
-            rowclass+="bg-red-300 bg-opacity-90 "
-        }
+    const RenderItem=(item, index)=>{
 
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
-            <div key={index} className={rowclass} >
+            <div key={index} className="grid grid-cols-10 text-sm gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
                 <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all">{item.code}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
                 </div>
 
                 <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all">{item.nickName}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.date}</div>
                 </div>
 
                 <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all">{item.machine}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.article}</div>
                 </div>
 
                 <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all">{item.qty!=undefined?item.qty:""}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.colour}</div>
                 </div>
 
                 <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all">{item.localQty!=undefined?item.localQty:""}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.model}</div>
                 </div>
 
                 <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all">{item.servQty!=undefined?item.servQty:""}</div>
-                </div>
-
-                {/* <div className="flex items-center justify-center">
-                    <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.machine}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
                 </div>
 
                 <div className="flex items-center justify-center">
-                    <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.partName}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.region}</div>
                 </div>
 
                 <div className="flex items-center justify-center">
-                    <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.partNumber}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.sizeGrid}</div>
                 </div>
 
-
-                <div className="flex items-center justify-center">
-                    <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.spec}</div>
-                </div> */}
-
-
-                <div className="flex items-center justify-center">
-                    <div 
-                        className="font-semibold cursor-pointer text-blue-500 hover:text-blue-800"
-                        onClick={()=>{
-                            setModalIndex(index)
-                            RenderModal(index)
-                        }}
-                    >View</div>
+                <div className="flex items-center justify-center col-span-1">
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.packingComb}</div>
                 </div>
-
-                <div className="flex items-center justify-center">
-                    <div 
-                        className="font-semibold cursor-pointer text-blue-500 hover:text-blue-800"
-                        onClick={()=>{
-                            navigate("../sparehistory",{
-                                state: {spareId:item.id} 
-                            });
-                        }}
-                    >History</div>
-                </div>
-            </div>
-        )
-    }
-
-
-    const RenderInputRow=()=>{
-        return (
-            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
-            <div  className='w-full grid grid-cols-7 gap-4'>
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the plan code</label>
-                    <input 
-                        value={newKnittingPlan.planCode}
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                planCode: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the article</label>
-                    <select
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                article: e.target.value
-                            })
-                        }}
-                        value={newKnittingPlan.article}
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    >
-                        <option>- SELECT -</option>
-                        {articleSelectList.map((item,index)=>(
-                            <option key={index} value={item}>{item}</option>
-                        ))}
-                    </select>
-                    {/* <input 
-                        value={newKnittingPlan.article}
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                article: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
-                </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the colour</label>
-                    <select
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                colour: e.target.value
-                            })
-                        }}
-                        value={newKnittingPlan.colour}
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    >
-                        <option>- SELECT -</option>
-                        {colourSelectList.map((item,index)=>(
-                            <option key={index} value={item}>{item}</option>
-                        ))}
-                    </select>
-                    {/* <input 
-                        value={newKnittingPlan.colour}
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                colour: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
-                </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the model</label>
-                    <select
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                model: e.target.value
-                            })
-                        }}
-                        value={newKnittingPlan.model}
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    >
-                        <option>- SELECT -</option>
-                        {modelSelectList.map((item,index)=>(
-                            <option key={index} value={item}>{item}</option>
-                        ))}
-                    </select>
-                    {/* <input 
-                        value={newKnittingPlan.model}
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                model: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
-                </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the category</label>
-                    <select
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                category: e.target.value
-                            })
-                        }}
-                        value={newKnittingPlan.category}
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    >
-                        <option>- SELECT -</option>
-                        {categorySelectList.map((item,index)=>(
-                            <option key={index} value={item}>{item}</option>
-                        ))}
-                    </select>
-                    {/* <input 
-                        value={newKnittingPlan.category}
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                category: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
-                </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the plan type</label>
-                    <input 
-                        value={newKnittingPlan.planType}
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                planType: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the remarks</label>
-                    <input 
-                        value={newKnittingPlan.remarks}
-                        onChange={e=>{
-                            setNewKnittingPlan({
-                                ...newKnittingPlan,
-                                remarks: e.target.value
-                            })
                 
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
+                <div className="flex items-center justify-center">
+                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
                 </div>
-
-                <div 
-                    onClick={()=>{RenderModal('sizeAndQty')}}
-                    className='relative col-span-2 text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                >
-                    Enter size and quantities
-                </div>
-
-                <div className='flex flex-row space-x-1  items-end'>
-                    <div className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
-                        Verify
-                    </div>
-                    <div 
-                        className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                        onClick={()=>{
-                            if(window.confirm("Update the knitting plan?"))
-                                pushToDatabase()
-                        }}
-                    >
-                        Update
-                    </div>
-                    <div className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
-                        Mail
-                    </div>
-                </div>
+                
             </div>
         )
     }
+
+    useEffect(() => {
+        
+        if(planData.length>0)
+        {
+            setRenderItems(
+                <div className='w-full overflow-y-auto'>
+                    {[...planData].reverse().map((item, index)=>RenderItem(item,index))}
+                    {/* <RenderInputRow/> */}
+                </div>
+            )
+
+        }
+        else
+        {
+            setRenderItems(        
+                <div/>
+            )
+        }
+    }, [planData])
 
     return (
         <div className="pb-2 bg-blue-50 h-full px-3">
@@ -873,18 +681,17 @@ function KnittingPlan() {
                         </div>
                     </div>
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-11 gap-1 bg-gray-200">
-                    <div className="text-sm py-2 text-left">SI NO</div>
-                    <div className="text-sm py-2 text-left">PLAN CODE</div>
-                    <div className="text-sm py-2 text-left">ARTICLE</div>
-                    <div className="text-sm py-2 text-left">COLOUR</div>
-                    <div className="text-sm py-2 text-left">MODEL</div>
-                    <div className="text-sm py-2 text-left">CATEGORY</div>
-                    <div className="text-sm py-2 text-left">SIZE</div>
-                    <div className="text-sm py-2 text-left">LEFT QTY</div>
-                    <div className="text-sm py-2 text-left">RIGHT QTY</div>
-                    <div className="text-sm py-2 text-left">PLAN TYPE</div>
-                    <div className="text-sm py-2 text-left">REMARKS</div>
+                <div className="w-full text-xs font-bold sticky top-0 p-3 grid grid-cols-10 gap-1 bg-gray-200">
+                    <div className="py-2 text-left">SI NO</div>
+                    <div className="py-2 text-left">DATE</div>
+                    <div className="py-2 text-left">ARTICLE</div>
+                    <div className="py-2 text-left">COLOUR</div>
+                    <div className="py-2 text-left">MODEL</div>
+                    <div className="py-2 text-left">CATEGORY</div>
+                    <div className="py-2 text-left">REGION</div>
+                    <div className="py-2 text-left">SIZE GRID</div>
+                    <div className="py-2 col-span-1 text-left">PCKNG COMB</div>
+                    <div className="py-2 text-left">CASE QTY</div>
                 </div>
                 
                 {renderItems}

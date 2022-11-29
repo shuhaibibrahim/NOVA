@@ -53,8 +53,9 @@
 .nav__menu-item:hover .nav__submenu{ 
     display: block;
     position: absolute;
-    right:0;
-    top: 25px;
+    right:auto;
+    left: auto;
+    top: 80%;
     background-color: white;
     color: black;
     z-index: 40;

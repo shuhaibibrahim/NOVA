@@ -190,7 +190,7 @@ function DataEntry() {
 
     const Submenu =({item, index})=> {
         return (
-            <div className="nav__submenu drop-shadow-sm rounded text-sm p-1 divide-y divide-gray-500">
+            <div className="nav__submenu drop-shadow-sm ring-black ring-1 rounded text-sm p-1 divide-y divide-gray-500">
                 <div 
                     className="w-fit whitespace-nowrap px-2 py-1 font-medium cursor-pointer text-xs hover:bg-gray-200 hover:text-blue-500"
                     onClick={()=>{
@@ -227,28 +227,28 @@ function DataEntry() {
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
             <div key={index} className="grid grid-cols-7 gap-x-4 border-solid border-b border-gray-400 p-3 bg-gray-200" >
                 <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{index+1}</div>
                 </div>
 
                 {item.edit!=true&&(<>
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.article}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.article}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.colour}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.colour}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.model}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.model}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.category}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">
                             {item.size} <span className='text-md font-bold'>{item.sizeType}</span>
                         </div>
                     </div>
@@ -409,17 +409,19 @@ function DataEntry() {
                         </svg>
                     </div>
  */}
-            
-                    <div
-                        className="nav__menu-item flex items-center"
-                    >
-                        {/* <a className=''><MenuDots className='h-6'/></a> */}
-                        <div className='cursor-pointer bg-gray-300 rounded-full font-medium w-1/3 aspect-square'>
-                            {/* <MenuDots className='h-3 '/> */}
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="64" r="16"/><circle cx="128" cy="128" r="16"/><circle cx="128" cy="192" r="16"/></svg>
+                    <div className='flex items-center justify-center'>
+                        <div
+                            className="nav__menu-item w-1/3"
+                        >
+                            {/* <a className=''><MenuDots className='h-6'/></a> */}
+                            <div className='cursor-pointer bg-gray-300 rounded-full font-medium aspect-square'>
+                                {/* <MenuDots className='h-3 '/> */}
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="64" r="16"/><circle cx="128" cy="128" r="16"/><circle cx="128" cy="192" r="16"/></svg>
+                            </div>
+                            <Submenu item={item} index={index}/>
                         </div>
-                        <Submenu item={item} index={index}/>
                     </div>
+            
                 </div>
                
             </div>
@@ -498,7 +500,7 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="w-12/12 flex flex-row space-x-2 items-start justify-items-start">
+                    <div className="w-12/12 flex flex-row space-x-2 items-center justify-items-start">
                         <input 
                             required
                             value={newArticleData.size}
@@ -512,7 +514,7 @@ function DataEntry() {
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         />
 
-                        <div className='flex flex-row space-x-2 items-center'>
+                        <div className='h-full flex flex-row space-x-2 items-center'>
                             <label className='flex flex-row items-center'>
                                 <input 
                                     required
@@ -618,12 +620,12 @@ function DataEntry() {
                     </button> */}
                 </div>
                 <div className="w-full sticky top-0 p-3 grid grid-cols-7 gap-x-4 bg-gray-200">
-                    <div className="text-sm py-2 text-left">SI NO</div>
-                    <div className="text-sm py-2 text-left">ARTICLE</div>
-                    <div className="text-sm py-2 text-left">COLOUR</div>
-                    <div className="text-sm py-2 text-left">MODEL</div>
-                    <div className="text-sm py-2 text-left">CATEGORY</div>
-                    <div className="text-sm py-2 text-left">SIZE</div>
+                    <div className="text-sm py-2 text-left text-sm">SI NO</div>
+                    <div className="text-sm py-2 text-left text-sm">ARTICLE</div>
+                    <div className="text-sm py-2 text-left text-sm">COLOUR</div>
+                    <div className="text-sm py-2 text-left text-sm">MODEL</div>
+                    <div className="text-sm py-2 text-left text-sm">CATEGORY</div>
+                    <div className="text-sm py-2 text-left text-sm">SIZE</div>
                 </div>
 
                 {renderInputRow()}

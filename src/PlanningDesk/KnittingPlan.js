@@ -24,6 +24,7 @@ function KnittingPlan() {
     const [modelSelectList, setModelSelectList] = useState([])
     const [categorySelectList, setCategorySelectList] = useState([])
 
+    const [requirementsData, setRequirementsData] = useState([])
 
     const [spareData, setSpareData] = useState([])
     const [dispData, setDispData] = useState([]) //data displayed
@@ -55,19 +56,40 @@ function KnittingPlan() {
 
     const filterKeys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
     const [tempSizeAndQty, setTempSizeAndQty] = useState([])
+    const [enableCaseQtyInput, setEnableCaseQtyInput] = useState(-1)
 
     const [newKnittingPlan, setNewKnittingPlan] = useState({
         planCode:"",
+        planType:"",
+        // remarks:""
+        date:"",
         article:"",
         colour:"",
         model:"",
         category:"",
-        size:"",
-        leftQty:"",
-        rightQty:"",
-        planType:"",
-        remarks:""
+        region:"",
+        sizeGrid:"",
+        caseQty:"",
+        packingComb:"",
+        date:""
     })
+
+    useEffect(() => {
+        const reqRef = ref(db, 'requirementsData/');
+
+        onValue(reqRef, (snapshot) => {
+            const data = snapshot.val();
+
+            var reqArray=[];
+            for(var key in data)
+            {
+                var item=data[key]
+                reqArray.push(item)
+            }
+            
+            setRequirementsData([...reqArray])
+        });
+    }, [])
 
     useEffect(() => {
         const articleRef = ref(db, 'articleData/');
@@ -97,6 +119,7 @@ function KnittingPlan() {
 
             console.log("article select list : ",tempArticleList)
 
+            //Article select list is the list of articles that should come in the article select input dropdown
             setArticleSelectList([...tempArticleList])
             // setSpareData(spareArray);
             // setLoading(false);
@@ -151,15 +174,18 @@ function KnittingPlan() {
 
                 setNewKnittingPlan({
                     planCode:"",
+                    planType:"",
+                    // remarks:""
+                    date:"",
                     article:"",
                     colour:"",
                     model:"",
                     category:"",
-                    size:"",
-                    leftQty:"",
-                    rightQty:"",
-                    planType:"",
-                    remarks:""
+                    region:"",
+                    sizeGrid:"",
+                    caseQty:"",
+                    packingComb:"",
+                    date:""
                 })
             })
             .catch((error)=>{
@@ -214,7 +240,133 @@ function KnittingPlan() {
 		XLSX.writeFile(wb, "sheetjs.xlsx");
     }
 
+    const RenderRequirementItem=(item, index)=>{
 
+        return (
+            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
+            <div className='flex flex-col w-full border-solid border-b border-gray-400 p-3 bg-gray-200'>
+                {enableCaseQtyInput==index&&(<div className='grid grid-cols-12 gap-x-1 '>
+                    <div/><div/><div/><div/><div/><div/><div/><div/><div/><div/>
+                    <div className="text-sm py-2 col-span-2 text-left font-bold">ENTER REQUIRED CASE QTY</div>
+                </div>)}
+                <div key={index} className="grid grid-cols-12 gap-x-1 " >
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
+                    </div>
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.date}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.article}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.colour}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.model}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.region}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.sizeGrid}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center col-span-1">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.packingComb}</div>
+                    </div>
+
+                    {enableCaseQtyInput==index?(
+                        <div className='flex col-span-2 space-x-2'>
+                            <input 
+                                value={newKnittingPlan.caseQty}
+                                onChange={e=>{
+                                    setNewKnittingPlan({
+                                        ...item,
+                                        caseQty:e.target.value
+                                    })
+                                }}
+                                type="number" 
+                                className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                            />
+                            
+                            <div className='flex flex-row space-x-2 w-full'>
+                                <div 
+                                    onClick={()=>{
+                                        pushToDatabase()
+                                    }}
+                                    className='relative text-center rounded p-2 cursor-pointer bg-green-500 hover:bg-green-800 text-white font-medium'
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className='bg-green-400 w-2' fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+
+                                <button 
+                                    className='text-center rounded p-2 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
+                                    onClick={()=>{setEnableCaseQtyInput(-1)}}
+                                >
+                                        Cancel
+                                </button>
+
+                            </div>
+                        </div>
+                    )
+                    :(
+                        
+                        <>
+                            <div>
+                                
+                            </div>
+                            <button 
+                                className='text-center rounded py-2 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                onClick={()=>{setEnableCaseQtyInput(index)}}
+                            >
+                                Plan
+                            </button>
+                        </>
+                    )
+                    }
+
+                    {/* {enableCaseQtyInput==index&&(
+                        <div className='flex flex-row space-x-2'>
+                            <div 
+                                onClick={()=>{
+                                    pushToDatabase()
+                                }}
+                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className='bg-green-400 w-2' fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+
+                            <button 
+                                className='text-center rounded py-2 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
+                                onClick={()=>{setEnableCaseQtyInput(-1)}}
+                            >
+                                Cancel
+                        </button>
+
+                        </div>
+                    )} */}
+                </div>
+            </div>
+        )
+    }
 
     const backdropClickHandler = (event) => {
         if (event.target === event.currentTarget) {
@@ -222,114 +374,143 @@ function KnittingPlan() {
         }
     }
 
-    const RenderModal=()=>{
+    const RenderModal=(modalType)=>{
         var rowIndex=-1;
-        setModal(
-            <div className="flex flex-col bg-white h-auto w-5/12 rounded overflow-hidden p-2">
-                <div className="flex flex-row justify-end">
-                    {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg> */}
+        
+        if(modalType=='sizeAndQty')
+        {
 
-                    <svg onClick={()=>{setModal(null)}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+            setModal(
+                <div className="flex flex-col bg-white h-auto w-5/12 rounded overflow-hidden p-2">
+                    <div className="flex flex-row justify-end">
+                        {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg> */}
+    
+                        <svg onClick={()=>{setModal(null)}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                    
+                    {/* <div className='grid grid-cols-4 gap-4 text-sm p-3'>
+                        <div className='font-medium text-left'>Size</div>
+                        <div className='font-medium text-left'>Left Qty</div>
+                        <div className='font-medium text-left'>Right Qty</div>
+                    </div> */}
+    
+                    <table className='table-auto border-collapse border border-black p-1'>
+                        <tr className=''>
+                            <th className='font-medium text-left border-collapse border border-black p-1'>Size</th>
+                            <th className='font-medium text-left border-collapse border border-black p-1'>Left Qty</th>
+                            <th className='font-medium text-left border-collapse border border-black p-1'>Right Qty</th>
+                        </tr>
+                        <tbody>
+                            {articleData.map((item, index)=>{
+                                if(item.article==newKnittingPlan.article && item.colour==newKnittingPlan.colour && item.model==newKnittingPlan.model && item.category==newKnittingPlan.category)
+                                {
+                                    console.log("item.size : ",item.size)
+                                    
+                                    rowIndex++;
+                                    setTempSizeAndQty([...tempSizeAndQty,{size:item.size, leftQty:0, rightQty:0}])
+    
+                                    return (
+                                        <tr className='p-3'>
+                                            <td className='border-collapse border border-black p-1'>{item.size}</td>
+                                            <td className='border-collapse border border-black p-1'>
+                                                <input 
+                                                    value={newKnittingPlan.remarks}
+                                                    onChange={e=>{
+                                                        var mySizeAndQty=[...tempSizeAndQty]
+                                                        mySizeAndQty[rowIndex].leftQty=e.target.value
+                                                        setTempSizeAndQty([...mySizeAndQty])
+                                                    }}
+                                                    type="number" 
+                                                    className='ring-2 w-full ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                                                />
+                                            </td>
+                                            <td className='border-collapse border border-black p-1'>
+                                                <input 
+                                                    value={newKnittingPlan.remarks}
+                                                    onChange={e=>{
+                                                        var mySizeAndQty=[...tempSizeAndQty]
+                                                        mySizeAndQty[rowIndex].rightQty=e.target.value
+                                                        setTempSizeAndQty([...mySizeAndQty])
+                                                    }}
+                                                    type="number" 
+                                                    className='ring-2 w-full ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                                                />
+                                            </td>
+                                        </tr>
+                                    )
+                                }
+                            })}
+                        </tbody>
+                    </table>
                 </div>
-                
-                {/* <div className='grid grid-cols-4 gap-4 text-sm p-3'>
-                    <div className='font-medium text-left'>Size</div>
-                    <div className='font-medium text-left'>Left Qty</div>
-                    <div className='font-medium text-left'>Right Qty</div>
-                </div> */}
+            )
+        }
+        if(modalType=='planEntry')
+        {
+            setModal(
+                <div className="flex flex-col bg-white h-5/6 w-full mx-3 rounded overflow-hidden p-2">
+                    <div className="flex flex-row justify-end">
+                        {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg> */}
+    
+                        <svg onClick={()=>{setModal(null)}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
 
-                <table className='table-auto border-collapse border border-black p-1'>
-                    <tr className=''>
-                        <th className='font-medium text-left border-collapse border border-black p-1'>Size</th>
-                        <th className='font-medium text-left border-collapse border border-black p-1'>Left Qty</th>
-                        <th className='font-medium text-left border-collapse border border-black p-1'>Right Qty</th>
-                    </tr>
-                    <tbody>
-                        {articleData.map((item, index)=>{
-                            if(item.article==newKnittingPlan.article && item.colour==newKnittingPlan.colour && item.model==newKnittingPlan.model && item.category==newKnittingPlan.category)
-                            {
-                                console.log("item.size : ",item.size)
-                                
-                                rowIndex++;
-                                setTempSizeAndQty([...tempSizeAndQty,{size:item.size, leftQty:0, rightQty:0}])
+                    <div className="w-full sticky top-0 p-3 grid grid-cols-12 gap-1 font-bold">
+                        <div className="text-sm py-2 text-left">SI NO</div>
+                        <div className="text-sm py-2 text-left">DATE</div>
+                        <div className="text-sm py-2 text-left">ARTICLE</div>
+                        <div className="text-sm py-2 text-left">COLOUR</div>
+                        <div className="text-sm py-2 text-left">MODEL</div>
+                        <div className="text-sm py-2 text-left">CATEGORY</div>
+                        <div className="text-sm py-2 text-left">REGION</div>
+                        <div className="text-sm py-2 text-left">SIZE GRID</div>
+                        <div className="text-sm py-2 text-left">CASE QTY</div>
+                        <div className="text-sm py-2 col-span-2 text-left">PCKNG COMB</div>
+                    </div>
+                    
+                    {requirementsData.map((reqItem,index)=>RenderRequirementItem(reqItem, index))}
 
-                                return (
-                                    <tr className='p-3'>
-                                        <td className='border-collapse border border-black p-1'>{item.size}</td>
-                                        <td className='border-collapse border border-black p-1'>
-                                            <input 
-                                                value={newKnittingPlan.remarks}
-                                                onChange={e=>{
-                                                    var mySizeAndQty=[...tempSizeAndQty]
-                                                    mySizeAndQty[rowIndex].leftQty=e.target.value
-                                                    setTempSizeAndQty([...mySizeAndQty])
-                                                }}
-                                                type="number" 
-                                                className='ring-2 w-full ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                                            />
-                                        </td>
-                                        <td className='border-collapse border border-black p-1'>
-                                            <input 
-                                                value={newKnittingPlan.remarks}
-                                                onChange={e=>{
-                                                    var mySizeAndQty=[...tempSizeAndQty]
-                                                    mySizeAndQty[rowIndex].rightQty=e.target.value
-                                                    setTempSizeAndQty([...mySizeAndQty])
-                                                }}
-                                                type="number" 
-                                                className='ring-2 w-full ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                                            />
-                                        </td>
-                                    </tr>
-                                )
-                            }
-                        })}
-                    </tbody>
-                </table>
+                    {/* <div className="w-full sticky bottom-0 p-3">
+                        {enableCaseQtyInput!=-1&&(
+                            <div className='flex flex-row space-x-2'>
+                                <div 
+                                    onClick={()=>{
+                                        pushToDatabase()
+                                    }}
+                                    className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className='bg-green-400 w-2' fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
 
-                {/* <div className='h-auto max-h-56 flex flex-col overflow-y-scroll w-full p-2 space-y-2'>
-                    {tempSizeList.map((size,index)=>(
-                        <div className='grid grid-cols-4 gap-4'>
-                            <div className='text-left'>
-                                {size}        
+                                <button 
+                                    className='text-center rounded py-2 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
+                                    onClick={()=>{setEnableCaseQtyInput(-1)}}
+                                >
+                                        Cancel
+                                </button>
+
                             </div>
-                            <div className='text-left'>
-                                {tempLeftQty[index]}
-                            </div>
-                            <div className='text-left'>
-                                {tempRightQty[index]}
-                            </div>
-                            <div 
-                                onClick={()=>{
-                                    var tempArr=[...tempSizeList]
-                                    tempArr.splice(index,1)
-                                    setTempSizeList([...tempArr])
-                                    var tempArr=[...tempLeftQtyList]
-                                    tempArr.splice(index,1)
-                                    setTempLeftQtyList([...tempArr])
-                                    var tempArr=[...tempRightQtyList]
-                                    tempArr.splice(index,1)
-                                    setTempRightQtyList([...tempArr])
-                                }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                            >
-                                Delete
-                            </div>
-                        </div>
-                    ))}
-                </div> */}
-            </div>
-        )
+                        )}
+                    </div> */}
+                </div>
+            )
+        }
     }
 
     useEffect(() => {
         if(Modal)
-            RenderModal()
-    }, [tempSize, tempLeftQty, tempRightQty, tempSizeList, tempLeftQtyList, tempRightQtyList]);
+            RenderModal('planEntry')
+    }, [newKnittingPlan.caseQty,enableCaseQtyInput]);
 
     const RenderItem=({item, index})=>{
         var rowclass=" w-full p-2 grid grid-cols-8 gap-2 text-sm "
@@ -584,7 +765,7 @@ function KnittingPlan() {
                 </div>
 
                 <div 
-                    onClick={()=>{RenderModal()}}
+                    onClick={()=>{RenderModal('sizeAndQty')}}
                     className='relative col-span-2 text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
                 >
                     Enter size and quantities
@@ -614,7 +795,7 @@ function KnittingPlan() {
     return (
         <div className="pb-2 bg-blue-50 h-full px-3">
             {Modal&&(
-                <div onClick={backdropClickHandler} className="bg-black z-20 bg-opacity-80 fixed inset-0 flex justify-center items-center">
+                <div onClick={backdropClickHandler} className="h-full bg-black z-20 bg-opacity-80 fixed inset-0 flex justify-center items-center">
                     {Modal}
                 </div>)
             }
@@ -626,6 +807,13 @@ function KnittingPlan() {
                         <input  
                             type="date" 
                             className="w-fit py-2 focus:outline-none" 
+                            value={newKnittingPlan.date}
+                            onChange={e=>{
+                                setNewKnittingPlan({
+                                    ...newKnittingPlan,
+                                    date: e.target.value
+                                })
+                            }}  
                         />
                     </div>
 
@@ -661,22 +849,29 @@ function KnittingPlan() {
                 </div> */}
             </div>
 
-            <div className='w-full bg-white rounded p-3 my-2'>
-                {/* <RenderInputRow/> */}
+            {/* <div className='w-full bg-white rounded p-3 my-2'>
                 {RenderInputRow()}
-            </div>
+            </div> */}
             
-            
-            <div className="flex flex-col h-lg space-y-2 items-center justify center items-center bg-white rounded p-4">
+            <div className="flex flex-col h-xxl space-y-2 items-center justify center items-center bg-white rounded p-4">
                 <div className='flex flex-row justify-between w-full align-center'>
                     <div className='font-semibold text-lg'>Knitting Planning Sheet</div>
 
-                    <button
-                        className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
-                        onClick={()=>{DownloadExcel(spareData)}}
-                    >
-                            Export Excel
-                    </button>
+                    <div className='flex flex-row space-x-2'>
+                        <button
+                            className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
+                            onClick={()=>{DownloadExcel(spareData)}}
+                        >
+                                Export Excel
+                        </button>
+
+                        <div 
+                            className='text-center rounded py-2 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                            onClick={()=>{RenderModal('planEntry')}}
+                        >
+                            Enter new Plan
+                        </div>
+                    </div>
                 </div>
                 <div className="w-full sticky top-0 p-3 grid grid-cols-11 gap-1 bg-gray-200">
                     <div className="text-sm py-2 text-left">SI NO</div>
@@ -691,19 +886,6 @@ function KnittingPlan() {
                     <div className="text-sm py-2 text-left">PLAN TYPE</div>
                     <div className="text-sm py-2 text-left">REMARKS</div>
                 </div>
-{/*                 
-                {
-                    loading && 
-                    (
-                        <div className="w-full h-full mt-24" >
-                            <div className="w-full h-full flex justify-center items-center space-x-5 mt-24">
-                                <div
-                                    className="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-500"
-                                />
-                            </div>
-                        </div>
-                    )
-                } */}
                 
                 {renderItems}
             </div>

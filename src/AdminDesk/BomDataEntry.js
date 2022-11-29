@@ -199,7 +199,7 @@ function BOMDataEntry() {
 
     const Submenu =({item, index})=> {
         return (
-            <div className="nav__submenu drop-shadow-sm rounded text-sm p-1 divide-y divide-gray-500">
+            <div className="nav__submenu drop-shadow-sm ring-1 ring-black rounded text-sm p-1 divide-y divide-gray-500">
                 <div 
                     className="w-fit whitespace-nowrap px-2 py-1 font-medium cursor-pointer text-xs hover:bg-gray-200 hover:text-blue-500"
                     onClick={()=>{
@@ -229,28 +229,28 @@ function BOMDataEntry() {
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
             <div key={index} className="grid grid-cols-10 gap-x-4 border-solid border-b border-gray-400 p-3 bg-gray-200" >
                 <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
+                    <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{index+1}</div>
                 </div>
 
                 {item.edit!=true&&(<>
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.item}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.item}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.consumptionPerUnit}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.consumptionPerUnit}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.unit}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.unit}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.itemType}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.itemType}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-center">
                             {item.clicking
                             ?
                             // <img src="green-tick.png" height="20" className='h-2'/>
@@ -263,7 +263,7 @@ function BOMDataEntry() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-center">
                             {item.printing
                             ?
                             // <img src="green-tick.png" height="20" className='h-2'/>
@@ -276,7 +276,7 @@ function BOMDataEntry() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-center">
                             {item.stitching
                             ?
                             // <img src="green-tick.png" height="20" className='h-2'/>
@@ -289,7 +289,7 @@ function BOMDataEntry() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-center">
                             {item.stuckon
                             ?
                             // <img src="green-tick.png" height="20" className='h-2'/>
@@ -485,19 +485,19 @@ function BOMDataEntry() {
                         </svg>
                     </div> */}
 
-                    <div
-                        className="nav__menu-item flex items-center"
-                    >
-                        {/* <a className=''><MenuDots className='h-6'/></a> */}
-                        <div className='cursor-pointer bg-gray-300 rounded-full font-medium w-1/2 aspect-square'>
-                            {/* <MenuDots className='h-3 '/> */}
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="64" r="16"/><circle cx="128" cy="128" r="16"/><circle cx="128" cy="192" r="16"/></svg>
+                    <div className='flex items-center justify-center'>
+                        <div
+                            className="nav__menu-item w-1/3"
+                        >
+                            {/* <a className=''><MenuDots className='h-6'/></a> */}
+                            <div className='cursor-pointer bg-gray-300 rounded-full font-medium aspect-square'>
+                                {/* <MenuDots className='h-3 '/> */}
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="64" r="16"/><circle cx="128" cy="128" r="16"/><circle cx="128" cy="192" r="16"/></svg>
+                            </div>
+                            <Submenu item={item} index={index}/>
                         </div>
-                        <Submenu item={item} index={index}/>
                     </div>
                 </div>
-
-               
             </div>
         )
     }
@@ -716,15 +716,15 @@ function BOMDataEntry() {
                     </button> */}
                 </div>
                 <div className="w-full sticky top-0 p-3 grid grid-cols-10 gap-x-4 bg-gray-200">
-                    <div className="text-sm py-2 text-center">SI NO</div>
-                    <div className="text-sm py-2 text-center">ITEM</div>
-                    <div className="text-sm py-2 text-center">CONSUMPTION PER UNIT</div>
-                    <div className="text-sm py-2 text-center">UNIT</div>
-                    <div className="text-sm py-2 text-center">ITEM TYPE</div>
-                    <div className="text-sm py-2 text-center">CLICKING</div>
-                    <div className="text-sm py-2 text-center">PRINTING</div>
-                    <div className="text-sm py-2 text-center">STITCHING</div>
-                    <div className="text-sm py-2 text-center">STUCKON</div>
+                    <div className="text-sm py-2 text-left text-sm">SI NO</div>
+                    <div className="text-sm py-2 text-left text-sm">ITEM</div>
+                    <div className="text-sm py-2 text-left text-sm">CONSUMPTION PER UNIT</div>
+                    <div className="text-sm py-2 text-left text-sm">UNIT</div>
+                    <div className="text-sm py-2 text-left text-sm">ITEM TYPE</div>
+                    <div className="text-sm py-2 text-left text-sm">CLICKING</div>
+                    <div className="text-sm py-2 text-left text-sm">PRINTING</div>
+                    <div className="text-sm py-2 text-left text-sm">STITCHING</div>
+                    <div className="text-sm py-2 text-left text-sm">STUCKON</div>
                 </div>
 
                 {renderInputRow()}

@@ -175,6 +175,8 @@ function RequirementEntry() {
             set(newReqRef, {
                 ...newRequirement,
                 packingComb: packageInput.join(','),
+                leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).jojn(','),
+                rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).jojn(','),
                 id:newReqRef.key
             })
             .then((ref)=>{

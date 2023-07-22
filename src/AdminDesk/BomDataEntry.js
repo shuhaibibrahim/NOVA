@@ -303,7 +303,7 @@ function BOMDataEntry() {
                 </>)}
 
                 {item.edit&&(<>
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={editData.item.toUpperCase()}
                             onChange={e=>{
@@ -318,7 +318,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={editData.consumptionPerUnit.toUpperCase()}
                             onChange={e=>{
@@ -333,7 +333,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={editData.unit.toUpperCase()}
                             onChange={e=>{
@@ -348,7 +348,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         {/* <input 
                             value={editData.itemType.toUpperCase()}
                             onChange={e=>{
@@ -380,7 +380,7 @@ function BOMDataEntry() {
                         </select>
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             checked={editData.clicking}
                             value={editData.clicking}
@@ -396,7 +396,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             checked={editData.printing}
                             value={editData.printing}
@@ -412,7 +412,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             checked={editData.stitching}
                             value={editData.stitching}
@@ -428,7 +428,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             checked={editData.stuckon}
                             value={editData.stuckon}
@@ -467,7 +467,7 @@ function BOMDataEntry() {
                             setBomData([...tempbomData].reverse())
                             editItem(item);
                         }}
-                        className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                        className='flex items-center justify-center rounded cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -514,7 +514,7 @@ function BOMDataEntry() {
                 }}
             >
                 <div className='text-left text-sm font-semibold'>New Entry : </div>
-                <div className="flex w-full flex flex-col items-start justify-items-start">
+                <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={newbomData.item.toUpperCase()}
                             onChange={e=>{
@@ -528,7 +528,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={newbomData.consumptionPerUnit.toUpperCase()}
                             onChange={e=>{
@@ -542,7 +542,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={newbomData.unit.toUpperCase()}
                             onChange={e=>{
@@ -556,7 +556,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         {/* <input 
                             value={newbomData.itemType.toUpperCase()}
                             onChange={e=>{
@@ -586,7 +586,7 @@ function BOMDataEntry() {
                         </select>
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             checked={newbomData.clicking}
                             value={newbomData.clicking}
@@ -601,7 +601,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             checked={newbomData.printing}
                             value={newbomData.printing}
@@ -616,7 +616,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             checked={newbomData.stitching}
                             value={newbomData.stitching}
@@ -631,7 +631,7 @@ function BOMDataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             checked={newbomData.stuckon}
                             value={newbomData.stuckon}

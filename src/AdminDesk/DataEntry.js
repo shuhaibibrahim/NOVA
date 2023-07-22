@@ -255,7 +255,7 @@ function DataEntry() {
                 </>)}
 
                 {item.edit&&(<>
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={editData.article.toUpperCase()}
                             onChange={e=>{
@@ -270,7 +270,7 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={editData.colour.toUpperCase()}
                             onChange={e=>{
@@ -285,7 +285,7 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={editData.model.toUpperCase()}
                             onChange={e=>{
@@ -300,7 +300,7 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             value={editData.category.toUpperCase()}
                             onChange={e=>{
@@ -317,7 +317,7 @@ function DataEntry() {
 
 
 
-                    <div className="w-12/12 flex flex-row space-x-2 items-start justify-items-start">
+                    <div className="w-12/12 flex flex-row space-x-2 items-center justify-center">
                         <input 
                             value={editData.size}
                             onChange={e=>{
@@ -391,7 +391,7 @@ function DataEntry() {
                             setArticleData([...tempArticleData].reverse())
                             editItem(item);
                         }}
-                        className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                        className='flex items-center justify-center rounded cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -440,7 +440,7 @@ function DataEntry() {
                 }}
             >
                 <div className='text-left'>New Entry : </div>
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             required
                             value={newArticleData.article.toUpperCase()}
@@ -455,7 +455,7 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             required
                             value={newArticleData.colour.toUpperCase()}
@@ -470,7 +470,7 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             required
                             value={newArticleData.model.toUpperCase()}
@@ -485,7 +485,7 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
                             required
                             value={newArticleData.category.toUpperCase()}
@@ -500,7 +500,7 @@ function DataEntry() {
                         />
                     </div> 
 
-                    <div className="w-12/12 flex flex-row space-x-2 items-center justify-items-start">
+                    <div className="w-12/12 flex flex-row space-x-2 items-center justify-center">
                         <input 
                             required
                             value={newArticleData.size}

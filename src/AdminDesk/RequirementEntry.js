@@ -168,7 +168,7 @@ function RequirementEntry() {
 
     const pushToDatabase = () => {
             // setUpdateLoad(true)
-
+            console.log("pushToDatabase is called")
             const reqRef = ref(db, `requirementsData/`);
             const newReqRef = push(reqRef);
 
@@ -179,7 +179,7 @@ function RequirementEntry() {
                 rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).jojn(','),
                 id:newReqRef.key
             })
-            .then((ref)=>{
+            .then(()=>{
                 // setUpdateLoad(false)
                 alert("Successfully updated")
 
@@ -812,7 +812,7 @@ function RequirementEntry() {
                     <div 
                         className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
                         onClick={()=>{
-                            if(window.confirm("Update the knitting plan?"))
+                            if(window.confirm("Add new requirement?"))
                                 pushToDatabase()
                         }}
                     >

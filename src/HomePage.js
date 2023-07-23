@@ -12,7 +12,7 @@ function HomePage({setUser}) {
     const [hideSideBar, setHideSideBar] = useState(false)
 
     return (
-        <div className='h-screen flex flex-col'>
+        <div className='home-page h-full flex flex-col'>
             <Header heading="N O V A" setUser={setUser}/>
             <div className='flex h-full w-full flex-row'>
                 {/* <div className="p-12 flex flex-row items-center bg-blue-200 filter drop-shadow-lg w-full">

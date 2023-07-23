@@ -67,7 +67,7 @@ function App() {
   }, []);
 
   return (
-    <div className="App bg-slate-100">
+    <div className="App bg-slate-100 h-full">
       <BrowserRouter>
         <Routes >
             {!user&&(<Route path="/" element={<UserLogin />} />)}

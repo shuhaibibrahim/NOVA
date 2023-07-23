@@ -168,20 +168,19 @@ function RequirementEntry() {
 
     const pushToDatabase = () => {
             // setUpdateLoad(true)
-            console.log("pushToDatabase is called")
             const reqRef = ref(db, `requirementsData/`);
             const newReqRef = push(reqRef);
 
             set(newReqRef, {
                 ...newRequirement,
                 packingComb: packageInput.join(','),
-                leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).jojn(','),
-                rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).jojn(','),
+                leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
+                rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
                 id:newReqRef.key
             })
             .then(()=>{
                 // setUpdateLoad(false)
-                alert("Successfully updated")
+                console.log("Successfully updated")
 
                 // setNewRequirement({
                 //     date:"",
@@ -198,7 +197,7 @@ function RequirementEntry() {
                 // })
             })
             .catch((error)=>{
-                alert("Error while saving data : ",error)
+                console.log("Error while saving data : ",error)
             })            
     }
 

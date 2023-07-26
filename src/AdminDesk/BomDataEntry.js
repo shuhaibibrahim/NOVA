@@ -31,16 +31,15 @@ function BOMDataEntry() {
             <div className="text-blue-300 text-5xl">Nothing here !</div>
         </div>
     )
-    const [editData, setEditData] = useState({
+
+    var bomStruct={
         item:"",
-        consumptionPerUnit:"",
-        unit:"",
-        itemType:"",
-        clicking:false,
-        printing:false,
-        stitching:false,
-        stuckon:false
-    })
+        process:""
+    }
+    const [newbomData, setNewbomData] = useState({...bomStruct})
+    
+    const [editData, setEditData] = useState({...bomStruct})
+    
     const [editingInputElement, setEditingInputElement] = useState(null)
 
     const [modalIndex, setModalIndex] = useState(0)
@@ -63,16 +62,7 @@ function BOMDataEntry() {
 
     const filterKeys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
 
-    const [newbomData, setNewbomData] = useState({
-        item:"",
-        consumptionPerUnit:"",
-        unit:"",
-        itemType:"",
-        clicking:false,
-        printing:false,
-        stitching:false,
-        stuckon:false
-    })
+    
 
     const deleteFromDatabase=(item)=>{
 
@@ -97,16 +87,7 @@ function BOMDataEntry() {
                 id:newbomRef.key
             })
             .then((ref)=>{
-                // setUpdateLoad(false)
-                // alert("Successfully updated")
-
-                // setNewbomData({
-                //     article:"",
-                //     colour:"",
-                //     model:"",
-                //     category:"",
-                //     size:""
-                // })
+                console.log(newbomData)
             })
             .catch((error)=>{
                 alert("Error while saving data : ",error)
@@ -238,67 +219,7 @@ function BOMDataEntry() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.consumptionPerUnit}</div>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.unit}</div>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.itemType}</div>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-center">
-                            {item.clicking
-                            ?
-                            // <img src="green-tick.png" height="20" className='h-2'/>
-                            <span className='text-sm font-bold text-green-500'>yes</span>
-                            :
-                            // <img src="red-cross.png" height="20" className='h-2'/>
-                            <span className='text-sm font-bold text-red-500'>no</span>
-                            }
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-center">
-                            {item.printing
-                            ?
-                            // <img src="green-tick.png" height="20" className='h-2'/>
-                            <span className='text-sm font-bold text-green-500'>yes</span>
-                            :
-                            // <img src="red-cross.png" height="20" className='h-2'/>
-                            <span className='text-sm font-bold text-red-500'>no</span>
-                            }
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-center">
-                            {item.stitching
-                            ?
-                            // <img src="green-tick.png" height="20" className='h-2'/>
-                            <span className='text-sm font-bold text-green-500'>yes</span>
-                            :
-                            // <img src="red-cross.png" height="20" className='h-2'/>
-                            <span className='text-sm font-bold text-red-500'>no</span>
-                            }
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-center">
-                            {item.stuckon
-                            ?
-                            // <img src="green-tick.png" height="20" className='h-2'/>
-                            <span className='text-sm font-bold text-green-500'>yes</span>
-                            :
-                            // <img src="red-cross.png" height="20" className='h-2'/>
-                            <span className='text-sm font-bold text-red-500'>no</span>
-                            }
-                        </div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.process}</div>
                     </div>
                 </>)}
 
@@ -319,130 +240,26 @@ function BOMDataEntry() {
                     </div> 
 
                     <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            value={editData.consumptionPerUnit.toUpperCase()}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    consumptionPerUnit: e.target.value.toUpperCase()
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            value={editData.unit.toUpperCase()}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    unit: e.target.value.toUpperCase()
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        {/* <input 
-                            value={editData.itemType.toUpperCase()}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    itemType: e.target.value.toUpperCase()
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        /> */}
                         <select
                             className='bg-white text-sm w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                             onChange={e=>{
                                 setEditingInputElement(e.target)
                                 setEditData({
                                     ...editData,
-                                    itemType: e.target.value.toUpperCase()
+                                    process: e.target.value.toUpperCase()
                                 })
                             }}
                         >
                             <option>--select--</option>
-                            <option value="Raw material">Raw material</option>
-                            <option value="Knitted">Knitted</option>
-                            <option value="SFG">SFG</option>
-                            <option value="FIU">FIU</option>
-                            <option value="Pair">Pair</option>
+                            <option value="Knitting">Knitting</option>
+                            <option value="Clicking">Clicking</option>
+                            <option value="Printing">Printing</option>
+                            <option value="Embossing">Embossing</option>
+                            <option value="Stitching">Stitching</option>
+                            <option value="Strobling">Strobling</option>
+                            <option value="Stuckon">Stuckon</option>
                         </select>
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            checked={editData.clicking}
-                            value={editData.clicking}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    clicking: !editData.clicking
-                                })
-                            }}
-                            type="checkbox" 
-                            className='w-fit self-center ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            checked={editData.printing}
-                            value={editData.printing}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    printing: !editData.printing
-                                })
-                            }}
-                            type="checkbox" 
-                            className='w-fit self-center ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            checked={editData.stitching}
-                            value={editData.stitching}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    stitching: !editData.stitching
-                                })
-                            }}
-                            type="checkbox" 
-                            className='w-fit self-center ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            checked={editData.stuckon}
-                            value={editData.stuckon}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    stuckon: !editData.stuckon
-                                })
-                            }}
-                            type="checkbox" 
-                            className='w-fit self-center ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
+                    </div>  
                 </>)}
 
                 <div className='grid grid-cols-2 gap-x-2'>
@@ -515,142 +332,56 @@ function BOMDataEntry() {
             >
                 <div className='text-left text-sm font-semibold'>New Entry : </div>
                 <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            value={newbomData.item.toUpperCase()}
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    item: e.target.value.toUpperCase()
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            value={newbomData.consumptionPerUnit.toUpperCase()}
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    consumptionPerUnit: e.target.value.toUpperCase()
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            value={newbomData.unit.toUpperCase()}
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    unit: e.target.value.toUpperCase()
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        {/* <input 
-                            value={newbomData.itemType.toUpperCase()}
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    itemType: e.target.value.toUpperCase()
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        /> */}
-                        <select
-                            className='bg-white text-sm w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    itemType: e.target.value.toUpperCase()
-                                })
-                            }}
-                        >
-                            <option value="">--select--</option>
-                            <option value="Raw material">Raw material</option>
-                            <option value="Knitted">Knitted</option>
-                            <option value="SFG">SFG</option>
-                            <option value="FIU">FIU</option>
-                            <option value="Pair">Pair</option>
-                        </select>
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            checked={newbomData.clicking}
-                            value={newbomData.clicking}
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    clicking: !newbomData.clicking
-                                })
-                            }}
-                            type="checkbox" 
-                            className='w-fit self-center ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            checked={newbomData.printing}
-                            value={newbomData.printing}
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    printing: !newbomData.printing
-                                })
-                            }}
-                            type="checkbox" 
-                            className='w-fit self-center ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            checked={newbomData.stitching}
-                            value={newbomData.stitching}
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    stitching: !newbomData.stitching
-                                })
-                            }}
-                            type="checkbox" 
-                            className='w-fit self-center ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <div className="flex w-full flex flex-col items-start justify-center">
-                        <input 
-                            checked={newbomData.stuckon}
-                            value={newbomData.stuckon}
-                            onChange={e=>{
-                                setNewbomData({
-                                    ...newbomData,
-                                    stuckon: !newbomData.stuckon
-                                })
-                            }}
-                            type="checkbox" 
-                            className='w-fit self-center ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
-                    <input
-                        type="submit" 
-                        className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                        value="Add"
+                    <input 
+                        value={newbomData.item.toUpperCase()}
+                        onChange={e=>{
+                            setNewbomData({
+                                ...newbomData,
+                                item: e.target.value.toUpperCase()
+                            })
+                        }}
+                        type="text" 
+                        className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                     />
+                </div> 
+
+                <div className="flex w-full flex flex-col items-start justify-center">
+                    {/* <input 
+                        value={newbomData.itemType.toUpperCase()}
+                        onChange={e=>{
+                            setNewbomData({
+                                ...newbomData,
+                                itemType: e.target.value.toUpperCase()
+                            })
+                        }}
+                        type="text" 
+                        className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                    /> */}
+                    <select
+                        className='bg-white text-sm w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                        onChange={e=>{
+                            setNewbomData({
+                                ...newbomData,
+                                process: e.target.value.toUpperCase()
+                            })
+                        }}
+                    >
+                        <option>--select--</option>
+                        <option value="Knitting">Knitting</option>
+                        <option value="Clicking">Clicking</option>
+                        <option value="Printing">Printing</option>
+                        <option value="Embossing">Embossing</option>
+                        <option value="Stitching">Stitching</option>
+                        <option value="Strobling">Strobling</option>
+                        <option value="Stuckon">Stuckon</option>
+                    </select>
+                </div> 
+
+                <input
+                    type="submit" 
+                    className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                    value="Add"
+                />
             </form>
         )
     }
@@ -718,13 +449,7 @@ function BOMDataEntry() {
                 <div className="w-full sticky top-0 p-3 grid grid-cols-10 gap-x-4 bg-gray-200">
                     <div className="text-sm py-2 text-left text-sm">SI NO</div>
                     <div className="text-sm py-2 text-left text-sm">ITEM</div>
-                    <div className="text-sm py-2 text-left text-sm">CONSUMPTION PER UNIT</div>
-                    <div className="text-sm py-2 text-left text-sm">UNIT</div>
-                    <div className="text-sm py-2 text-left text-sm">ITEM TYPE</div>
-                    <div className="text-sm py-2 text-left text-sm">CLICKING</div>
-                    <div className="text-sm py-2 text-left text-sm">PRINTING</div>
-                    <div className="text-sm py-2 text-left text-sm">STITCHING</div>
-                    <div className="text-sm py-2 text-left text-sm">STUCKON</div>
+                    <div className="text-sm py-2 text-left text-sm">PROCESS</div>
                 </div>
 
                 {renderInputRow()}

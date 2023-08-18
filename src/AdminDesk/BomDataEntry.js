@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import { db} from "../firebase_config";
-import { ref, set, push, onValue, remove } from "firebase/database";
+import { ref, set, push, onValue, remove, update, query, orderByChild, equalTo, orderByKey } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 
@@ -26,19 +26,44 @@ function BOMDataEntry() {
     const [dispData, setDispData] = useState([]) //data displayed
     const [Modal, setModal] = useState(null)
     const [search, setSearch] = useState("")
+    const [rawMaterialsData, setRawMaterialsData] = useState([])
     const [renderItems, setRenderItems] = useState(
         <div className="flex items-center justify-center w-full h-full">
             <div className="text-blue-300 text-5xl">Nothing here !</div>
         </div>
     )
 
+    const [currentBomId, setCurrentBomId] = useState("")
+
     var bomStruct={
         item:"",
         process:""
     }
+
+    var rawMaterialStruct={
+        rawMaterialName:"",
+        unit:"",
+        leftSizes:"", // "5:3,6:5,7:4,8:1,9:4,10:8,11:7" comma separated string of size and quantity separated by :
+        rightSizes:"" // similar to leftSizes
+    }
+
     const [newbomData, setNewbomData] = useState({...bomStruct})
     
     const [editData, setEditData] = useState({...bomStruct})
+
+    const [bomIds, setBomIds] = useState("")
+
+    const [newRawMaterialData, setNewRawMaterialData] = useState({...rawMaterialStruct})
+
+    const [rawMaterialEditData, setRawMaterialEditData] = useState({...rawMaterialStruct})
+
+    const [leftSizes, setLeftSizes] = useState({})
+
+    const [rightSizes, setRightSizes] = useState({})
+
+    const [leftSizesEditData, setLeftSizesEditData] = useState({})
+
+    const [rightSizesEditData, setRightSizesEditData] = useState({})
     
     const [editingInputElement, setEditingInputElement] = useState(null)
 
@@ -62,16 +87,119 @@ function BOMDataEntry() {
 
     const filterKeys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
 
+    //UseEffects
     
+    useEffect(() => {
+        const articleBomRef=ref(db, `articleData/${articleItem.id}/bomIds`);
+
+        onValue(articleBomRef, (snapshot) => {
+            var myBomIds=snapshot.val();
+            console.log("myBomIds : ",myBomIds)
+            setBomIds(myBomIds);
+        });
+    }, [])
+
+    useEffect(() => {
+        if(currentBomId!=undefined || currentBomId!="")
+        {
+            const rawMaterialsRef=query(ref(db, `bomDependentMaterials/`), orderByChild("bomId"), equalTo(`${currentBomId}`));
+
+            onValue(rawMaterialsRef, (snapshot) => {
+                // var myBomIds=snapshot.val();
+
+                console.log("raw material : ", snapshot.val())
+                var rawMaterials={...snapshot.val()}
+                var tempRawMaterialsData=[]
+                for(var key in rawMaterials)
+                {
+                    tempRawMaterialsData.push({
+                        ...rawMaterials[key],
+                        id:key
+                        
+                    })
+                }
+
+                setRawMaterialsData([...tempRawMaterialsData])
+            });
+        }
+    }, [currentBomId])
+    
+
+    useEffect(() => {
+        const bomRef = ref(db, `bomData/`);
+
+        onValue(bomRef, (snapshot) => {
+            console.log("MyBomData : ",snapshot.val())
+            console.log("bomids : ",bomIds)
+            const myBomData=snapshot.val()
+
+            // console.log()
+            if(myBomData!=null)
+            {
+                var bomArray=[];
+                for(var key in myBomData)
+                {
+                    var item=myBomData[key]
+                    
+                    if(bomIds.includes(item.id))
+                    {
+                        console.log(item)
+                        bomArray.push(item)
+                    }
+                    // spareArray.push(item)
+                }
+                
+                setBomData([...bomArray])
+            }
+            else
+                setBomData([])
+        });
+    }, [bomIds])
+    
+    useEffect(() => {
+        
+        if(bomData.length>0)
+        {
+            setRenderItems(
+                <div className='w-full h-full overflow-y-auto'>
+                    {[...bomData].reverse().map((item, index)=>RenderItem(item,index))}
+                    {/* <RenderInputRow/> */}
+                </div>
+            )
+
+        }
+        else
+        {
+            setRenderItems(        
+                <div/>
+            )
+        }
+    }, [bomData, editData])
+    
+    useEffect(() => {
+        if(Modal)
+            RenderModal()
+    }, [newRawMaterialData, rawMaterialEditData, rawMaterialsData, leftSizes, rightSizes, leftSizesEditData, rightSizesEditData]);
 
     const deleteFromDatabase=(item)=>{
 
-        if(window.confirm("Please confirm deleting "))
+        const articleRef = ref(db, `articleData/${articleItem.id}`);
+        if(window.confirm("Do you want to delete the BOM from this article? The Bom will be still available in the system!"))
         {
-            const bomRef = ref(db, `articleData/${articleItem.id}/bomData/${item.id}`); 
+            update(articleRef,{bomIds:bomIds.split(',').filter(bomid=>bomid!=item.id).join(',')})
+        }
+    }
+
+    const deleteRawMaterialFromDatabase=(item)=>{
+
         
-            remove(bomRef).then(()=>{
-                // alert("Removed article successfully")
+        const rawMaterialRef = ref(db, `bomDependentMaterials/${item.id}`);
+        if(window.confirm("Do you want to delete the BOM from this article? The Bom will be still available in the system!"))
+        {
+            remove(rawMaterialRef).then(()=>{
+            
+            }).catch(()=>{
+                alert("There was some error while deleting")
             })
         }
     }
@@ -79,7 +207,8 @@ function BOMDataEntry() {
     const pushToDatabase = () => {
             // setUpdateLoad(true)
 
-            const bomRef = ref(db, `articleData/${articleItem.id}/bomData/`);
+            const articleRef = ref(db, `articleData/${articleItem.id}`);
+            const bomRef = ref(db, `bomData/`);
             const newbomRef = push(bomRef);
 
             set(newbomRef, {
@@ -88,6 +217,7 @@ function BOMDataEntry() {
             })
             .then((ref)=>{
                 console.log(newbomData)
+                update(articleRef,{bomIds:bomIds!=undefined?bomIds+","+newbomRef.key:newbomRef.key})
             })
             .catch((error)=>{
                 alert("Error while saving data : ",error)
@@ -95,16 +225,62 @@ function BOMDataEntry() {
             })            
     }
 
+    const pushRawMaterialToBom = () => {
+        // setUpdateLoad(true)
+        const rawMaterialRef = ref(db, `bomDependentMaterials`);
+        const newRawMaterialRef = push(rawMaterialRef);
+
+        const rawMaterialEntryData={
+            ...newRawMaterialData,
+            leftSizes:Object.entries(leftSizes).map(([key,value])=>`${key}:${value}`).join(','),
+            rightSizes:Object.entries(rightSizes).map(([key,value])=>`${key}:${value}`).join(','),
+            bomId:currentBomId,
+            processed:false,
+            id:newRawMaterialRef.key
+        }
+
+        set(newRawMaterialRef, {
+            ...rawMaterialEntryData,
+        })
+        .then((ref)=>{
+            console.log(newbomData)
+        })
+        .catch((error)=>{
+            alert("Error while saving data : ",error)
+            console.log(error)
+        })            
+    }
+
     const editItem = (item) => {
         // setUpdateLoad(true)
         item={...editData, id:item.id}
-
-        const bomRef = ref(db, `articleData/${articleItem.id}/bomData/${item.id}`);
+        const bomRef = ref(db, `bomData/${item.id}`);
 
         set(bomRef, {
             ...item
         })
         .then((ref)=>{
+            // setUpdateLoad(false)
+            // alert("Successfully updated")
+        })
+        .catch((error)=>{
+            alert("Error while saving data : ",error)
+            console.log(error)
+        })            
+    }
+
+    const editRawMaterialItem = (item) => {
+        // setUpdateLoad(true)
+        item={...rawMaterialEditData, id:item.id}
+        const rawMaterialRef = ref(db, `bomDependentMaterials/${item.id}`);
+
+        
+        update(rawMaterialRef, {
+            rawMaterialName:rawMaterialEditData.rawMaterialName,
+            unit:rawMaterialEditData.unit,
+            leftSizes:Object.entries(leftSizesEditData).map(([key,value])=>`${key}:${value!=undefined?value:''}`).join(','),
+            rightSizes:Object.entries(rightSizesEditData).map(([key,value])=>`${key}:${value!=undefined?value:''}`).join(',')
+        }).then((ref)=>{
             // setUpdateLoad(false)
             // alert("Successfully updated")
         })
@@ -178,6 +354,244 @@ function BOMDataEntry() {
 		XLSX.writeFile(wb, "sheetjs.xlsx");
     }
 
+    const backdropClickHandler = (event) => {
+        if (event.target === event.currentTarget) {
+            setModal(null)
+        }
+    }
+
+    const RenderRawMaterialItem=(item, index)=>{
+
+        return (
+            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
+            <div key={index} className="flex flex-row space-x-4 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+                <div className="flex items-center justify-center">
+                    <div className="text-stone-900/30 w-10/12 text-sm text-left">{index+1}</div>
+                </div>
+                <div key={index} className="flex-1 grid grid-cols-11 gap-x-2 flex items-center" >
+
+                    {item.edit!=true&&(<>
+                        <div>
+                            {item.rawMaterialName}
+                        </div>
+                        <div>
+                            {item.unit}
+                        </div>
+                        <div className='text-left px-5 col-span-8'>
+                            <div className='py-1 grid grid-cols-8 gap-x-2'>
+                                <div className='w-full font-bold'>
+                                    <div>Left sizes</div>
+                                </div>
+                                {item.leftSizes.split(',').map((sizeQtyPair,index) => (
+                                    <div key={index + 5} className=''>
+                                    {sizeQtyPair}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className='py-1 grid grid-cols-8 gap-x-2'>
+                                <div className='w-full font-bold'>
+                                    <div>Right sizes</div>
+                                </div>
+                                {item.rightSizes.split(',').map((sizeQtyPair,index) => (
+                                    <div key={index + 5} className=''>
+                                    {sizeQtyPair}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </>)}
+
+                    {item.edit&&(<>
+                        <div>
+                            <input 
+                                type="text" 
+                                className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                value={rawMaterialEditData.rawMaterialName}
+                                onChange={e=>{setRawMaterialEditData(item=>({...item, rawMaterialName:e.target.value}))}}
+                            />
+                        </div>
+                        <div>
+                            <input 
+                                type="text" 
+                                className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                value={rawMaterialEditData.unit}
+                                onChange={e=>{setRawMaterialEditData(item=>({...item, unit:e.target.value}))}}
+                            />
+                        </div>
+                        
+                        <div className='text-left px-5 col-span-8'>
+                            <div className='py-1 grid grid-cols-8 gap-x-2'>
+                                
+                                <div className='w-full font-bold'>
+                                    <div>Left sizes</div>
+                                </div>
+                                {Array.from(Array(7).keys()).map(size => (
+                                    <div key={size + 5} className=''>
+                                    <label>
+                                        {size+5} :
+                                        <input
+                                            type="text"
+                                            className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                            value={leftSizesEditData[size+5]}
+                                            onChange={e=>{setLeftSizesEditData(item=>({...item, [size+5]:e.target.value}))}}
+                                        />
+                                    </label>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className='py-1 grid grid-cols-8 gap-x-2'>
+                                <div className='w-full font-bold'>
+                                    <div>Right sizes</div>
+                                </div>
+                                {Array.from(Array(7).keys()).map(size => (
+                                    <div key={size + 5} className=''>
+                                    <label>
+                                        {size+5} :
+                                        <input
+                                            type="text"
+                                            className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                            value={rightSizesEditData[size+5]}
+                                            onChange={e=>{setRightSizesEditData(item=>({...item, [size+5]:e.target.value}))}}
+                                        />
+                                    </label>
+                                    </div>
+                                ))}
+                            </div>  
+                        </div>
+                    </>)}
+
+                    <div className='grid grid-cols-2 gap-x-2 w-auto' style={{minWidth:'10%'}}>
+                        {item.edit&&(<div 
+                            onClick={()=>{
+                                var tempRawMaterialsData=[...rawMaterialsData].reverse()
+                                tempRawMaterialsData[index].edit=false
+                                setRawMaterialsData([...tempRawMaterialsData].reverse())
+                                editRawMaterialItem(item);
+                            }}
+                            className='flex items-center justify-center rounded cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>)}
+
+                        <div className='flex items-center justify-center'>
+                            <div
+                                className="nav__menu-item w-1/3"
+                            >
+                                {/* <a className=''><MenuDots className='h-6'/></a> */}
+                                <div className='cursor-pointer bg-gray-300 rounded-full font-medium aspect-square'>
+                                    {/* <MenuDots className='h-3 '/> */}
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="64" r="16"/><circle cx="128" cy="128" r="16"/><circle cx="128" cy="192" r="16"/></svg>
+                                </div>
+                                <SubmenuRawMaterial item={item} index={index}/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    const RenderModal=()=>{
+        setModal(
+            <div className="flex flex-col bg-white h-auto w-11/12 rounded overflow-hidden p-2 relative">
+                <div className="flex flex-row justify-end">
+                    {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg> */}
+
+                    <svg onClick={()=>{setModal(null)}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+
+                <div className='text-left px-5'>
+                    <div>
+                        <div className='grid grid-cols-10 gap-x-2'>
+                            <div className="w-full">Enter raw material</div>
+                            <div className="w-full">Enter the unit</div>
+                            <div className="w-full"></div>
+                            {Array.from(Array(7).keys()).map(size => (
+                                <div key={size + 5} className='2 font-bold w-full'>
+                                {size + 5}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div className='py-1 grid grid-cols-10 gap-x-2'>
+                            <div>
+                                <input 
+                                    type="text" 
+                                    className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                    value={newRawMaterialData.rawMaterialName}
+                                    onChange={e=>{setNewRawMaterialData(item=>({...item, rawMaterialName:e.target.value}))}}
+                                />
+                            </div>
+                            <div>
+                                <input 
+                                    type="text" 
+                                    className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                    value={newRawMaterialData.unit}
+                                    onChange={e=>{setNewRawMaterialData(item=>({...item, unit:e.target.value}))}}
+                                />
+                            </div>
+                            <div className='w-full grid grid-cols-2 font-bold'>
+                                <div>Left sizes</div>
+                                <div>:</div>
+                            </div>
+                            {Array.from(Array(7).keys()).map(size => (
+                                <div key={size + 5} className=''>
+                                <input
+                                    type="text"
+                                    className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                    value={leftSizes[size+5]}
+                                    onChange={e=>{setLeftSizes(item=>({...item, [size+5]:e.target.value}))}}
+                                />
+                                </div>
+                            ))}
+                        </div>
+                        <div className='py-1 grid grid-cols-10 gap-x-2'>
+                            <div className='w-full'></div>
+                            <div className='w-full'></div>
+                            <div className='w-full grid grid-cols-2 font-bold'>
+                                <div>Right sizes</div>
+                                <div>:</div>
+                            </div>
+                            {Array.from(Array(7).keys()).map(size => (
+                                <div key={size + 5} className=''>
+                                <input
+                                    type="text"
+                                    className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                    value={rightSizes[size+5]}
+                                    onChange={e=>{setRightSizes(item=>({...item, [size+5]:e.target.value}))}}
+                                />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className='flex justify-end w-full py-1'>
+                        <button 
+                            className='py-1 px-5 flex items-center justify-center rounded cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                            onClick={e=>{pushRawMaterialToBom()}}
+                        >
+                            Add raw material
+                        </button>
+                    </div>
+                </div>
+
+                <div className='flex-1 bg-gray-200 mx-5 mt-1 rounded overflow-y-hidden'>
+                    <div className='w-full h-full overflow-y-auto'>
+                        {[...rawMaterialsData].reverse().map((item, index)=>RenderRawMaterialItem(item,index))}
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     const Submenu =({item, index})=> {
         return (
             <div className="nav__submenu drop-shadow-sm ring-1 ring-black rounded text-sm p-1 divide-y divide-gray-500">
@@ -196,6 +610,44 @@ function BOMDataEntry() {
                     className="w-fit whitespace-nowrap px-2 py-1 font-medium cursor-pointer text-xs hover:bg-gray-200 hover:text-red-500"
                     onClick={()=>{
                         deleteFromDatabase(item);
+                    }}
+                >
+                    Delete
+                </div>
+            </div>
+        )
+    }
+
+    const SubmenuRawMaterial =({item, index})=> {
+        return (
+            <div className="nav__submenu drop-shadow-sm ring-1 ring-black rounded text-sm p-1 divide-y divide-gray-500">
+                <div 
+                    className="w-fit whitespace-nowrap px-2 py-1 font-medium cursor-pointer text-xs hover:bg-gray-200 hover:text-blue-500"
+                    onClick={()=>{
+                        setRawMaterialEditData({...item})
+                        var tmpLeftSizes={}
+                        item.leftSizes.split(',').map(sizeQtyPair=>{
+                            tmpLeftSizes[sizeQtyPair.split(':')[0]]=sizeQtyPair.split(':')[1]
+                        })
+                        var tmpRightSizes={}
+                        item.rightSizes.split(',').map(sizeQtyPair=>{
+                            tmpRightSizes[sizeQtyPair.split(':')[0]]=sizeQtyPair.split(':')[1]
+                        })
+
+                        setLeftSizesEditData({...tmpLeftSizes})
+                        setRightSizesEditData({...tmpRightSizes})
+
+                        var tempRawMaterialData=[...rawMaterialsData].reverse()
+                        tempRawMaterialData[index].edit=true
+                        setRawMaterialsData([...tempRawMaterialData].reverse())
+                    }}
+                >
+                    Edit
+                </div>
+                <div 
+                    className="w-fit whitespace-nowrap px-2 py-1 font-medium cursor-pointer text-xs hover:bg-gray-200 hover:text-red-500"
+                    onClick={()=>{
+                        deleteRawMaterialFromDatabase(item);
                     }}
                 >
                     Delete
@@ -261,6 +713,16 @@ function BOMDataEntry() {
                         </select>
                     </div>  
                 </>)}
+
+                <div 
+                    className='py-1 px-5 flex items-center justify-center rounded cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium col-span-2'
+                    onClick={()=>{
+                        setCurrentBomId(item.id)
+                        RenderModal()
+                    }}
+                >
+                    Add/Update raw materials
+                </div>
 
                 <div className='grid grid-cols-2 gap-x-2'>
                     {/* {item.edit!=true&&(<div 
@@ -386,54 +848,14 @@ function BOMDataEntry() {
         )
     }
 
-    useEffect(() => {
-        
-        if(bomData.length>0)
-        {
-            setRenderItems(
-                <div className='w-full h-full overflow-y-auto'>
-                    {[...bomData].reverse().map((item, index)=>RenderItem(item,index))}
-                    {/* <RenderInputRow/> */}
-                </div>
-            )
-
-        }
-        else
-        {
-            setRenderItems(        
-                <div/>
-            )
-        }
-    }, [bomData, editData])
-
-
-    useEffect(() => {
-        const bomRef = ref(db, `articleData/${articleItem.id}/bomData/`);
-
-        onValue(bomRef, (snapshot) => {
-            const data = snapshot.val();
-            // ;
-            console.log(snapshot.val())
-            if(data!=null)
-            {
-                var bomArray=[];
-                for(var key in data)
-                {
-                    var item=data[key]
-                    console.log(item)
-                    bomArray.push(item)
-                    // spareArray.push(item)
-                }
-                
-                setBomData([...bomArray])
-            }
-            else
-                setBomData([])
-        });
-    }, [])
-
     return (
         <div className="pb-2 pt-4 bg-blue-50 h-full px-3">
+
+            {Modal&&(
+                <div onClick={backdropClickHandler} className="bg-black z-20 bg-opacity-80 fixed inset-0 flex justify-center py-10">
+                    {Modal}
+                </div>)
+            }
             
             <div className="flex flex-col h-3xl space-y-2 items-center justify center items-center bg-white rounded p-4">
                 <div className='flex flex-row justify-between w-full align-center'>

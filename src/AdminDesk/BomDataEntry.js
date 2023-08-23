@@ -64,6 +64,10 @@ function BOMDataEntry() {
     const [leftSizesEditData, setLeftSizesEditData] = useState({})
 
     const [rightSizesEditData, setRightSizesEditData] = useState({})
+
+    const [selectedMaterialType, setSelectedMaterialType] = useState("processed")
+
+    const [stockData, setStockData] = useState([])
     
     const [editingInputElement, setEditingInputElement] = useState(null)
 
@@ -175,11 +179,31 @@ function BOMDataEntry() {
             )
         }
     }, [bomData, editData])
+
+    useEffect(() => {
+        const stockRef = ref(db, 'stockData/');
+
+        onValue(stockRef, (snapshot) => {
+            const data = snapshot.val();
+            // ;
+
+            var stockArray=[];
+            for(var key in data)
+            {
+                var item=data[key]
+                console.log(item)
+                stockArray.push(item)
+                // spareArray.push(item)
+            }
+            
+            setStockData([...stockArray])
+        });
+    }, [])
     
     useEffect(() => {
         if(Modal)
             RenderModal()
-    }, [newRawMaterialData, rawMaterialEditData, rawMaterialsData, leftSizes, rightSizes, leftSizesEditData, rightSizesEditData]);
+    }, [newRawMaterialData, rawMaterialEditData, rawMaterialsData, leftSizes, rightSizes, leftSizesEditData, rightSizesEditData, selectedMaterialType]);
 
     const deleteFromDatabase=(item)=>{
 
@@ -371,10 +395,10 @@ function BOMDataEntry() {
                 <div key={index} className="flex-1 grid grid-cols-11 gap-x-2 flex items-center" >
 
                     {item.edit!=true&&(<>
-                        <div>
+                        <div className='text-left'>
                             {item.rawMaterialName}
                         </div>
-                        <div>
+                        <div className='text-left'>
                             {item.unit}
                         </div>
                         <div className='text-left px-5 col-span-8'>
@@ -506,70 +530,119 @@ function BOMDataEntry() {
                     </svg>
                 </div>
 
-                <div className='text-left px-5'>
-                    <div>
-                        <div className='grid grid-cols-10 gap-x-2'>
-                            <div className="w-full">Enter raw material</div>
-                            <div className="w-full">Enter the unit</div>
-                            <div className="w-full"></div>
-                            {Array.from(Array(7).keys()).map(size => (
-                                <div key={size + 5} className='2 font-bold w-full'>
-                                {size + 5}
-                                </div>
-                            ))}
-                        </div>
+                <div className='text-left px-5 flex flex-col space-y-2 w-full'>
+                    <div className='flex flex-row space-x-2'>
+                        <label>
+                            Material type
+                            <select
+                                value={selectedMaterialType}
+                                onChange={e=>{
+                                    setSelectedMaterialType(e.target.value)
+                                    setNewRawMaterialData(item=>({
+                                        ...item,
+                                        rawMaterialName:"",
+                                        unit:""
+                                    }))
+                                }}
+                                className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                            >
+                                <option value="processed">Processed</option>
+                                <option value="not processed">Not processed</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Material
+                            {selectedMaterialType=="processed" && (
+                                <select
+                                    onChange={e=>{setNewRawMaterialData(item=>({...item, rawMaterialName:bomData.filter(item=>item.id===e.target.value)[0].item}))}}
+                                    className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                                >
+                                    <option>- SELECT -</option>
+                                    {bomData.map((item,index)=>(
+                                        <option key={index} value={item.id}>{item.item}</option>
+                                    ))}
+                                </select>
+                            )}
+                            
+                            {selectedMaterialType==="not processed" && (
+                                <select
+                                    onChange={e=>{
+                                        setNewRawMaterialData(item=>({...item, 
+                                            rawMaterialName:stockData.filter(item=>item.id===e.target.value)[0].materialName,
+                                            unit: stockData.filter(item=>item.id===e.target.value)[0].unit
+                                        }))
+                                    }}
+                                    className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                                >
+                                    <option>- SELECT -</option>
+                                    {stockData.map((item,index)=>(
+                                        <option key={index} value={item.id}>{item.materialName}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </label>
+
+                        {selectedMaterialType==="processed"&&(<label>
+                            Unit
+                            <input 
+                                type="text" 
+                                className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                value={newRawMaterialData.unit}
+                                onChange={e=>{setNewRawMaterialData(item=>({...item, unit:e.target.value}))}}
+                            />
+                        </label>)}
+
+                        {selectedMaterialType==="not processed"&& newRawMaterialData.unit!=="" &&(<label>
+                            Unit
+                            <div>{newRawMaterialData.unit}</div>
+                        </label>)}
                     </div>
-                    
-                    <div>
-                        <div className='py-1 grid grid-cols-10 gap-x-2'>
-                            <div>
-                                <input 
-                                    type="text" 
-                                    className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
-                                    value={newRawMaterialData.rawMaterialName}
-                                    onChange={e=>{setNewRawMaterialData(item=>({...item, rawMaterialName:e.target.value}))}}
-                                />
+                    <div className='w-full'>
+                        <div>
+                            <div className='grid grid-cols-10 gap-x-2'>
+                                <div className="w-full"></div>
+                                {Array.from(Array(9).keys()).map(size => (
+                                    <div key={size + 5} className='2 font-bold w-full'>
+                                    {size + 5}
+                                    </div>
+                                ))}
                             </div>
-                            <div>
-                                <input 
-                                    type="text" 
-                                    className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
-                                    value={newRawMaterialData.unit}
-                                    onChange={e=>{setNewRawMaterialData(item=>({...item, unit:e.target.value}))}}
-                                />
-                            </div>
-                            <div className='w-full grid grid-cols-2 font-bold'>
-                                <div>Left sizes</div>
-                                <div>:</div>
-                            </div>
-                            {Array.from(Array(7).keys()).map(size => (
-                                <div key={size + 5} className=''>
-                                <input
-                                    type="text"
-                                    className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
-                                    value={leftSizes[size+5]}
-                                    onChange={e=>{setLeftSizes(item=>({...item, [size+5]:e.target.value}))}}
-                                />
-                                </div>
-                            ))}
                         </div>
-                        <div className='py-1 grid grid-cols-10 gap-x-2'>
-                            <div className='w-full'></div>
-                            <div className='w-full'></div>
-                            <div className='w-full grid grid-cols-2 font-bold'>
-                                <div>Right sizes</div>
-                                <div>:</div>
-                            </div>
-                            {Array.from(Array(7).keys()).map(size => (
-                                <div key={size + 5} className=''>
-                                <input
-                                    type="text"
-                                    className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
-                                    value={rightSizes[size+5]}
-                                    onChange={e=>{setRightSizes(item=>({...item, [size+5]:e.target.value}))}}
-                                />
+                        
+                        <div>
+                            <div className='py-1 grid grid-cols-10 gap-x-2'>
+                                <div className='w-full grid grid-cols-2 font-bold'>
+                                    <div>Left sizes</div>
+                                    <div>:</div>
                                 </div>
-                            ))}
+                                {Array.from(Array(9).keys()).map(size => (
+                                    <div key={size + 5} className=''>
+                                    <input
+                                        type="text"
+                                        className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                        value={leftSizes[size+5]}
+                                        onChange={e=>{setLeftSizes(item=>({...item, [size+5]:e.target.value}))}}
+                                    />
+                                    </div>
+                                ))}
+                            </div>
+                            <div className='py-1 grid grid-cols-10 gap-x-2'>
+                                <div className='w-full grid grid-cols-2 font-bold'>
+                                    <div>Right sizes</div>
+                                    <div>:</div>
+                                </div>
+                                {Array.from(Array(9).keys()).map(size => (
+                                    <div key={size + 5} className=''>
+                                    <input
+                                        type="text"
+                                        className='ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded w-full'
+                                        value={rightSizes[size+5]}
+                                        onChange={e=>{setRightSizes(item=>({...item, [size+5]:e.target.value}))}}
+                                    />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
 

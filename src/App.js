@@ -40,6 +40,7 @@ import PreviousStuckonPlan from './PlanningDesk/PreviousStuckonPlan';
 import DataEntry from './AdminDesk/DataEntry';
 import RequirementEntry from './AdminDesk/RequirementEntry';
 import BOMDataEntry from './AdminDesk/BomDataEntry';
+import StockEntry from './AdminDesk/StockEntry';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -100,6 +101,7 @@ function App() {
                 <Route path="data-entry" element={<DataEntry/>}/>
                 <Route path="bom-data-entry" element={<BOMDataEntry />}/>
                 <Route path="requirement-entry" element={<RequirementEntry/>}/>
+                <Route path="stock-entry" element={<StockEntry/>}/>
               </Route>
             </Route>
             )}

@@ -5,6 +5,7 @@ import { ref, set, push, onValue, remove } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import { ReactComponent as MenuDots} from "../VerticalDots.svg"
+import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
 
 
 function DataEntry() {
@@ -62,7 +63,8 @@ function DataEntry() {
         colour:"",
         model:"",
         category:"",
-        size:""
+        size:"",
+        sizeType:""
     })
 
     const deleteFromDatabase=(item)=>{
@@ -103,6 +105,26 @@ function DataEntry() {
                 alert("Error while saving data : ",error)
                 console.log(error)
             })            
+    }
+
+    const pushArticlesToDatabaseBulk = (bulkData) => {
+        // setUpdateLoad(true)
+
+        const articleRef = ref(db, `articleData/`);
+
+        bulkData.forEach(article=>{
+            const newArticleRef = push(articleRef);
+    
+            set(newArticleRef, {
+                ...article,
+                id:newArticleRef.key
+            })
+            .then((ref)=>{
+            })
+            .catch((error)=>{
+                console.log(error)
+            })            
+        })
     }
 
     const editItem = (item) => {
@@ -618,6 +640,12 @@ function DataEntry() {
                     >
                             Export Excel
                     </button> */}
+
+                    <BulkExcelUploadComponent
+                        headings={["article","colour","model","category","size","sizeType"]}
+                        pushFunction={pushArticlesToDatabaseBulk}
+                        templateName={"Article-template"}
+                    />
                 </div>
                 <div className="w-full sticky top-0 p-3 grid grid-cols-7 gap-x-4 bg-gray-200">
                     <div className="text-sm py-2 text-left text-sm">SI NO</div>

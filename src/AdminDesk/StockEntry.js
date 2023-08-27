@@ -4,7 +4,7 @@ import { db} from "../firebase_config";
 import { ref, set, push, onValue, remove } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
-
+import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
 
 function StockEntry() {
     // const location = useLocation()
@@ -110,6 +110,28 @@ function StockEntry() {
             })            
     }
 
+    const pushStockToDatabaseBulk = (bulkData) => {
+        // setUpdateLoad(true)
+        const stockRef = ref(db, `stockData/`);
+
+        bulkData.forEach(item=>{
+            const newStockRef = push(stockRef);
+    
+            set(newStockRef, {
+                ...item,
+                productionStock:0,
+                id:newStockRef.key
+            })
+            .then(()=>{
+                // setUpdateLoad(false)
+                // console.log("Successfully updated")
+            })
+            .catch((error)=>{
+                console.log("Error while saving data : ",error)
+            })            
+        })
+}
+
     const editItem = (item) => {
         item={...editData, id:item.id}
 
@@ -206,7 +228,7 @@ function StockEntry() {
                 </>)}
 
                 {item.edit&&(<>
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
                             value={editData.materialNumber}
                             onChange={e=>{
@@ -221,7 +243,7 @@ function StockEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
                             value={editData.materialName}
                             onChange={e=>{
@@ -236,7 +258,7 @@ function StockEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
                             value={editData.storeStock}
                             onChange={e=>{
@@ -251,7 +273,7 @@ function StockEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
                             value={editData.productionStock}
                             onChange={e=>{
@@ -266,7 +288,7 @@ function StockEntry() {
                         />
                     </div> 
 
-                    <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
                             value={editData.unit}
                             onChange={e=>{
@@ -366,9 +388,9 @@ function StockEntry() {
     const RenderInputRow=()=>{
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
-            <div  className='w-full grid grid-cols-7 gap-4'>
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the material number</label>
+            <div  className='w-full grid grid-cols-8 gap-4'>
+                <div className="flex w-full flex flex-col items-start justify-start">
+                    <label className='text-sm'>Material number</label>
                     <input 
                         value={newStock.materialNumber}
                         onChange={e=>{
@@ -382,8 +404,8 @@ function StockEntry() {
                     />
                 </div> 
 
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the material name</label>
+                <div className="flex w-full flex flex-col items-start justify-start">
+                    <label className='text-sm'>Material name</label>
                     <input 
                         value={newStock.materialName}
                         onChange={e=>{
@@ -397,8 +419,8 @@ function StockEntry() {
                     />
                 </div> 
 
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the store stock</label>
+                <div className="flex w-full flex flex-col items-start justify-start">
+                    <label className='text-sm'>Store stock</label>
                     <input 
                         value={newStock.storeStock}
                         onChange={e=>{
@@ -412,8 +434,8 @@ function StockEntry() {
                     />
                 </div> 
 
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the unit</label>
+                <div className="flex w-full flex flex-col items-start justify-start">
+                    <label className='text-sm'>Unit</label>
                     <input 
                         value={newStock.unit}
                         onChange={e=>{
@@ -437,6 +459,14 @@ function StockEntry() {
                     >
                         Submit
                     </div>
+                </div>
+
+                <div className='col-span-3 flex justify-end items-end'>
+                    <BulkExcelUploadComponent 
+                        headings={["materialNumber","materialName","storeStock","unit"]} 
+                        templateName={"stock-template"}
+                        pushFunction={pushStockToDatabaseBulk}
+                    />
                 </div>
             </div>
         )

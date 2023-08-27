@@ -4,6 +4,7 @@ import { db} from "../firebase_config";
 import { ref, set, push, onValue, remove, update, query, orderByChild, equalTo, orderByKey } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
+import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
 
 
 function BOMDataEntry() {
@@ -92,16 +93,6 @@ function BOMDataEntry() {
     const filterKeys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
 
     //UseEffects
-    
-    useEffect(() => {
-        const articleBomRef=ref(db, `articleData/${articleItem.id}/bomIds`);
-
-        onValue(articleBomRef, (snapshot) => {
-            var myBomIds=snapshot.val();
-            console.log("myBomIds : ",myBomIds)
-            setBomIds(myBomIds);
-        });
-    }, [])
 
     useEffect(() => {
         if(currentBomId!=undefined || currentBomId!="")
@@ -128,7 +119,16 @@ function BOMDataEntry() {
         }
     }, [currentBomId])
     
+    useEffect(() => {
+        const articleBomRef=ref(db, `articleData/${articleItem.id}/bomIds`);
 
+        onValue(articleBomRef, (snapshot) => {
+            var myBomIds=snapshot.val();
+            console.log("myBomIds : ",myBomIds)
+            setBomIds(myBomIds);
+        });
+    }, [])
+    
     useEffect(() => {
         const bomRef = ref(db, `bomData/`);
 
@@ -138,7 +138,7 @@ function BOMDataEntry() {
             const myBomData=snapshot.val()
 
             // console.log()
-            if(myBomData!=null)
+            if(bomIds && myBomData!=null)
             {
                 var bomArray=[];
                 for(var key in myBomData)
@@ -218,7 +218,7 @@ function BOMDataEntry() {
 
         
         const rawMaterialRef = ref(db, `bomDependentMaterials/${item.id}`);
-        if(window.confirm("Do you want to delete the BOM from this article? The Bom will be still available in the system!"))
+        if(window.confirm("Do you want to delete raw material?"))
         {
             remove(rawMaterialRef).then(()=>{
             
@@ -249,6 +249,44 @@ function BOMDataEntry() {
             })            
     }
 
+    const pushToDatabaseBulk = async(bulkData=[]) => {
+        // setUpdateLoad(true)
+
+        const articleRef = ref(db, `articleData/${articleItem.id}`);
+        const bomRef = ref(db, `bomData/`);
+        
+        const asyncPromises=[]
+        var newBomIds=""
+
+        bulkData.forEach((bom=>{
+            const newbomRef = push(bomRef);
+    
+            asyncPromises.push(
+                set(newbomRef, {
+                    ...bom,
+                    id:newbomRef.key
+                })
+                .then((ref)=>{
+                    newBomIds=newBomIds==""?newbomRef.key:newBomIds+","+newbomRef.key
+                })
+                .catch((error)=>{
+                    console.log(error)
+                }) 
+            )           
+        }))
+
+        await Promise.all(asyncPromises)
+        
+        if(newBomIds!="")
+        {
+            update(articleRef,{bomIds:(bomIds!=undefined && bomIds!="")?bomIds+","+newBomIds:newBomIds})
+            console.log("updated ids : ", (bomIds!=undefined && bomIds!="")?bomIds+","+newBomIds:newBomIds)
+        }
+
+        console.log("bomids  ",bomIds)
+        console.log("newbomids : ",newBomIds)
+    }   
+
     const pushRawMaterialToBom = () => {
         // setUpdateLoad(true)
         const rawMaterialRef = ref(db, `bomDependentMaterials`);
@@ -259,7 +297,7 @@ function BOMDataEntry() {
             leftSizes:Object.entries(leftSizes).map(([key,value])=>`${key}:${value}`).join(','),
             rightSizes:Object.entries(rightSizes).map(([key,value])=>`${key}:${value}`).join(','),
             bomId:currentBomId,
-            processed:false,
+            processed:selectedMaterialType=="processed",
             id:newRawMaterialRef.key
         }
 
@@ -267,12 +305,65 @@ function BOMDataEntry() {
             ...rawMaterialEntryData,
         })
         .then((ref)=>{
-            console.log(newbomData)
+            console.log("raw material entered")
         })
         .catch((error)=>{
             alert("Error while saving data : ",error)
             console.log(error)
         })            
+    }
+
+    const pushMaterialsToDatabaseBulk = async(bulkData=[]) => {
+        // setUpdateLoad(true)
+        const rawMaterialRef = ref(db, `bomDependentMaterials`);
+
+        const asyncPromises=[]
+
+        bulkData.forEach((item=>{
+            const newRawMaterialRef = push(rawMaterialRef);
+
+            var leftSizes=[]
+            var rightSizes=[]
+
+            for(var key in item)
+            {
+                var leftReg=/\d+L/
+                if(leftReg.test(key))
+                {
+                    leftSizes.push(key.slice(0,-1)+":"+item[key])
+                    const {[key]:_,...newitem} = item
+                }
+                
+                var rightReg=/\d+R/
+                if(rightReg.test(key))
+                {
+                    rightSizes.push(key.slice(0,-1)+":"+item[key])
+                    const {[key]:_,...newitem} = item
+                }
+            }
+
+            const rawMaterialEntryData={
+                ...item,
+                leftSizes:leftSizes.join(','),
+                rightSizes:rightSizes.join(','),
+                bomId:currentBomId,
+                id:newRawMaterialRef.key
+            }
+
+            asyncPromises.push(
+                set(newRawMaterialRef, {
+                    ...rawMaterialEntryData
+                })
+                .then((ref)=>{
+                    console.log("success")
+                })
+                .catch((error)=>{
+                    console.log(error)
+                }) 
+            )           
+        }))
+
+        // await Promise.all(asyncPromises)
     }
 
     const editItem = (item) => {
@@ -544,7 +635,7 @@ function BOMDataEntry() {
                                         unit:""
                                     }))
                                 }}
-                                className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                                className='w-full ring-2 ring-blue-200 bg-white p-1 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                             >
                                 <option value="processed">Processed</option>
                                 <option value="not processed">Not processed</option>
@@ -556,7 +647,7 @@ function BOMDataEntry() {
                             {selectedMaterialType=="processed" && (
                                 <select
                                     onChange={e=>{setNewRawMaterialData(item=>({...item, rawMaterialName:bomData.filter(item=>item.id===e.target.value)[0].item}))}}
-                                    className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                                    className='w-full ring-2 ring-blue-200 bg-white p-1 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                                 >
                                     <option>- SELECT -</option>
                                     {bomData.map((item,index)=>(
@@ -573,7 +664,7 @@ function BOMDataEntry() {
                                             unit: stockData.filter(item=>item.id===e.target.value)[0].unit
                                         }))
                                     }}
-                                    className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                                    className='w-full ring-2 ring-blue-200 bg-white p-1 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                                 >
                                     <option>- SELECT -</option>
                                     {stockData.map((item,index)=>(
@@ -597,6 +688,14 @@ function BOMDataEntry() {
                             Unit
                             <div>{newRawMaterialData.unit}</div>
                         </label>)}
+
+                        <div className='flex w-full justify-end items-end'>
+                            <BulkExcelUploadComponent 
+                                headings={["rawMaterialName","processed","unit","5L","6L","7L","8L","9L","10L","11L","12L","13L","5R","6R","7R","8R","9R","10R","11R","12R","13R"]} 
+                                templateName={"material-template"}
+                                pushFunction={pushMaterialsToDatabaseBulk} 
+                            />
+                        </div>
                     </div>
                     <div className='w-full'>
                         <div>
@@ -917,6 +1016,14 @@ function BOMDataEntry() {
                     className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
                     value="Add"
                 />
+
+                <div className='col-span-6 flex space-x-2 justify-end'>
+                    <BulkExcelUploadComponent 
+                        headings={["item","process"]} 
+                        templateName={"bom-template"}
+                        pushFunction={pushToDatabaseBulk} 
+                    />
+                </div>
             </form>
         )
     }

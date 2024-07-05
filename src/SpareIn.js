@@ -2,16 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { ref, set, onValue, push } from "firebase/database";
 import { db } from "./firebase_config";
 import {fieldHeadings,fieldKeys} from "./Requirements"
-<<<<<<< HEAD
-=======
 import { useOutletContext } from 'react-router-dom';
->>>>>>> dev
 
 function SpareIn() {
     // const location = useLocation()
     // const {spareData}=location.state
-<<<<<<< HEAD
-=======
 
     const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
@@ -19,7 +14,6 @@ function SpareIn() {
       setOpenedTab("spare")
     }, [])
 
->>>>>>> dev
     const [spareData, setSpareData] = useState([])
 
     const [modalToggle, setModalToggle] = useState(false)
@@ -37,8 +31,6 @@ function SpareIn() {
     const [selectedQty, setSelectedQty] = useState("localQty")
     const [loading, setLoading] = useState(true)
 
-<<<<<<< HEAD
-=======
     const [dispData, setDispData] = useState([]) //data displayed
     const [filter, setFilter] = useState("code")
     const [filterText, setFilterText] = useState("")
@@ -46,7 +38,6 @@ function SpareIn() {
     const [filterDisp, setFilterDisp] = useState([])
     const [filterSet, setFilterSet] = useState(null)
 
->>>>>>> dev
     const addQuantity=(item)=>{
         const spareRef = ref(db, `spares/${item.id}`);
         const historyRef = ref(db, `history/${item.id}`);
@@ -248,8 +239,6 @@ function SpareIn() {
             </div>
         )
     }
-<<<<<<< HEAD
-=======
     
     useEffect(() => {
         if(dispData.length>0)
@@ -389,7 +378,6 @@ function SpareIn() {
             //     )
         }
     }
->>>>>>> dev
 
 
     useEffect(() => {
@@ -426,40 +414,8 @@ function SpareIn() {
     }, [myqty,modalItem])
 
     useEffect(() => {
-<<<<<<< HEAD
-        if(search==="")
-            setRenderItems(spareData.map((item, index)=><RenderItem item={item} index={index}/>))
-        else
-        {
-            const keys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
-            var items=spareData.filter((item,index)=>{
-                // 
-                var found=0;
-                keys.forEach(key=>{
-                    if(item[key].includes(search))
-                    {
-                        // 
-                        found=1;
-                    }
-                })
-                return found===1
-            })
-
-            // 
-            if(items.length>0)
-                setRenderItems(items.map((item, index)=><RenderItem item={item} index={index}/>))
-            else
-                setRenderItems(        
-                    <div className="flex items-center justify-center w-full h-full">
-                        <div className="text-blue-300 text-5xl">Nothing here !</div>
-                    </div>
-                )
-        }
-    }, [search, spareData])
-=======
         filterSearch();
     }, [search, spareData, filterItems])
->>>>>>> dev
 
     return (
         <div className="h-full">
@@ -467,20 +423,6 @@ function SpareIn() {
             <div className="h-5/12 pt-12 pb-6 flex flex-col items-center bg-blue-200 filter drop-shadow-lg w-full">
                 <div className="font-bold text-5xl w-full text-center text-gray-900">SPARE INWARD</div>
 
-<<<<<<< HEAD
-                <div className="flex flex-row space-x-3 w-full items-center justify-center mt-5">
-                    <input 
-                        value={search} 
-                        onChange={e=>{setSearch(e.target.value)}} 
-                        type="text" 
-                        className="rounded-3xl h-10 w-1/2 p-3 pl-4 focus:outline-none" 
-                        placeholder="Search by keyword"
-                    />
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
-=======
                 <div className="flex flex-row items-center justify-between mt-5 w-full relative">
                     <div className="flex flex-row bg-green-300 justify-center items-center absolute ml-28">
                         <div className="p-2 bg-green-600">
@@ -590,7 +532,6 @@ function SpareIn() {
                             </svg>
                         </div>
                     </div>))}
->>>>>>> dev
             </div>
 
             <div className="mt-10 mb-10 flex flex-col h-full space-y-2 items-center justify center items-center">
@@ -605,10 +546,6 @@ function SpareIn() {
                     <div className="font-bold">Part Number</div>
                     <div className="font-bold">Specification</div> */}
                 </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> dev
                 <div className="w-full h-full mt-24" >
                 {
                     loading && 

@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react'
-<<<<<<< HEAD
-import { Link, useHistory } from 'react-router-dom'
-=======
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
->>>>>>> dev
 import { ref, set, onValue } from "firebase/database";
 import { db } from "./firebase_config";
 import * as XLSX from 'xlsx';
@@ -13,9 +9,6 @@ import {fieldHeadings, fieldKeys} from "./Requirements"
 function SpareView() {
     // const location = useLocation()
     // const {spareData}=location.state
-<<<<<<< HEAD
-    let history = useHistory();
-=======
     let navigate = useNavigate();
 
     const [setSelectedLink, setOpenedTab] = useOutletContext();
@@ -24,7 +17,6 @@ function SpareView() {
       setOpenedTab("spare")
     }, [])
     
->>>>>>> dev
 
     const [spareData, setSpareData] = useState([])
     const [dispData, setDispData] = useState([]) //data displayed
@@ -41,20 +33,13 @@ function SpareView() {
     const [filterText, setFilterText] = useState("")
     const [filterItems, setFilterItems] = useState({})
     const [filterDisp, setFilterDisp] = useState([])
-<<<<<<< HEAD
-    const [filterSet, setFilterSet] = useState(null)
-=======
     const [filterSet, setFilterSet] = useState({})
->>>>>>> dev
     // const [filterData, setFilterData] = useState([])
     // const [qty, setQty] = useState(0)
     const [loading, setLoading] = useState(true)
 
-<<<<<<< HEAD
-=======
     const filterKeys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
 
->>>>>>> dev
     function DownloadExcel() {
         
 
@@ -107,10 +92,7 @@ function SpareView() {
         //     "Remarks",
         // ]]
         const Heading=[[...fieldHeadings]]
-<<<<<<< HEAD
-=======
         // console.log(fieldKeys.map(item=>item.split(':')[0]))
->>>>>>> dev
 
 		var ws = XLSX.utils.json_to_sheet(excelData, { origin: 'A2', skipHeader: true });
         var wb = XLSX.utils.book_new();
@@ -143,18 +125,6 @@ function SpareView() {
                 item["totalValue"]=(parseFloat(qty)*parseFloat(ogValue)+parseFloat(localQty)*parseFloat(localValue)).toPrecision(10)
                 spareArray.push(item)
             }
-<<<<<<< HEAD
-            const mySet=new Set();
-            spareArray.forEach(item=>{
-                mySet.add(item["code"])
-            })
-            var newFilterSet=[]
-            mySet.forEach(item=>{
-                newFilterSet.push(item)
-            })
-            setFilterSet(newFilterSet.sort());
-=======
->>>>>>> dev
 
             setDispData(spareArray)
             setSpareData(spareArray);
@@ -205,60 +175,11 @@ function SpareView() {
     }
 
     const RenderItem=({item, index})=>{
-<<<<<<< HEAD
-        var rowclass=" w-10/12 p-2 grid grid-cols-8 "
-=======
         var rowclass=" w-full p-2 grid grid-cols-8 gap-2 text-sm "
->>>>>>> dev
         var totalQty=parseInt(item.totalQty)
         var minStock=parseInt(item.minStock)
 
         if(totalQty<minStock && totalQty!="0")
-<<<<<<< HEAD
-            rowclass+="bg-yellow-300 rounded-xl bg-opacity-90 "
-        else if(minStock>0 && totalQty=="0")
-        {
-            rowclass+="bg-red-300 rounded-xl bg-opacity-90 "
-        }
-
-        return (
-            // <div key={index} className={item.qty<item.minStock?"w-10/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-10/12 p-2 grid grid-cols-8"}>
-            <div key={index} className={rowclass}>
-                <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.code}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.nickName}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.machine}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.qty!=undefined?item.qty:""}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.localQty!=undefined?item.localQty:""}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.servQty!=undefined?item.servQty:""}</div>
-                </div>
-
-                {/* <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.machine}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.partName}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.partNumber}</div>
-=======
             rowclass+="bg-yellow-300 bg-opacity-90 "
         else if(minStock>0 && totalQty=="0")
         {
@@ -302,26 +223,17 @@ function SpareView() {
 
                 <div className="flex items-center justify-center">
                     <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.partNumber}</div>
->>>>>>> dev
                 </div>
 
 
                 <div className="flex items-center justify-center">
-<<<<<<< HEAD
-                    <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.spec}</div>
-=======
                     <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.spec}</div>
->>>>>>> dev
                 </div> */}
 
 
                 <div className="flex items-center justify-center">
                     <div 
-<<<<<<< HEAD
-                        className="font-semibold bg-blue-600 p-3 cursor-pointer rounded-3xl w-10/12 break-all text-white hover:bg-blue-800"
-=======
                         className="font-semibold cursor-pointer text-blue-500 hover:text-blue-800"
->>>>>>> dev
                         onClick={()=>{
                             setModalIndex(index)
                             RenderModal(index)
@@ -331,16 +243,9 @@ function SpareView() {
 
                 <div className="flex items-center justify-center">
                     <div 
-<<<<<<< HEAD
-                        className="font-semibold cursor-pointer bg-green-600 p-3 rounded-3xl w-10/12 break-all text-white hover:bg-green-800"
-                        onClick={()=>{
-                            history.push({
-                                pathname: "/sparehistory",
-=======
                         className="font-semibold cursor-pointer text-blue-500 hover:text-blue-800"
                         onClick={()=>{
                             navigate("../sparehistory",{
->>>>>>> dev
                                 state: {spareId:item.id} 
                             });
                         }}
@@ -351,48 +256,15 @@ function SpareView() {
     }
 
     const filterFunc=(dispItems)=>{
-<<<<<<< HEAD
-        var filters=[]
-        // for(var key in filterItems){
-        //     filterItems[key].map(item=>{
-        //         filters.push(key+" : "+item)
-        //     })
-        // }
-        for(var key in filterItems){
-            if(filterItems[key]!="")
-                filters.push(key+" : "+filterItems[key])
-=======
         var filters=[] // filter display
 
         for(var key in filterItems){
             if(filterItems[key]!="")
                 filters.push(key+" : "+filterItems[key]) //each filter is displayed as key:text eg: code:1001
->>>>>>> dev
         }
 
         setFilterDisp(filters)
 
-<<<<<<< HEAD
-        // var keys=[]
-        // for(var key in filterItems)
-        //     keys.push(key)
-        // var newData=[...filterData]
-
-        // var count=0;
-        // keys.forEach(key=>{
-        //     var filters=[...filterItems[key]]
-        //     count+=filters.length
-        //     var items=[]
-        //     filters.forEach(searchText=>{
-        //         newData.forEach(item=>{
-        //             if(item[key].includes(searchText))
-        //                 items.push(item)
-        //         })
-        //     })
-        //     newData=[...items]
-        // })
-=======
->>>>>>> dev
         var newData=[...dispItems] //spareData so that filtering starts from the original data
         var count=0;
 
@@ -402,14 +274,9 @@ function SpareView() {
             if(searchText!="")
             {
                 var items=[]
-<<<<<<< HEAD
-                newData.forEach(item=>{
-                    if(item[key].toLowerCase().includes(searchText.toLowerCase()))
-=======
 
                 newData.forEach(item=>{
                     if(String(item[key]).toLowerCase().includes(searchText.toLowerCase()))
->>>>>>> dev
                     {
                         items.push(item)
                     }
@@ -418,38 +285,6 @@ function SpareView() {
             }
         }
 
-<<<<<<< HEAD
-        if(count>0)
-        {
-            dispItems=[...newData]
-
-            const mySet=new Set();
-            newData.forEach(item=>{
-                mySet.add(item[filter])
-            })
-            var newFilterSet=[]
-            mySet.forEach(item=>{
-                newFilterSet.push(item)
-            })
-            setFilterSet(newFilterSet.sort());
-
-        }
-        else
-        {
-            dispItems=[...spareData]
-
-            const mySet=new Set();
-            spareData.forEach(item=>{
-                mySet.add(item[filter])
-            })
-            var newFilterSet=[]
-            mySet.forEach(item=>{
-                newFilterSet.push(item)
-            })
-            setFilterSet(newFilterSet.sort());
-
-        }
-=======
         dispItems=[...newData]
         // if(count>0)
         // {
@@ -481,22 +316,17 @@ function SpareView() {
         //     setFilterSet(newFilterSet.sort());
 
         // }
->>>>>>> dev
         return dispItems
     }
 
     useEffect(() => {
         if(dispData.length>0)
         {
-<<<<<<< HEAD
-            setRenderItems(dispData.map((item, index)=><RenderItem item={item} index={index}/>))
-=======
             setRenderItems(
                 <div className='w-full overflow-y-auto divide-y-2 divide-gray-300'>
                     {dispData.map((item, index)=><RenderItem item={item} index={index}/>)}
                 </div>
             )
->>>>>>> dev
         }
         else
             setRenderItems(        
@@ -520,20 +350,11 @@ function SpareView() {
         }
         else
         {
-<<<<<<< HEAD
-            const keys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
-            var items=dispItems.filter((item,index)=>{
-                // 
-                var found=0;
-                keys.forEach(key=>{
-                    if(item[key].toLowerCase().includes(search.toLocaleLowerCase()))
-=======
             var items=dispItems.filter((item,index)=>{
                 // 
                 var found=0;
                 filterKeys.forEach(key=>{
                     if(String(item[key]).toLowerCase().includes(search.toLocaleLowerCase()))
->>>>>>> dev
                     {
                         
                         found=1;
@@ -556,18 +377,6 @@ function SpareView() {
         }
     }
 
-<<<<<<< HEAD
-    useEffect(() => {
-        filterSearch();
-    }, [search, spareData])
-    
-    useEffect(() => {
-        filterSearch();
-    }, [filterItems])
-
-    return (
-        <div className="h-full">
-=======
     //to set the filterset of each keys (filterset contails each value to be displayed) 
     //and to initiate filter search
     useEffect(() => {
@@ -598,7 +407,6 @@ function SpareView() {
 
     return (
         <div className="pb-6 bg-blue-50 h-full px-3">
->>>>>>> dev
             {Modal&&(
                 <div onClick={backdropClickHandler} className="bg-white z-20 bg-opacity-95 space-x-10 fixed inset-0 flex justify-center items-center">
                     <div className="p-3 bg-blue-400 text-white rounded-3xl hover:bg-blue-800" onClick={()=>{
@@ -624,42 +432,6 @@ function SpareView() {
                 </div>)
             }
 
-<<<<<<< HEAD
-            <div className="h-5/12 pt-12 pb-6 flex flex-col items-center bg-blue-200 filter drop-shadow-lg">
-                <div className="font-bold text-5xl w-full text-center text-gray-900">SPARE VIEW</div>
-                <div className="flex flex-row items-center justify-between mt-5 w-full relative">
-                    <div className="flex flex-row bg-green-300 justify-center items-center absolute ml-28">
-                        <div className="p-2 bg-green-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white font-bold text-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                            </svg>
-                        </div>
-                        <select 
-                            className="bg-green-300 text-white font-bold p-2 outline-none" 
-                            onChange={e=>{
-                                setFilter(e.target.value)
-                                const mySet=new Set();
-                                dispData.forEach(item=>{
-                                    mySet.add(item[e.target.value])
-                                })
-                                var newFilterSet=[]
-                                mySet.forEach(item=>{
-                                    newFilterSet.push(item)
-                                })
-                                setFilterSet(newFilterSet.sort());
-                            }}
-                        >
-                            <option value="code" className="bg-green-600 p-3 font-bold">Code</option>
-                            <option value="partName" className="bg-green-600 p-3 font-bold">Part Name</option>
-                            <option value="partNumber" className="bg-green-600 p-3 font-bold">Part Number</option>
-                            <option value="nickName" className="bg-green-600 p-3 font-bold">Nickname</option>
-                            <option value="spec" className="bg-green-600 p-3 font-bold">Specification</option>
-                            <option value="machine" className="bg-green-600 p-3 font-bold">Machine</option>
-                        </select>
-                    </div>
-                    
-                    <div className="flex flex-row space-x-3 w-full items-center justify-center">
-=======
             <div className="h-5/12 pt-6 pb-6 flex flex-col items-center filter drop-shadow-lg">
                 
                 <div className='flex flex-row w-full justify-between'>
@@ -667,71 +439,10 @@ function SpareView() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
->>>>>>> dev
                         <input 
                             value={search} 
                             onChange={e=>{setSearch(e.target.value)}} 
                             type="text" 
-<<<<<<< HEAD
-                            className="rounded-3xl h-10 w-5/12 p-3 pl-4 focus:outline-none" 
-                            placeholder="Search by keyword"
-                        />
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div className="flex flex-row mt-6 justify-between items-center relative w-full">
-
-                    <div className="flex flex-row absolute ml-28">
-                        <div className="bg-black text-md font-bold text-white px-3 p-1 rounded-l-3xl">{filter}</div>
-                        {/* <input 
-                            value={filterText} 
-                            onChange={e=>{setFilterText(e.target.value)}} 
-                            type="text" 
-                            className="rounded-r-3xl p-1 pl-2 focus:outline-none w-40" 
-                            placeholder="Search"
-                        /> */}
-                        <select 
-                            className="text-black bg-white w-36 font-bold px-3 p-2 outline-none rounded-r-3xl" 
-                            onChange={e=>{setFilterText(e.target.value)}}
-                        >
-                            <option value="" className="text-black p-3 font-bold">NIL</option>
-                            {filterSet&&filterSet&&filterSet.map(item=>(
-                                <option value={item} className="text-black p-3 font-bold">{item}</option>
-                            ))}
-                        </select>
-
-                        <div 
-                            className="ml-2 cursor-pointer text-md font-bold bg-red-600 hover:bg-red-500 text-white px-3 p-1 rounded-2xl"
-                            onClick={()=>{
-                                var items={...filterItems}
-                                // if(items[filter]===undefined)
-                                //     items[filter]=[]
-                                // items[filter].push(filterText)
-                                items[filter]=filterText
-                                setFilterItems(items)
-                            }}
-                        >
-                            Add
-                        </div>
-                    </div>
-                    <div className="flex justify-center items-center w-full space-x-6">
-                        <Link to="/sparehistory"
-                            className="bg-yellow-400 hover:bg-yellow-500 text-sm font-bold text-white p-4 rounded-3xl"
-                            onClick={()=>{}}
-                        >
-                                VIEW HISTORY
-                        </Link>
-
-                        <button
-                            className="bg-green-400 hover:bg-green-500 text-sm font-bold text-white p-4 rounded-3xl"
-                            onClick={()=>{DownloadExcel(spareData)}}
-                        >
-                                EXPORT EXCEL
-                        </button>
-=======
                             className="w-5/12 py-2 focus:outline-none w-full" 
                             placeholder="Search by keyword"
                         />
@@ -767,29 +478,10 @@ function SpareView() {
                                 ))}
                             </select>
                         ))}
->>>>>>> dev
                     </div>
                 </div>
             </div>
             
-<<<<<<< HEAD
-            <div className="flex flex-row justify-center mt-5 items-center w-full self-center">
-                {filterDisp.map(text=>(
-                    <div className="flex flex-row space-x-2 bg-black rounded-3xl text-white px-3 py-2 mx-3">
-                        <div>{text}</div>
-                        <div 
-                            className="text-white hover:text-red-500 font-bold"
-                            onClick={()=>{
-                                // var tmpFilter=filterItems[text.split(" : ")[0]]
-                                // var newFilter=tmpFilter.filter(item=>{
-                                //     if(item===text.split(" : ")[1])
-                                //         return false;
-                                //     else
-                                //         return true
-                                // })
-                                // var newFilterItems={...filterItems}
-                                // newFilterItems[text.split(" : ")[0]]=newFilter
-=======
             {filterDisp.length>0&&(<div className="flex flex-row space-x-4 my-3 items-center w-full self-center">
                 {filterDisp.map(text=>(
                     <div className="flex flex-row align-center space-x-2 bg-blue-50 rounded-full border-2 border-blue-500 text-blue-500 p-1 text-sm">
@@ -797,7 +489,6 @@ function SpareView() {
                         <div 
                             className="text-blue-500 hover:text-blue-800"
                             onClick={()=>{
->>>>>>> dev
                                 var newFilter={...filterItems}
                                 newFilter[text.split(" : ")[0]]=""
                                 setFilterItems(newFilter)
@@ -808,17 +499,6 @@ function SpareView() {
                             </svg>
                         </div>
                     </div>))}
-<<<<<<< HEAD
-            </div>
-            <div className="mt-10 mb-10 flex flex-col h-full space-y-2 items-center justify center items-center">
-                <div className="w-10/12 p-3 grid grid-cols-8 border-2 border-black divide-x-2 divide-black divide-solid rounded-xl">
-                    <div className="font-bold">Code</div>
-                    <div className="font-bold">Nickname</div>
-                    <div className="font-bold">Machine</div>
-                    <div className="font-bold">New Qty</div>
-                    <div className="font-bold">Local Qty</div>
-                    <div className="font-bold">Service Qty</div>
-=======
                 <div 
                     className='text-base cursor-pointer' 
                     onClick={()=>{
@@ -846,34 +526,10 @@ function SpareView() {
                     <div className="text-sm py-2 ">NEW QTY</div>
                     <div className="text-sm py-2 ">LOCAL QTY</div>
                     <div className="text-sm py-2 ">SERVICE QTY</div>
->>>>>>> dev
                     {/* <div className="font-bold">Part Name</div>
                     <div className="font-bold">Part Number</div>
                     <div className="font-bold">Specification</div> */}
                 </div>
-<<<<<<< HEAD
-                <div className="w-full h-full mt-24" >
-                {
-                    loading && 
-                    (
-                        <div className="w-full h-full flex justify-center items-center space-x-5 mt-24">
-                            <div
-                                className="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-500"
-                            />
-                            {/* <div
-                                className="animate-spin rounded-full h-8 w-8 border-b-4 border-red-600"
-                            />
-                            <div
-                                className="animate-spin rounded-full h-8 w-8 border-b-4 border-yellow-500"
-                            />
-                            <div
-                                className="animate-spin rounded-full h-8 w-8 border-b-4 border-green-500"
-                            /> */}
-                        </div>
-                    )
-                }
-                </div>
-=======
                 
                 {
                     loading && 
@@ -896,7 +552,6 @@ function SpareView() {
                         </div>
                     )
                 }
->>>>>>> dev
                 {renderItems}
             </div>
         </div>

@@ -1,28 +1,4 @@
 const fieldHeadings=[
-<<<<<<< HEAD
-    "CODE",
-    "PART NAME",
-    "PART NUMBER",
-    "NICK NAME",
-    "SPECIFICATION",
-    "NEW QUANTITY",//QUANTITY
-    "LOCAL QUANTITY",
-    "SERVICED QTY",
-    "TOTAL QUANTITY ",// NO NEED TO ENTER THIS VALUE NEED TO SUM ALL THE QUANTITIES"
-    "UNIT OF MEASUREMENT",
-    "OG VALUE",
-    "SERVICE VALUE",
-    "SERVICE VENDOR",
-    "SAP",
-    "LOCAL VALUE",
-    "TOTAL VALUE",// (NEW QTY X OG VALUE LOCAL QTY X LOCAL VALUE) NO NEED TO ENTER THIS VALUE IN SPARE ADD"
-    "ORIGIN",
-    "LOCAL VENDOR",
-    "MACHINE",
-    "REMARKS",
-    "LIFE",
-    "MINIMUM STOCK",
-=======
     "Code",
     "Part Name",
     "Part Numnber",
@@ -46,17 +22,12 @@ const fieldHeadings=[
     "Remarks",
     "Life",
     "Minimum Stock",
->>>>>>> dev
 ]
 
 const fieldKeys=[
     "code:text",
     "partName:text",
-<<<<<<< HEAD
-    "partNumber:text",
-=======
     "partNumber:number",
->>>>>>> dev
     "nickName:text",
     "spec:text",
     "qty:number", //new qty
@@ -64,14 +35,6 @@ const fieldKeys=[
     "servQty:number",//serviced qty
     "totalQty:number", //calculated
     "unit:text",
-<<<<<<< HEAD
-    "value:text",//og value
-    "servValue:text",
-    "servVendor:text",
-    "sap:radio:Yes,No",
-    "localValue:text",
-    "totalValue:text", //calculated
-=======
     "value:number",//og value
     "servValue:number",
     "servVendor:text",
@@ -79,7 +42,6 @@ const fieldKeys=[
     "materialNumber:text",
     "localValue:number",
     "totalValue:number", //calculated
->>>>>>> dev
     "origin:text",
     "localVendor:text",
     "machine:text",

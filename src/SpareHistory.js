@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react'
-<<<<<<< HEAD
-import { useLocation } from 'react-router-dom'
-=======
 import { useLocation, useOutletContext } from 'react-router-dom'
->>>>>>> dev
 // import historyData from './DummyData'
 import { ref, onValue, remove } from "firebase/database";
 import { db } from "./firebase_config";
@@ -14,15 +10,12 @@ function SpareHistory() {
     // const {historyData}=location.state
     const location = useLocation()
 
-<<<<<<< HEAD
-=======
     const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
       setSelectedLink("sparehistory")
       setOpenedTab("spare")
     }, [])
 
->>>>>>> dev
     const { spareId } = location.state || {undefined}
 
     const [historyData, setHistoryData] = useState([])
@@ -211,11 +204,7 @@ function SpareHistory() {
             var items=historyData.filter((item,index)=>{
                 var found=0;
                 keys.forEach(key=>{
-<<<<<<< HEAD
-                    if(item[key] && item[key].includes(search))
-=======
                     if(item[key] && String(item[key]).toLowerCase().includes(search.toLowerCase))
->>>>>>> dev
                     {
                         found=1;
                     }

@@ -132,7 +132,7 @@ function MaterialIssueEntry() {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </div>
-                <div className='flex flex-row m-4 bg-red-400 rounded p-4'>
+                <div className='flex flex-col m-4 bg-red-400 rounded p-4 text-left'>
                     <div className='font-bold my-1 text-lg'>The following materials cant be issued</div>
                     <div className='font-bold my-1 text-lg'>{validate}</div>
                 </div>
@@ -145,23 +145,25 @@ function MaterialIssueEntry() {
         var errorMessage="\n"+materialNumber
         var mssgCount=0
         if(stock==undefined){
-            errorMessage+="stock is not avaiable"
+            errorMessage=errorMessage+"stock is not avaiable"
         }
         if(stock!=undefined && stock.qty<qty){
-            if(mssgCount)
-            errorMessage+=" : stock is deficient"
+            errorMessage=errorMessage+" : stock is deficient"
         }
         if(stock!=undefined && Array.isArray(unit)){
             if(unit.length>1){
                 var misMatchUnits=unit.filter(u=>u!=stock.unit)
-                errorMessage+=" : "+misMatchUnits.join(',')+" mistaches with stock unit "+stock.unit
+                errorMessage=errorMessage+" : "+misMatchUnits.join(',')+" mistaches with stock unit "+stock.unit
             }
         }
-        if(stock!=undefined && stock.unit!=unit){
-            errorMessage+=" : unit "+unit+" mismatches with stock unit "+stock.unit
+        else if(stock!=undefined && stock.unit!=unit){
+            errorMessage=errorMessage+" : unit "+unit+" mismatches with stock unit "+stock.unit
         }
         
-        return errorMessage
+        if(errorMessage!="\n"+materialNumber)
+            return errorMessage
+        else
+            return ""
     }
 
     const reduceStockQty=(materialNumber,qty)=>{
@@ -607,7 +609,7 @@ function MaterialIssueEntry() {
                         </div>
                     </div>
                 </div>
-                <div className='flex justify-start items-end'>
+                <div className='flex justify-start items-end mt-4'>
                     <BulkExcelUploadComponent 
                         headings={["materialNumber","materialDesc","qty","unit"]} 
                         templateName={"material-issue-template"}
@@ -619,10 +621,20 @@ function MaterialIssueEntry() {
         )
     }
 
+    const backdropClickHandler = (event) => {
+        if (event.target === event.currentTarget) {
+            setValidateMessage(null)
+        }
+    }
+
     return (
         <div className="pb-2 bg-blue-50 h-full px-3 pt-4">
 
-            {validateMessage}
+            {validateMessage&&(
+                <div onClick={backdropClickHandler} className="bg-black z-20 bg-opacity-80 fixed inset-0 flex justify-center items-center">
+                    {validateMessage}
+                </div>)
+            }
 
             <div className='w-full bg-white rounded p-3 my-2'>
                 {/* <RenderInputRow/> */}

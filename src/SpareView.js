@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react'
+<<<<<<< HEAD
 import { Link, useHistory } from 'react-router-dom'
+=======
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
+>>>>>>> dev
 import { ref, set, onValue } from "firebase/database";
 import { db } from "./firebase_config";
 import * as XLSX from 'xlsx';
@@ -9,7 +13,18 @@ import {fieldHeadings, fieldKeys} from "./Requirements"
 function SpareView() {
     // const location = useLocation()
     // const {spareData}=location.state
+<<<<<<< HEAD
     let history = useHistory();
+=======
+    let navigate = useNavigate();
+
+    const [setSelectedLink, setOpenedTab] = useOutletContext();
+    useEffect(() => {
+      setSelectedLink("spareview")
+      setOpenedTab("spare")
+    }, [])
+    
+>>>>>>> dev
 
     const [spareData, setSpareData] = useState([])
     const [dispData, setDispData] = useState([]) //data displayed
@@ -26,11 +41,20 @@ function SpareView() {
     const [filterText, setFilterText] = useState("")
     const [filterItems, setFilterItems] = useState({})
     const [filterDisp, setFilterDisp] = useState([])
+<<<<<<< HEAD
     const [filterSet, setFilterSet] = useState(null)
+=======
+    const [filterSet, setFilterSet] = useState({})
+>>>>>>> dev
     // const [filterData, setFilterData] = useState([])
     // const [qty, setQty] = useState(0)
     const [loading, setLoading] = useState(true)
 
+<<<<<<< HEAD
+=======
+    const filterKeys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
+
+>>>>>>> dev
     function DownloadExcel() {
         
 
@@ -83,6 +107,10 @@ function SpareView() {
         //     "Remarks",
         // ]]
         const Heading=[[...fieldHeadings]]
+<<<<<<< HEAD
+=======
+        // console.log(fieldKeys.map(item=>item.split(':')[0]))
+>>>>>>> dev
 
 		var ws = XLSX.utils.json_to_sheet(excelData, { origin: 'A2', skipHeader: true });
         var wb = XLSX.utils.book_new();
@@ -115,6 +143,7 @@ function SpareView() {
                 item["totalValue"]=(parseFloat(qty)*parseFloat(ogValue)+parseFloat(localQty)*parseFloat(localValue)).toPrecision(10)
                 spareArray.push(item)
             }
+<<<<<<< HEAD
             const mySet=new Set();
             spareArray.forEach(item=>{
                 mySet.add(item["code"])
@@ -124,6 +153,8 @@ function SpareView() {
                 newFilterSet.push(item)
             })
             setFilterSet(newFilterSet.sort());
+=======
+>>>>>>> dev
 
             setDispData(spareArray)
             setSpareData(spareArray);
@@ -174,11 +205,16 @@ function SpareView() {
     }
 
     const RenderItem=({item, index})=>{
+<<<<<<< HEAD
         var rowclass=" w-10/12 p-2 grid grid-cols-8 "
+=======
+        var rowclass=" w-full p-2 grid grid-cols-8 gap-2 text-sm "
+>>>>>>> dev
         var totalQty=parseInt(item.totalQty)
         var minStock=parseInt(item.minStock)
 
         if(totalQty<minStock && totalQty!="0")
+<<<<<<< HEAD
             rowclass+="bg-yellow-300 rounded-xl bg-opacity-90 "
         else if(minStock>0 && totalQty=="0")
         {
@@ -222,17 +258,70 @@ function SpareView() {
 
                 <div className="flex items-center justify-center">
                     <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.partNumber}</div>
+=======
+            rowclass+="bg-yellow-300 bg-opacity-90 "
+        else if(minStock>0 && totalQty=="0")
+        {
+            rowclass+="bg-red-300 bg-opacity-90 "
+        }
+
+        return (
+            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
+            <div key={index} className={rowclass} >
+                <div className="flex items-center justify-center">
+                    <div className="text-stone-900/30 w-10/12 break-all">{item.code}</div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                    <div className="text-stone-900/30 w-10/12 break-all">{item.nickName}</div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                    <div className="text-stone-900/30 w-10/12 break-all">{item.machine}</div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                    <div className="text-stone-900/30 w-10/12 break-all">{item.qty!=undefined?item.qty:""}</div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                    <div className="text-stone-900/30 w-10/12 break-all">{item.localQty!=undefined?item.localQty:""}</div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                    <div className="text-stone-900/30 w-10/12 break-all">{item.servQty!=undefined?item.servQty:""}</div>
+                </div>
+
+                {/* <div className="flex items-center justify-center">
+                    <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.machine}</div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                    <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.partName}</div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                    <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.partNumber}</div>
+>>>>>>> dev
                 </div>
 
 
                 <div className="flex items-center justify-center">
+<<<<<<< HEAD
                     <div className="font-semibold bg-gray-300 p-5 rounded-xl w-10/12 break-all">{item.spec}</div>
+=======
+                    <div className="text-sm text-stone-900/30 w-10/12 break-all">{item.spec}</div>
+>>>>>>> dev
                 </div> */}
 
 
                 <div className="flex items-center justify-center">
                     <div 
+<<<<<<< HEAD
                         className="font-semibold bg-blue-600 p-3 cursor-pointer rounded-3xl w-10/12 break-all text-white hover:bg-blue-800"
+=======
+                        className="font-semibold cursor-pointer text-blue-500 hover:text-blue-800"
+>>>>>>> dev
                         onClick={()=>{
                             setModalIndex(index)
                             RenderModal(index)
@@ -242,10 +331,16 @@ function SpareView() {
 
                 <div className="flex items-center justify-center">
                     <div 
+<<<<<<< HEAD
                         className="font-semibold cursor-pointer bg-green-600 p-3 rounded-3xl w-10/12 break-all text-white hover:bg-green-800"
                         onClick={()=>{
                             history.push({
                                 pathname: "/sparehistory",
+=======
+                        className="font-semibold cursor-pointer text-blue-500 hover:text-blue-800"
+                        onClick={()=>{
+                            navigate("../sparehistory",{
+>>>>>>> dev
                                 state: {spareId:item.id} 
                             });
                         }}
@@ -256,6 +351,7 @@ function SpareView() {
     }
 
     const filterFunc=(dispItems)=>{
+<<<<<<< HEAD
         var filters=[]
         // for(var key in filterItems){
         //     filterItems[key].map(item=>{
@@ -265,10 +361,18 @@ function SpareView() {
         for(var key in filterItems){
             if(filterItems[key]!="")
                 filters.push(key+" : "+filterItems[key])
+=======
+        var filters=[] // filter display
+
+        for(var key in filterItems){
+            if(filterItems[key]!="")
+                filters.push(key+" : "+filterItems[key]) //each filter is displayed as key:text eg: code:1001
+>>>>>>> dev
         }
 
         setFilterDisp(filters)
 
+<<<<<<< HEAD
         // var keys=[]
         // for(var key in filterItems)
         //     keys.push(key)
@@ -287,6 +391,8 @@ function SpareView() {
         //     })
         //     newData=[...items]
         // })
+=======
+>>>>>>> dev
         var newData=[...dispItems] //spareData so that filtering starts from the original data
         var count=0;
 
@@ -296,8 +402,14 @@ function SpareView() {
             if(searchText!="")
             {
                 var items=[]
+<<<<<<< HEAD
                 newData.forEach(item=>{
                     if(item[key].toLowerCase().includes(searchText.toLowerCase()))
+=======
+
+                newData.forEach(item=>{
+                    if(String(item[key]).toLowerCase().includes(searchText.toLowerCase()))
+>>>>>>> dev
                     {
                         items.push(item)
                     }
@@ -306,6 +418,7 @@ function SpareView() {
             }
         }
 
+<<<<<<< HEAD
         if(count>0)
         {
             dispItems=[...newData]
@@ -336,13 +449,54 @@ function SpareView() {
             setFilterSet(newFilterSet.sort());
 
         }
+=======
+        dispItems=[...newData]
+        // if(count>0)
+        // {
+        //     dispItems=[...newData]
+
+        //     const mySet=new Set();
+        //     newData.forEach(item=>{
+        //         mySet.add(item[filter])
+        //     })
+        //     var newFilterSet=[]
+        //     mySet.forEach(item=>{
+        //         newFilterSet.push(item)
+        //     })
+        //     setFilterSet(newFilterSet.sort());
+
+        // }
+        // else
+        // {
+        //     dispItems=[...spareData]
+
+        //     const mySet=new Set();
+        //     spareData.forEach(item=>{
+        //         mySet.add(item[filter])
+        //     })
+        //     var newFilterSet=[]
+        //     mySet.forEach(item=>{
+        //         newFilterSet.push(item)
+        //     })
+        //     setFilterSet(newFilterSet.sort());
+
+        // }
+>>>>>>> dev
         return dispItems
     }
 
     useEffect(() => {
         if(dispData.length>0)
         {
+<<<<<<< HEAD
             setRenderItems(dispData.map((item, index)=><RenderItem item={item} index={index}/>))
+=======
+            setRenderItems(
+                <div className='w-full overflow-y-auto divide-y-2 divide-gray-300'>
+                    {dispData.map((item, index)=><RenderItem item={item} index={index}/>)}
+                </div>
+            )
+>>>>>>> dev
         }
         else
             setRenderItems(        
@@ -366,12 +520,20 @@ function SpareView() {
         }
         else
         {
+<<<<<<< HEAD
             const keys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
             var items=dispItems.filter((item,index)=>{
                 // 
                 var found=0;
                 keys.forEach(key=>{
                     if(item[key].toLowerCase().includes(search.toLocaleLowerCase()))
+=======
+            var items=dispItems.filter((item,index)=>{
+                // 
+                var found=0;
+                filterKeys.forEach(key=>{
+                    if(String(item[key]).toLowerCase().includes(search.toLocaleLowerCase()))
+>>>>>>> dev
                     {
                         
                         found=1;
@@ -394,6 +556,7 @@ function SpareView() {
         }
     }
 
+<<<<<<< HEAD
     useEffect(() => {
         filterSearch();
     }, [search, spareData])
@@ -404,6 +567,38 @@ function SpareView() {
 
     return (
         <div className="h-full">
+=======
+    //to set the filterset of each keys (filterset contails each value to be displayed) 
+    //and to initiate filter search
+    useEffect(() => {
+
+        filterSearch();
+    }, [search, spareData, filterItems])
+
+    
+    
+    useEffect(() => {
+        var filterSet={}
+
+        //setting filter set for each keys
+        filterKeys.forEach(key=>{
+            const mySet=new Set();
+            dispData.forEach(item=>{
+                mySet.add(item[key])
+            })
+            var newFilterSet=[]
+            mySet.forEach(item=>{
+                newFilterSet.push(item)
+            })
+            filterSet[key]=[...newFilterSet.sort()];
+        })
+
+        setFilterSet({...filterSet})
+    }, [dispData])
+
+    return (
+        <div className="pb-6 bg-blue-50 h-full px-3">
+>>>>>>> dev
             {Modal&&(
                 <div onClick={backdropClickHandler} className="bg-white z-20 bg-opacity-95 space-x-10 fixed inset-0 flex justify-center items-center">
                     <div className="p-3 bg-blue-400 text-white rounded-3xl hover:bg-blue-800" onClick={()=>{
@@ -429,6 +624,7 @@ function SpareView() {
                 </div>)
             }
 
+<<<<<<< HEAD
             <div className="h-5/12 pt-12 pb-6 flex flex-col items-center bg-blue-200 filter drop-shadow-lg">
                 <div className="font-bold text-5xl w-full text-center text-gray-900">SPARE VIEW</div>
                 <div className="flex flex-row items-center justify-between mt-5 w-full relative">
@@ -463,10 +659,20 @@ function SpareView() {
                     </div>
                     
                     <div className="flex flex-row space-x-3 w-full items-center justify-center">
+=======
+            <div className="h-5/12 pt-6 pb-6 flex flex-col items-center filter drop-shadow-lg">
+                
+                <div className='flex flex-row w-full justify-between'>
+                    <div className="bg-white pl-2 flex flex-row self-start items-center space-x-3 w-fit ring ring-1 ring-gray-300 rounded-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+>>>>>>> dev
                         <input 
                             value={search} 
                             onChange={e=>{setSearch(e.target.value)}} 
                             type="text" 
+<<<<<<< HEAD
                             className="rounded-3xl h-10 w-5/12 p-3 pl-4 focus:outline-none" 
                             placeholder="Search by keyword"
                         />
@@ -525,10 +731,48 @@ function SpareView() {
                         >
                                 EXPORT EXCEL
                         </button>
+=======
+                            className="w-5/12 py-2 focus:outline-none w-full" 
+                            placeholder="Search by keyword"
+                        />
+                    </div>
+
+                    <Link to="/admin/adminadd">
+                        <div className='text-center rounded py-2 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                            + Add New
+                        </div>
+                    </Link>
+
+                </div>
+
+                <div className="flex flex-row mt-6 justify-between items-center relative w-full">
+                    <div className='grid grid-cols-7 gap-4 w-full'>
+                        {filterKeys.map(key=>(
+                            <select 
+                                key={key} 
+                                placeholder={key} 
+                                className="text-black text-sm bg-white p-2 outline-none " 
+                                onChange={e=>{
+                                    var items={...filterItems}
+                                    // if(items[filter]===undefined)
+                                    //     items[filter]=[]
+                                    // items[filter].push(filterText)
+                                    items[key]=e.target.value
+                                    setFilterItems(items)
+                                }}
+                            >
+                                <option value="text-black p-2 ">{key.toLocaleUpperCase()}</option>
+                                {filterSet[key]&&filterSet[key].map(filterText=>(
+                                    <option value={filterText} className="text-black p-2 " key={filterText} >{filterText}</option>
+                                ))}
+                            </select>
+                        ))}
+>>>>>>> dev
                     </div>
                 </div>
             </div>
             
+<<<<<<< HEAD
             <div className="flex flex-row justify-center mt-5 items-center w-full self-center">
                 {filterDisp.map(text=>(
                     <div className="flex flex-row space-x-2 bg-black rounded-3xl text-white px-3 py-2 mx-3">
@@ -545,6 +789,15 @@ function SpareView() {
                                 // })
                                 // var newFilterItems={...filterItems}
                                 // newFilterItems[text.split(" : ")[0]]=newFilter
+=======
+            {filterDisp.length>0&&(<div className="flex flex-row space-x-4 my-3 items-center w-full self-center">
+                {filterDisp.map(text=>(
+                    <div className="flex flex-row align-center space-x-2 bg-blue-50 rounded-full border-2 border-blue-500 text-blue-500 p-1 text-sm">
+                        <div className='h-fit'>{text}</div>
+                        <div 
+                            className="text-blue-500 hover:text-blue-800"
+                            onClick={()=>{
+>>>>>>> dev
                                 var newFilter={...filterItems}
                                 newFilter[text.split(" : ")[0]]=""
                                 setFilterItems(newFilter)
@@ -555,6 +808,7 @@ function SpareView() {
                             </svg>
                         </div>
                     </div>))}
+<<<<<<< HEAD
             </div>
             <div className="mt-10 mb-10 flex flex-col h-full space-y-2 items-center justify center items-center">
                 <div className="w-10/12 p-3 grid grid-cols-8 border-2 border-black divide-x-2 divide-black divide-solid rounded-xl">
@@ -564,10 +818,40 @@ function SpareView() {
                     <div className="font-bold">New Qty</div>
                     <div className="font-bold">Local Qty</div>
                     <div className="font-bold">Service Qty</div>
+=======
+                <div 
+                    className='text-base cursor-pointer' 
+                    onClick={()=>{
+                        setFilterItems([])
+                    }}
+                >
+                        Reset All
+                </div>
+            </div>)}
+            <div className="flex flex-col h-lg space-y-2 items-center justify center items-center bg-white rounded-xl p-4">
+                <div className='flex flex-row justify-between py-3 w-full align-center'>
+                    <div className='font-semibold text-lg'>Spare View</div>
+
+                    <button
+                        className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
+                        onClick={()=>{DownloadExcel(spareData)}}
+                    >
+                            Export Excel
+                    </button>
+                </div>
+                <div className="w-full sticky top-0 p-3 grid grid-cols-8 gap-2 bg-gray-200">
+                    <div className="text-sm py-2 ">CODE</div>
+                    <div className="text-sm py-2 ">NICKNAME</div>
+                    <div className="text-sm py-2 ">MACHINE</div>
+                    <div className="text-sm py-2 ">NEW QTY</div>
+                    <div className="text-sm py-2 ">LOCAL QTY</div>
+                    <div className="text-sm py-2 ">SERVICE QTY</div>
+>>>>>>> dev
                     {/* <div className="font-bold">Part Name</div>
                     <div className="font-bold">Part Number</div>
                     <div className="font-bold">Specification</div> */}
                 </div>
+<<<<<<< HEAD
                 <div className="w-full h-full mt-24" >
                 {
                     loading && 
@@ -589,6 +873,30 @@ function SpareView() {
                     )
                 }
                 </div>
+=======
+                
+                {
+                    loading && 
+                    (
+                        <div className="w-full h-full mt-24" >
+                            <div className="w-full h-full flex justify-center items-center space-x-5 mt-24">
+                                <div
+                                    className="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-500"
+                                />
+                                {/* <div
+                                    className="animate-spin rounded-full h-8 w-8 border-b-4 border-red-600"
+                                />
+                                <div
+                                    className="animate-spin rounded-full h-8 w-8 border-b-4 border-yellow-500"
+                                />
+                                <div
+                                    className="animate-spin rounded-full h-8 w-8 border-b-4 border-green-500"
+                                /> */}
+                            </div>
+                        </div>
+                    )
+                }
+>>>>>>> dev
                 {renderItems}
             </div>
         </div>

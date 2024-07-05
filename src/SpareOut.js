@@ -2,10 +2,24 @@ import React, { useEffect, useState } from 'react'
 import { ref, set, onValue, push } from "firebase/database";
 import { db } from "./firebase_config";
 import {fieldHeadings, fieldKeys} from "./Requirements"
+<<<<<<< HEAD
+=======
+import { useOutletContext } from 'react-router-dom';
+>>>>>>> dev
 
 function SpareOut() {
     // const location = useLocation()
     // const {spareData}=location.state
+<<<<<<< HEAD
+=======
+    
+    const [setSelectedLink, setOpenedTab] = useOutletContext();
+    useEffect(() => {
+        setSelectedLink("spareout")
+        setOpenedTab("spare")
+    }, [])
+
+>>>>>>> dev
     const [spareData, setSpareData] = useState([])
 
     const [modalToggle, setModalToggle] = useState(false)
@@ -23,6 +37,16 @@ function SpareOut() {
     const [selectedQty, setSelectedQty] = useState("localQty")
     const [loading, setLoading] = useState(true)
 
+<<<<<<< HEAD
+=======
+    const [dispData, setDispData] = useState([]) //data displayed
+    const [filter, setFilter] = useState("code")
+    const [filterText, setFilterText] = useState("")
+    const [filterItems, setFilterItems] = useState({})
+    const [filterDisp, setFilterDisp] = useState([])
+    const [filterSet, setFilterSet] = useState(null)
+
+>>>>>>> dev
     const takeQuantity=(item)=>{
         const spareRef = ref(db, `spares/${item.id}`);
         const historyRef = ref(db, `history/${item.id}`);
@@ -166,7 +190,10 @@ function SpareOut() {
         )
     }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
     const RenderItem=({item, index})=>{
         // 
         return (
@@ -227,6 +254,148 @@ function SpareOut() {
         )
     }
 
+<<<<<<< HEAD
+=======
+        useEffect(() => {
+        if(dispData.length>0)
+        {
+            setRenderItems(dispData.map((item, index)=><RenderItem item={item} index={index}/>))
+        }
+        else
+            setRenderItems(        
+                <div className="flex items-center justify-center w-full h-full">
+                    <div className="text-blue-300 text-5xl">Nothing here !</div>
+                </div>
+            )
+    }, [dispData])
+
+    const filterFunc=(dispItems)=>{
+        var filters=[]
+        // for(var key in filterItems){
+        //     filterItems[key].map(item=>{
+        //         filters.push(key+" : "+item)
+        //     })
+        // }
+        for(var key in filterItems){
+            if(filterItems[key]!="")
+                filters.push(key+" : "+filterItems[key])
+        }
+
+        setFilterDisp(filters)
+
+        // var keys=[]
+        // for(var key in filterItems)
+        //     keys.push(key)
+        // var newData=[...filterData]
+
+        // var count=0;
+        // keys.forEach(key=>{
+        //     var filters=[...filterItems[key]]
+        //     count+=filters.length
+        //     var items=[]
+        //     filters.forEach(searchText=>{
+        //         newData.forEach(item=>{
+        //             if(item[key].includes(searchText))
+        //                 items.push(item)
+        //         })
+        //     })
+        //     newData=[...items]
+        // })
+        var newData=[...dispItems] //spareData so that filtering starts from the original data
+        var count=0;
+
+        for(var key in filterItems){
+            var searchText=filterItems[key]
+            count+=searchText.length
+            if(searchText!="")
+            {
+                var items=[]
+                newData.forEach(item=>{
+                    if(String(item[key]).toLowerCase().includes(searchText.toLowerCase()))
+                    {
+                        items.push(item)
+                    }
+                })
+                newData=[...items]
+            }
+        }
+
+        if(count>0)
+        {
+            dispItems=[...newData]
+
+            const mySet=new Set();
+            newData.forEach(item=>{
+                mySet.add(item[filter])
+            })
+            var newFilterSet=[]
+            mySet.forEach(item=>{
+                newFilterSet.push(item)
+            })
+            setFilterSet(newFilterSet.sort());
+
+        }
+        else
+        {
+            dispItems=[...spareData]
+
+            const mySet=new Set();
+            spareData.forEach(item=>{
+                mySet.add(item[filter])
+            })
+            var newFilterSet=[]
+            mySet.forEach(item=>{
+                newFilterSet.push(item)
+            })
+            setFilterSet(newFilterSet.sort());
+
+        }
+        return dispItems
+    }
+
+    const filterSearch=()=>{
+
+        //applying filter items
+        var dispItems=[...spareData]
+        dispItems=[...filterFunc(dispItems)] //arrays are passed by reference
+
+        if(search==="")
+        {
+            setDispData([...dispItems])
+            var items=[...dispItems]
+            // setRenderItems(items.map((item, index)=><RenderItem item={item} index={index}/>))
+        }
+        else
+        {
+            const keys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
+            var items=dispItems.filter((item,index)=>{
+                // 
+                var found=0;
+                keys.forEach(key=>{
+                    if(String(item[key]).toLowerCase().includes(search.toLocaleLowerCase()))
+                    {
+                        
+                        found=1;
+                    }
+                })
+                return found===1
+            })
+
+            setDispData([...items])
+            // if(items.length>0)
+            // {
+            //     setRenderItems(items.map((item, index)=><RenderItem item={item} index={index}/>))
+            // }
+            // else
+            //     setRenderItems(        
+            //         <div className="flex items-center justify-center w-full h-full">
+            //             <div className="text-blue-300 text-5xl">Nothing here !</div>
+            //         </div>
+            //     )
+        }
+    }
+
+>>>>>>> dev
 
     useEffect(() => {
         const spareRef = ref(db, 'spares/');
@@ -262,6 +431,7 @@ function SpareOut() {
     }, [myqty,modalItem])
 
     useEffect(() => {
+<<<<<<< HEAD
         if(search==="")
             setRenderItems(spareData.map((item, index)=><RenderItem item={item} index={index}/>))
         else
@@ -291,6 +461,44 @@ function SpareOut() {
                 )
         }
     }, [search, spareData])
+=======
+        filterSearch();
+    }, [search, spareData, filterItems])
+
+    useEffect(() => {
+        const spareRef = ref(db, 'spares/');
+        const historyRef = ref(db, 'history/');
+
+        onValue(spareRef, (snapshot) => {
+            const data = snapshot.val();
+            // ;
+
+            var spareArray=[];
+            for(var key in data)
+            {
+                var item=data[key]
+                var qty=item.qty||0
+                var localQty=item.localQty||0
+                var servQty=item.servQty||0
+    
+                var ogValue=item.value||0
+                var localValue=item.localValue||0
+    
+                item["totalQty"]=parseInt(qty)+parseInt(localQty)+parseInt(servQty)
+                item["totalValue"]=(parseFloat(qty)*parseFloat(ogValue)+parseFloat(localQty)*parseFloat(localValue)).toPrecision(10)
+                spareArray.push(item)
+            }
+            
+            setSpareData(spareArray);
+            setLoading(false);
+        });
+    }, [])
+
+    useEffect(() => {
+        RenderModal(modalItem)
+    }, [myqty,modalItem])
+
+>>>>>>> dev
 
     return (
         <div className="h-full">
@@ -298,6 +506,7 @@ function SpareOut() {
             <div className="h-5/12 pt-12 pb-6 flex flex-col items-center bg-blue-200 filter drop-shadow-lg w-full">
                 <div className="font-bold text-5xl w-full text-center text-gray-900">SPARE OUTWARD</div>
 
+<<<<<<< HEAD
                 <div className="flex flex-row space-x-3 w-full items-center justify-center mt-5">
                     <input 
                         value={search} 
@@ -310,6 +519,117 @@ function SpareOut() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
+=======
+                <div className="flex flex-row items-center justify-between mt-5 w-full relative">
+                    <div className="flex flex-row bg-green-300 justify-center items-center absolute ml-28">
+                        <div className="p-2 bg-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white font-bold text-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                        </div>
+                        <select 
+                            className="bg-green-300 text-white font-bold p-2 outline-none" 
+                            onChange={e=>{
+                                setFilter(e.target.value)
+                                const mySet=new Set();
+                                dispData.forEach(item=>{
+                                    mySet.add(item[e.target.value])
+                                })
+                                var newFilterSet=[]
+                                mySet.forEach(item=>{
+                                    newFilterSet.push(item)
+                                })
+                                setFilterSet(newFilterSet.sort());
+                            }}
+                        >
+                            <option value="code" className="bg-green-600 p-3 font-bold">Code</option>
+                            <option value="partName" className="bg-green-600 p-3 font-bold">Part Name</option>
+                            <option value="partNumber" className="bg-green-600 p-3 font-bold">Part Number</option>
+                            <option value="nickName" className="bg-green-600 p-3 font-bold">Nickname</option>
+                            <option value="spec" className="bg-green-600 p-3 font-bold">Specification</option>
+                            <option value="machine" className="bg-green-600 p-3 font-bold">Machine</option>
+                        </select>
+                    </div>
+                    
+                    <div className="flex flex-row space-x-3 w-full items-center justify-center">
+                        <input 
+                            value={search} 
+                            onChange={e=>{setSearch(e.target.value)}} 
+                            type="text" 
+                            className="rounded-3xl h-10 w-5/12 p-3 pl-4 focus:outline-none" 
+                            placeholder="Search by keyword"
+                        />
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div className="flex flex-row mt-12 justify-between items-center relative w-full">
+
+                    <div className="flex flex-row absolute ml-28">
+                        <div className="bg-black text-md font-bold text-white px-3 p-1 rounded-l-3xl">{filter}</div>
+                        {/* <input 
+                            value={filterText} 
+                            onChange={e=>{setFilterText(e.target.value)}} 
+                            type="text" 
+                            className="rounded-r-3xl p-1 pl-2 focus:outline-none w-40" 
+                            placeholder="Search"
+                        /> */}
+                        <select 
+                            className="text-black bg-white w-36 font-bold px-3 p-2 outline-none rounded-r-3xl" 
+                            onChange={e=>{setFilterText(e.target.value)}}
+                        >
+                            <option value="" className="text-black p-3 font-bold">NIL</option>
+                            {filterSet&&filterSet&&filterSet.map(item=>(
+                                <option value={item} className="text-black p-3 font-bold">{item}</option>
+                            ))}
+                        </select>
+
+                        <div 
+                            className="ml-2 cursor-pointer text-md font-bold bg-red-600 hover:bg-red-500 text-white px-3 p-1 rounded-2xl"
+                            onClick={()=>{
+                                var items={...filterItems}
+                                // if(items[filter]===undefined)
+                                //     items[filter]=[]
+                                // items[filter].push(filterText)
+                                items[filter]=filterText
+                                setFilterItems(items)
+                            }}
+                        >
+                            Add
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex flex-row justify-center mt-5 items-center w-full self-center">
+                {filterDisp.map(text=>(
+                    <div className="flex flex-row space-x-2 bg-black rounded-3xl text-white px-3 py-2 mx-3">
+                        <div>{text}</div>
+                        <div 
+                            className="text-white hover:text-red-500 font-bold"
+                            onClick={()=>{
+                                // var tmpFilter=filterItems[text.split(" : ")[0]]
+                                // var newFilter=tmpFilter.filter(item=>{
+                                //     if(item===text.split(" : ")[1])
+                                //         return false;
+                                //     else
+                                //         return true
+                                // })
+                                // var newFilterItems={...filterItems}
+                                // newFilterItems[text.split(" : ")[0]]=newFilter
+                                var newFilter={...filterItems}
+                                newFilter[text.split(" : ")[0]]=""
+                                setFilterItems(newFilter)
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>))}
+>>>>>>> dev
             </div>
 
             <div className="mt-10 mb-10 flex flex-col h-full space-y-2 items-center justify center items-center">

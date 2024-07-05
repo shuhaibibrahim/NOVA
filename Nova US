@@ -1,0 +1,6 @@
+Nov 6 - Nov 13 2022
+US_0 : Stor requirement in database as left qty and right qty separated : 
+	- for a particluar size, leftQty = rightQty = packing comb of that size * caseQty
+US_1 : for plan, load data from requirements and a plan button at the end of each row.
+	-on cick of the plan button, prompt to enter the case qt
+US_3 : bom enter dashboard

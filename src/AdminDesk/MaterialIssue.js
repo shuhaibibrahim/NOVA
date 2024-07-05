@@ -5,6 +5,7 @@ import { ref, set, push, onValue, remove, update } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
+import { isArray } from '@craco/craco/lib/utils';
 
 function MaterialIssueEntry() {
     // const location = useLocation()
@@ -150,11 +151,14 @@ function MaterialIssueEntry() {
         if(stock!=undefined && stock.qty<qty){
             errorMessage=errorMessage+" : stock is deficient"
         }
-        if(stock!=undefined && Array.isArray(unit)){
-            if(unit.length>1){
-                var misMatchUnits=unit.filter(u=>u!=stock.unit)
-                errorMessage=errorMessage+" : "+misMatchUnits.join(',')+" mistaches with stock unit "+stock.unit
-            }
+
+        console.log(unit,Array.isArray(unit))
+        if(stock!=undefined && Array.isArray(unit) && unit.length>1){
+            var misMatchUnits=unit.filter(u=>u!=stock.unit)
+            errorMessage=errorMessage+" : "+misMatchUnits.join(',')+" mistaches with stock unit "+stock.unit
+        }
+        else if(stock!=undefined && Array.isArray(unit) && stock.unit!=unit[0]){
+            errorMessage=errorMessage+" : unit "+unit+" mismatches with stock unit "+stock.unit
         }
         else if(stock!=undefined && stock.unit!=unit){
             errorMessage=errorMessage+" : unit "+unit+" mismatches with stock unit "+stock.unit
@@ -240,16 +244,19 @@ function MaterialIssueEntry() {
         }, []);
 
         var inValidMaterials=[]
+        console.log(consolidatedData)
         consolidatedData.forEach(material=>{
-            var mssg=validateMaterialIssue(material.materialNumber,material.unit)
+            console.log(material)
+            var mssg=validateMaterialIssue(material.materialNumber,material.qty,material.units)
+            console.log(material)
             if(mssg!=""){
-                validate=mssg+"\n"
+                validate=validate+mssg+"\n"
                 inValidMaterials.push(material.materialNumber)
             }
         })
 
         if(validate!=""){
-            displayValidateMessage()
+            displayValidateMessage(validate)
         }
 
         bulkData.forEach(item=>{
@@ -257,7 +264,6 @@ function MaterialIssueEntry() {
                 const newMaterialIssueRef = push(materialIssueRef);
                 set(newMaterialIssueRef, {
                     ...item,
-                    qty:0,
                     id:newMaterialIssueRef.key
                 })
                 .then(()=>{

@@ -41,6 +41,7 @@ import DataEntry from './AdminDesk/DataEntry';
 import RequirementEntry from './AdminDesk/RequirementEntry';
 import BOMDataEntry from './AdminDesk/BomDataEntry';
 import StockEntry from './AdminDesk/StockEntry';
+import MaterialIssueEntry from './AdminDesk/MaterialIssue';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -68,7 +69,7 @@ function App() {
   }, []);
 
   return (
-    <div className="App bg-slate-100 h-full">
+    <div className="App bg-slate-100 h-screen">
       <BrowserRouter>
         <Routes >
             {!user&&(<Route path="/" element={<UserLogin />} />)}
@@ -102,6 +103,11 @@ function App() {
                 <Route path="bom-data-entry" element={<BOMDataEntry />}/>
                 <Route path="requirement-entry" element={<RequirementEntry/>}/>
                 <Route path="stock-entry" element={<StockEntry/>}/>
+              </Route>
+
+              <Route path="mmdept">
+                <Route path="stock-entry" element={<StockEntry/>}/>
+                <Route path="material-issue" element={<MaterialIssueEntry/>}/>
               </Route>
             </Route>
             )}

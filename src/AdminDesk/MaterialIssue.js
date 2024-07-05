@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { db} from "../firebase_config";
-import { ref, set, push, onValue, remove } from "firebase/database";
+import { ref, set, push, onValue, remove, update } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
 
-function StockEntry() {
+function MaterialIssueEntry() {
     // const location = useLocation()
     // const {spareData}=location.state
     let navigate = useNavigate();
 
     const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
-        setSelectedLink("mmdept/stock-entry")
+        setSelectedLink("mmdept/MaterialIssue-entry")
         setOpenedTab("mmDept")
     }, [])
+
+    const materialIssueStruct={
+        materialNumber:"",
+        materialDesc:"",
+        qty:"",
+        unit:""
+    } 
 
     const stockStruct={
         materialGroup:"",
@@ -23,11 +30,13 @@ function StockEntry() {
         materialDesc:"",
         qty:"",
         unit:""
-    }    
+    }  
 
+    const [materialIssueData, setMaterialIssueData] = useState([])
     const [stockData, setStockData] = useState([])
+
     const [requirementsData, setRequirementsData] = useState([])
-    const [editData, setEditData] = useState({...stockStruct})
+    const [editData, setEditData] = useState({...materialIssueStruct})
     const [editingInputElement, setEditingInputElement] = useState(null)
 
     const [articleSelectList, setArticleSelectList] = useState([])
@@ -67,11 +76,31 @@ function StockEntry() {
 
     const filterKeys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
 
-    const [newStock, setNewStock] = useState({...stockStruct})
+    const [newMaterialIssue, setNewMaterialIssue] = useState({...materialIssueStruct})
 
     const [packageInput, setPackageInput] = useState([])
 
+    const [validateMessage, setValidateMessage] = useState(null)
+
     useEffect(() => {
+        const materialIssueRef = ref(db, 'materialIssueData/');
+
+        onValue(materialIssueRef, (snapshot) => {
+            const data = snapshot.val();
+            // ;
+
+            var MaterialIssueArray=[];
+            for(var key in data)
+            {
+                var item=data[key]
+                console.log(item)
+                MaterialIssueArray.push(item)
+                // spareArray.push(item)
+            }
+            
+            setMaterialIssueData([...MaterialIssueArray])
+        });
+
         const stockRef = ref(db, 'stockData/');
 
         onValue(stockRef, (snapshot) => {
@@ -91,53 +120,188 @@ function StockEntry() {
         });
     }, [])
 
+    const displayValidateMessage=(validate)=>{
+        setValidateMessage(
+            <div className="flex flex-col bg-white h-auto w-5/12 rounded overflow-hidden p-2">
+                <div className="flex flex-row justify-end">
+                    {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg> */}
+
+                    <svg onClick={()=>{setValidateMessage(null)}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+                <div className='flex flex-row m-4 bg-red-400 rounded p-4'>
+                    <div className='font-bold my-1 text-lg'>The following materials cant be issued</div>
+                    <div className='font-bold my-1 text-lg'>{validate}</div>
+                </div>
+            </div>
+        )
+    }
+
+    const validateMaterialIssue=(materialNumber, qty, unit)=>{
+        var stock=stockData.filter(item=>(item.materialNumber==materialNumber))[0]
+        var errorMessage="\n"+materialNumber
+        var mssgCount=0
+        if(stock==undefined){
+            errorMessage+="stock is not avaiable"
+        }
+        if(stock!=undefined && stock.qty<qty){
+            if(mssgCount)
+            errorMessage+=" : stock is deficient"
+        }
+        if(stock!=undefined && Array.isArray(unit)){
+            if(unit.length>1){
+                var misMatchUnits=unit.filter(u=>u!=stock.unit)
+                errorMessage+=" : "+misMatchUnits.join(',')+" mistaches with stock unit "+stock.unit
+            }
+        }
+        if(stock!=undefined && stock.unit!=unit){
+            errorMessage+=" : unit "+unit+" mismatches with stock unit "+stock.unit
+        }
+        
+        return errorMessage
+    }
+
+    const reduceStockQty=(materialNumber,qty)=>{
+
+        var stock=stockData.filter(item=>(item.materialNumber==materialNumber))[0]
+        var item={...stock, qty:Number(stock.qty)-qty}
+
+        const stockRef = ref(db, `stockData/${stock.id}`);
+
+        set(stockRef, {
+            ...item
+        })
+        .then((ref)=>{
+            // setUpdateLoad(false)
+            // alert("Successfully updated")
+        })
+        .catch((error)=>{
+            alert("Error while saving data : ",error)
+            console.log(error)
+        })
+
+    }
+
     const pushToDatabase = () => {
             // setUpdateLoad(true)
-            const stockRef = ref(db, `stockData/`);
-            const newStockRef = push(stockRef);
+            var validate=validateMaterialIssue(newMaterialIssue.materialNumber, newMaterialIssue.qty, newMaterialIssue.unit)
+            if(validate!=""){
+                displayValidateMessage(validate)
+                return
+            }
 
-            set(newStockRef, {
-                ...newStock,
-                productionStock:0,
-                id:newStockRef.key
+            const materialIssueRef = ref(db, `materialIssueData/`);
+            const newMaterialIssueRef = push(materialIssueRef);
+
+            set(newMaterialIssueRef, {
+                ...newMaterialIssue,
+                productionMaterialIssue:0,
+                id:newMaterialIssueRef.key
             })
             .then(()=>{
                 // setUpdateLoad(false)
                 console.log("Successfully updated")
+                reduceStockQty(newMaterialIssue.materialNumber, newMaterialIssue.qty)
             })
             .catch((error)=>{
                 console.log("Error while saving data : ",error)
             })            
     }
 
-    const pushStockToDatabaseBulk = (bulkData) => {
+    const pushMaterialIssueToDatabaseBulk = (bulkData) => {
         // setUpdateLoad(true)
-        const stockRef = ref(db, `stockData/`);
+        const materialIssueRef = ref(db, `materialIssueData/`);
+        var validate=""
+        var consolidatedData=bulkData.reduce((accumulator, currentValue) => {
+            // Check if there's already an entry with the same name in accumulator
+            let existingItem = accumulator.find(item => item.name === currentValue.name);
+          
+            if (existingItem) {
+              // If name already exists, update qty and add new unit if not already present
+              existingItem.qty += currentValue.qty;
+              if (!existingItem.units.includes(currentValue.unit)) {
+                existingItem.units.push(currentValue.unit);
+              }
+            }else {
+              // If name doesn't exist, add new entry
+              accumulator.push({
+                materialNumber: currentValue.materialNumber,
+                qty: currentValue.qty,
+                units: [currentValue.unit]
+              });
+            }
+          
+            return accumulator;
+        }, []);
+
+        var inValidMaterials=[]
+        consolidatedData.forEach(material=>{
+            var mssg=validateMaterialIssue(material.materialNumber,material.unit)
+            if(mssg!=""){
+                validate=mssg+"\n"
+                inValidMaterials.push(material.materialNumber)
+            }
+        })
+
+        if(validate!=""){
+            displayValidateMessage()
+        }
 
         bulkData.forEach(item=>{
-            const newStockRef = push(stockRef);
-    
-            set(newStockRef, {
-                ...item,
-                qty:0,
-                id:newStockRef.key
-            })
-            .then(()=>{
-                // setUpdateLoad(false)
-                // console.log("Successfully updated")
-            })
-            .catch((error)=>{
-                console.log("Error while saving data : ",error)
-            })            
+            if(!inValidMaterials.includes(item.materialNumber)){
+                const newMaterialIssueRef = push(materialIssueRef);
+                set(newMaterialIssueRef, {
+                    ...item,
+                    qty:0,
+                    id:newMaterialIssueRef.key
+                })
+                .then(()=>{
+                    // setUpdateLoad(false)
+                    // console.log("Successfully updated")
+                    reduceStockQty(item.materialNumber,item.qty)
+                })
+                .catch((error)=>{
+                    console.log("Error while saving data : ",error)
+                })            
+            }
         })
-}
+
+        var stockUpdates={}
+        stockData.forEach(s=>{
+            if(!inValidMaterials.includes(s.materialNumber)){
+                stockUpdates[`stockData/${s.id}`]={...s, 
+                    qty:Number(s.qty)-Number(consolidatedData.find(m=>m.materialNumber==s.materialNumber).qty)
+                }
+            }
+        })
+
+        update(ref(db), stockUpdates).then(()=>{
+            console.log("stock updated")
+        }).catch((e)=>{
+            console.log("stock update error : ",e)
+        })
+
+        // var stockItemsToUpdateList=stockData.filter(
+        //     s=>!inValidMaterials.includes(s.materialNumber)
+        // ).map(s=>({[`stockData/${s.id}`]:{...s, qty:Number(s.qty)-Number(consolidatedData.find(m=>m.materialNumber==s.materialNumber).qty)}}))
+
+        // let stockItemsToUpdateObject = stockItemsToUpdateList.reduce((acc, obj) => {
+        //     // Extract the key and value from each object and add it to the accumulator object
+        //     let path = Object.keys(obj)[0]; // Assuming each object has only one key
+        //     acc[path] = obj[path];
+        //     return acc;
+        // }, {});
+    }
 
     const editItem = (item) => {
         item={...editData, id:item.id}
 
-        const stockRef = ref(db, `stockData/${item.id}`);
+        const materialIssueRef = ref(db, `materialIssueData/${item.id}`);
 
-        set(stockRef, {
+        set(materialIssueRef, {
             ...item
         })
         .then((ref)=>{
@@ -154,7 +318,7 @@ function StockEntry() {
 
         if(window.confirm("Please confirm deleting "+item.article))
         {
-            const reqRef = ref(db, `stockData/${item.id}`); 
+            const reqRef = ref(db, `materialIssueData/${item.id}`); 
         
             remove(reqRef).then(()=>{
                 // alert("Removed article successfully")
@@ -212,11 +376,9 @@ function StockEntry() {
     const RenderItem=(item, index)=>{
 
         return (
-            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-6 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-6"}>
-            <div key={index} className="grid grid-cols-6 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+            // <div key={index} className={item.qty<item.minMaterialIssue?"w-11/12 p-2 grid grid-cols-5 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-5"}>
+            <div key={index} className="grid grid-cols-5 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
                 {item.edit!=true&&(<>
-                    <div className="text-stone-900/30 break-all text-left">{item.materialGroup}</div>
-
                     <div className="text-stone-900/30 break-all text-left">{item.materialNumber}</div>
 
                     <div className="text-stone-900/30 break-all text-left">{item.materialDesc}</div>
@@ -227,21 +389,6 @@ function StockEntry() {
                 </>)}
 
                 {item.edit&&(<>
-                    <div className="flex w-full flex flex-col items-start justify-start">
-                        <input 
-                            value={editData.materialGroup}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    materialGroup: e.target.value
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div> 
-
                     <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
                             value={editData.materialNumber}
@@ -311,9 +458,9 @@ function StockEntry() {
                             <div 
                                 onClick={()=>{
                                     setEditData({...item})
-                                    var tempStockData=[...stockData].reverse()
-                                    tempStockData[index].edit=true
-                                    setStockData([...tempStockData].reverse())
+                                    var tempMaterialIssueData=[...materialIssueData].reverse()
+                                    tempMaterialIssueData[index].edit=true
+                                    setMaterialIssueData([...tempMaterialIssueData].reverse())
                                 }}
                                 className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
                             >
@@ -328,9 +475,9 @@ function StockEntry() {
                         <div className='flex justify-center'>
                             <div 
                                 onClick={()=>{
-                                    var tempStockData=[...stockData].reverse()
-                                    tempStockData[index].edit=false
-                                    setStockData([...tempStockData].reverse())
+                                    var tempMaterialIssueData=[...materialIssueData].reverse()
+                                    tempMaterialIssueData[index].edit=false
+                                    setMaterialIssueData([...tempMaterialIssueData].reverse())
                                     editItem(item);
                                 }}
                                 className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
@@ -365,11 +512,11 @@ function StockEntry() {
 
     useEffect(() => {
         
-        if(stockData.length>0)
+        if(materialIssueData.length>0)
         {
             setRenderItems(
                 <div className='w-full overflow-y-auto'>
-                    {[...stockData].reverse().map((item, index)=>RenderItem(item,index))}
+                    {[...materialIssueData].reverse().map((item, index)=>RenderItem(item,index))}
                     {/* <RenderInputRow/> */}
                 </div>
             )
@@ -381,113 +528,101 @@ function StockEntry() {
                 <div/>
             )
         }
-    }, [stockData, editData])
+    }, [materialIssueData, editData])
 
 
     const RenderInputRow=()=>{
         return (
-            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-6 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-6"}>
-            <div  className='w-full grid grid-cols-6 gap-4'>
-                <div className="flex w-full flex flex-col items-start justify-start">
-                    <label className='text-sm'>Material Group</label>
-                    <input 
-                        value={newStock.materialGroup}
-                        onChange={e=>{
-                            setNewStock({
-                                ...newStock,
-                                materialGroup: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div> 
+            <div className='w-full flex-flex-row'>
+                <div  className='w-full grid grid-cols-5 gap-4'>
+                    <div className="flex w-full flex flex-col items-start justify-start">
+                        <label className='text-sm'>Material Number</label>
+                        <input 
+                            value={newMaterialIssue.materialNumber}
+                            onChange={e=>{
+                                setNewMaterialIssue({
+                                    ...newMaterialIssue,
+                                    materialNumber: e.target.value
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div> 
 
-                <div className="flex w-full flex flex-col items-start justify-start">
-                    <label className='text-sm'>Material Number</label>
-                    <input 
-                        value={newStock.materialNumber}
-                        onChange={e=>{
-                            setNewStock({
-                                ...newStock,
-                                materialNumber: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div> 
+                    <div className="flex w-full flex flex-col items-start justify-start">
+                        <label className='text-sm'>Material Description</label>
+                        <input 
+                            value={newMaterialIssue.materialDesc}
+                            onChange={e=>{
+                                setNewMaterialIssue({
+                                    ...newMaterialIssue,
+                                    materialDesc: e.target.value
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div> 
 
-                <div className="flex w-full flex flex-col items-start justify-start">
-                    <label className='text-sm'>Material Description</label>
-                    <input 
-                        value={newStock.materialDesc}
-                        onChange={e=>{
-                            setNewStock({
-                                ...newStock,
-                                materialDesc: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div> 
+                    <div className="flex w-full flex flex-col items-start justify-start">
+                        <label className='text-sm'>Quantity</label>
+                        <input 
+                            value={newMaterialIssue.qty}
+                            onChange={e=>{
+                                setNewMaterialIssue({
+                                    ...newMaterialIssue,
+                                    qty: e.target.value
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div>
 
-                <div className="flex w-full flex flex-col items-start justify-start">
-                    <label className='text-sm'>Quantity</label>
-                    <input 
-                        value={newStock.qty}
-                        onChange={e=>{
-                            setNewStock({
-                                ...newStock,
-                                qty: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div>
+                    <div className="flex w-full flex flex-col items-start justify-start">
+                        <label className='text-sm'>Unit</label>
+                        <input 
+                            value={newMaterialIssue.unit}
+                            onChange={e=>{
+                                setNewMaterialIssue({
+                                    ...newMaterialIssue,
+                                    unit: e.target.value
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div>
 
-                <div className="flex w-full flex flex-col items-start justify-start">
-                    <label className='text-sm'>Unit</label>
-                    <input 
-                        value={newStock.unit}
-                        onChange={e=>{
-                            setNewStock({
-                                ...newStock,
-                                unit: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div>
-
-                <div className='flex flex-row space-x-1  items-end'>
-                    <div 
-                        className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                        onClick={()=>{
-                            if(window.confirm("Add new stock?"))
-                                pushToDatabase()
-                        }}
-                    >
-                        Submit
+                    <div className='flex flex-row space-x-1  items-end'>
+                        <div 
+                            className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                            onClick={()=>{
+                                if(window.confirm("Add new MaterialIssue?"))
+                                    pushToDatabase()
+                            }}
+                        >
+                            Submit
+                        </div>
                     </div>
                 </div>
-
-                <div className='col-span-3 flex justify-start items-end'>
+                <div className='flex justify-start items-end'>
                     <BulkExcelUploadComponent 
-                        headings={["materialGroup","materialNumber","materialDesc","qty","unit"]} 
-                        templateName={"stock-template"}
-                        pushFunction={pushStockToDatabaseBulk}
+                        headings={["materialNumber","materialDesc","qty","unit"]} 
+                        templateName={"material-issue-template"}
+                        pushFunction={pushMaterialIssueToDatabaseBulk}
                     />
                 </div>
             </div>
+            // <div key={index} className={item.qty<item.minMaterialIssue?"w-11/12 p-2 grid grid-cols-5 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-5"}>
         )
     }
 
     return (
         <div className="pb-2 bg-blue-50 h-full px-3 pt-4">
+
+            {validateMessage}
 
             <div className='w-full bg-white rounded p-3 my-2'>
                 {/* <RenderInputRow/> */}
@@ -497,7 +632,7 @@ function StockEntry() {
             
             <div className="flex flex-col h-3/5 space-y-2 items-center justify center items-center bg-white rounded p-4">
                 <div className='flex flex-row justify-between w-full align-center'>
-                    <div className='font-semibold text-lg'>Stock Entry</div>
+                    <div className='font-semibold text-lg'>MaterialIssue Entry</div>
 
                     <button
                         className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
@@ -506,8 +641,7 @@ function StockEntry() {
                             Export Excel
                     </button>
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-6 gap-1 bg-gray-200">
-                    <div className="text-sm py-2 text-left">MATERIAL GROUP</div>
+                <div className="w-full sticky top-0 p-3 grid grid-cols-5 gap-1 bg-gray-200">
                     <div className="text-sm py-2 text-left">MATERIAL NUMBER</div>
                     <div className="text-sm py-2 text-left">MATERIAL DESCRIPTION</div>
                     <div className="text-sm py-2 text-left">QUANTITY</div>
@@ -520,4 +654,4 @@ function StockEntry() {
     )
 }
 
-export default StockEntry
+export default MaterialIssueEntry

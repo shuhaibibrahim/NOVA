@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { db} from "../firebase_config";
-import { ref, set, push, onValue, remove } from "firebase/database";
+import { ref, set, push, onValue, remove, get } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
@@ -91,44 +91,71 @@ function StockEntry() {
         });
     }, [])
 
-    const pushToDatabase = () => {
+    const pushToDatabase = async() => {
             // setUpdateLoad(true)
-            const stockRef = ref(db, `stockData/`);
-            const newStockRef = push(stockRef);
+            const stockRef = ref(db, `stockData/${newStock.materialNumber}`);
+            try{
+                
+                const snapshot=await get(stockRef)
+                // const stockRef = push(stockRef);
+                if(!snapshot.exists()){
+                    if(window.confirm("Add new stock?")){
+                        await set(stockRef, {
+                            ...newStock,
+                            id:newStock.materialNumber
+                        })
+                        .then(()=>{
+                            // setUpdateLoad(false)
+                            console.log("Successfully updated")
+                        })
+                        .catch((error)=>{
+                            console.log("Error while saving data : ",error)
+                        })
+                    }
+                }else{
+                    window.alert(`Material ${newStock.materialNumber} already exists in the stock`)
+                }
 
-            set(newStockRef, {
-                ...newStock,
-                id:newStockRef.key
-            })
-            .then(()=>{
-                // setUpdateLoad(false)
-                console.log("Successfully updated")
-            })
-            .catch((error)=>{
-                console.log("Error while saving data : ",error)
-            })            
-    }
+            }catch(error){
+                console.log(error)
+            }
+            }
 
-    const pushStockToDatabaseBulk = (bulkData) => {
+    const pushStockToDatabaseBulk = async (bulkData) => {
         // setUpdateLoad(true)
-        const stockRef = ref(db, `stockData/`);
-
-        bulkData.forEach(item=>{
-            const newStockRef = push(stockRef);
-    
-            set(newStockRef, {
-                ...item,
-                id:newStockRef.key
-            })
-            .then(()=>{
-                // setUpdateLoad(false)
-                // console.log("Successfully updated")
-            })
-            .catch((error)=>{
-                console.log("Error while saving data : ",error)
-            })            
+        // const stockRef = ref(db, `stockData/`);
+        var existingMaterials=new Set()
+        await bulkData.forEach(async(item, index)=>{
+            const stockRef = ref(db, `stockData/${item.materialNumber}`);
+            try{
+                const snapshot=await get(stockRef)
+                if(!snapshot.exists()){
+                    await set(stockRef, {
+                        ...item,
+                        qty:0,
+                        id:item.materialNumber
+                    })
+                    .then(()=>{
+                        // setUpdateLoad(false)
+                        // console.log("Successfully updated")
+                    })
+                    .catch((error)=>{
+                        console.log("Error while saving data : ",error)
+                    }) 
+                }else{
+                    existingMaterials.add(item.materialNumber)
+                }
+            }catch(error){
+                console.log(error)
+            }
+                    
+            console.log(index, bulkData.length, existingMaterials.size)
+            if(index==bulkData.length-1 && existingMaterials.size>0){
+                window.alert(`Materials ${[...existingMaterials].join(', ')} already exists in the stock`)
+            }
         })
-}
+        
+    }
 
     const editItem = (item) => {
         item={...editData, id:item.id}
@@ -465,8 +492,7 @@ function StockEntry() {
                     <div 
                         className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
                         onClick={()=>{
-                            if(window.confirm("Add new stock?"))
-                                pushToDatabase()
+                            pushToDatabase()
                         }}
                     >
                         Submit

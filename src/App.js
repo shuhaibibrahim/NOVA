@@ -42,6 +42,7 @@ import RequirementEntry from './AdminDesk/RequirementEntry';
 import BOMDataEntry from './AdminDesk/BomDataEntry';
 import StockEntry from './AdminDesk/StockEntry';
 import MaterialIssueEntry from './AdminDesk/MaterialIssue';
+import MaterialInwardEntry from './AdminDesk/MaterialInward';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -108,6 +109,7 @@ function App() {
               <Route path="mmdept">
                 <Route path="stock-entry" element={<StockEntry/>}/>
                 <Route path="material-issue" element={<MaterialIssueEntry/>}/>
+                <Route path="material-inward" element={<MaterialInwardEntry/>}/>
               </Route>
             </Route>
             )}

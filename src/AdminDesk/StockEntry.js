@@ -98,7 +98,6 @@ function StockEntry() {
 
             set(newStockRef, {
                 ...newStock,
-                productionStock:0,
                 id:newStockRef.key
             })
             .then(()=>{
@@ -119,7 +118,6 @@ function StockEntry() {
     
             set(newStockRef, {
                 ...item,
-                qty:0,
                 id:newStockRef.key
             })
             .then(()=>{

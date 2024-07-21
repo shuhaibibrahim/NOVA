@@ -83,6 +83,8 @@ function MaterialInwardEntry() {
 
     const [validateMessage, setValidateMessage] = useState(null)
 
+    const [expand, setExpand] = useState(false)
+
     useEffect(() => {
         const materialInwardRef = ref(db, 'materialInwardData/');
 
@@ -146,7 +148,7 @@ function MaterialInwardEntry() {
         var errorMessage="\n"+materialNumber
         var mssgCount=0
         if(stock==undefined){
-            errorMessage=errorMessage+"stock is not avaiable"
+            errorMessage=errorMessage+" : stock is not avaiable"
         }
         // if(stock!=undefined && stock.qty<qty){
         //     errorMessage=errorMessage+" : stock is deficient"
@@ -174,6 +176,7 @@ function MaterialInwardEntry() {
 
         var stock=stockData.filter(item=>(item.materialNumber==materialNumber))[0]
         var item={...stock, qty:Number(stock.qty)+Number(qty)}
+        console.log("stock update : ", item)
 
         const stockRef = ref(db, `stockData/${stock.id}`);
 
@@ -222,7 +225,7 @@ function MaterialInwardEntry() {
         var validate=""
         var consolidatedData=bulkData.reduce((accumulator, currentValue) => {
             // Check if there's already an entry with the same name in accumulator
-            let existingItem = accumulator.find(item => item.name === currentValue.name);
+            let existingItem = accumulator.find(item => item.materialNumber === currentValue.materialNumber);
           
             if (existingItem) {
               // If name already exists, update qty and add new unit if not already present
@@ -242,12 +245,11 @@ function MaterialInwardEntry() {
             return accumulator;
         }, []);
 
+
+        console.log('consolidate data : ', consolidatedData)
         var inValidMaterials=[]
-        console.log(consolidatedData)
         consolidatedData.forEach(material=>{
-            console.log(material)
             var mssg=validateMaterialInward(material.materialNumber,material.qty,material.units)
-            console.log(material)
             if(mssg!=""){
                 validate=validate+mssg+"\n"
                 inValidMaterials.push(material.materialNumber)
@@ -279,14 +281,16 @@ function MaterialInwardEntry() {
         var stockUpdates={}
         stockData.forEach(s=>{
             if(!inValidMaterials.includes(s.materialNumber)){
-                var consoldatedMaterial=consolidatedData.find(m=>m.materialNumber==s.materialNumber)
-                if(consoldatedMaterial!=undefined){
+                var consolidatedMaterial=consolidatedData.find(m=>m.materialNumber==s.materialNumber)
+                if(consolidatedMaterial!=undefined){
                     stockUpdates[`stockData/${s.id}`]={...s, 
-                        qty:Number(s.qty)+Number(consoldatedMaterial.qty)
+                        qty:parseFloat(Number(s.qty,)+Number(consolidatedMaterial.qty)).toFixed(2)
                     }
                 }
             }
         })
+
+        console.log("stock update data : ",stockUpdates)
 
         update(ref(db), stockUpdates).then(()=>{
             console.log("stock updated")
@@ -472,7 +476,7 @@ function MaterialInwardEntry() {
                                     tempMaterialInwardData[index].edit=true
                                     setMaterialInwardData([...tempMaterialInwardData].reverse())
                                 }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                className={"relative text-center rounded py-1 px-5 text-white font-medium "+(true==false?"bg-blue-500 hover:bg-blue-800 cursor-pointer":"bg-gray-500")}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -650,16 +654,30 @@ function MaterialInwardEntry() {
             </div>
             
             
-            <div className="flex flex-col h-3/5 space-y-2 items-center justify center items-center bg-white rounded p-4">
-                <div className='flex flex-row justify-between w-full align-center'>
-                    <div className='font-semibold text-lg'>MaterialInward Entry</div>
+            <div className={expand==true
+                ?"flex flex-col absolute z-20 inset-0 margin-2 space-y-2 items-center justify center items-center bg-white rounded p-4"
+                :"flex flex-col h-3/5 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
+                <div className='flex flex-row justify-between w-full items-center'>
+                    <div className='font-semibold text-lg'>Material Inward</div>
 
-                    <button
-                        className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
-                        onClick={()=>{DownloadExcel(spareData)}}
-                    >
-                            Export Excel
-                    </button>
+                    <div className='flex flex-row space-x-4 items-center justify-center'>
+                        {expand==false && (<div className='h-6 w-6 font-bold' onClick={()=>{setExpand(true)}}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                            </svg>
+                        </div>)}
+                        {expand==true &&(<div className='h-6 w-6 font-bold' onClick={()=>{setExpand(false)}}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                            </svg>
+                        </div>)}
+                        <button
+                            className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
+                            onClick={()=>{DownloadExcel(spareData)}}
+                        >
+                                Export Excel
+                        </button>
+                    </div>
                 </div>
                 <div className="w-full sticky top-0 p-3 grid grid-cols-5 gap-1 bg-gray-200">
                     <div className="text-sm py-2 text-left">MATERIAL NUMBER</div>

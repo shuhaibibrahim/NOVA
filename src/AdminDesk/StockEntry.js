@@ -6,13 +6,14 @@ import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
 
-function StockEntry() {
+function StockEntry({user}) {
     // const location = useLocation()
     // const {spareData}=location.state
     let navigate = useNavigate();
 
     const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
+        console.log("user Data : ",user)
         setSelectedLink("mmdept/stock-entry")
         setOpenedTab("mmDept")
     }, [])
@@ -22,7 +23,10 @@ function StockEntry() {
         materialNumber:"",
         materialDesc:"",
         qty:"",
-        unit:""
+        unit:"",
+        rackPosition:"",
+        numberOfLayers:"",
+        rate:""
     }    
 
     const [stockData, setStockData] = useState([])
@@ -70,6 +74,8 @@ function StockEntry() {
     const [newStock, setNewStock] = useState({...stockStruct})
 
     const [packageInput, setPackageInput] = useState([])
+
+    const [expand, setExpand] = useState(false)
 
     useEffect(() => {
         const stockRef = ref(db, 'stockData/');
@@ -237,8 +243,8 @@ function StockEntry() {
     const RenderItem=(item, index)=>{
 
         return (
-            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-6 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-6"}>
-            <div key={index} className="grid grid-cols-6 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-9 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-9"}>
+            <div key={index} className="grid grid-cols-9 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
                 {item.edit!=true&&(<>
                     <div className="text-stone-900/30 break-all text-left">{item.materialGroup}</div>
 
@@ -249,6 +255,12 @@ function StockEntry() {
                     <div className="text-stone-900/30 break-all text-left">{item.qty}</div>
 
                     <div className="text-stone-900/30 break-all text-left">{item.unit}</div>
+
+                    <div className="text-stone-900/30 break-all text-left">{item.rackPosition}</div>
+
+                    <div className="text-stone-900/30 break-all text-left">{item.numberOfLayers}</div>
+
+                    <div className="text-stone-900/30 break-all text-left">{item.rate}</div>
                 </>)}
 
                 {item.edit&&(<>
@@ -325,6 +337,51 @@ function StockEntry() {
                             type="text" 
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         />
+                    </div>  
+
+                    <div className="flex w-full flex flex-col items-start justify-start">
+                        <input 
+                            value={editData.rackPosition}
+                            onChange={e=>{
+                                setEditingInputElement(e.target)
+                                setEditData({
+                                    ...editData,
+                                    rackPosition: e.target.value
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div>  
+
+                    <div className="flex w-full flex flex-col items-start justify-start">
+                        <input 
+                            value={editData.numberOfLayers}
+                            onChange={e=>{
+                                setEditingInputElement(e.target)
+                                setEditData({
+                                    ...editData,
+                                    numberOfLayers: e.target.value
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div>  
+
+                    <div className="flex w-full flex flex-col items-start justify-start">
+                        <input 
+                            value={editData.rate}
+                            onChange={e=>{
+                                setEditingInputElement(e.target)
+                                setEditData({
+                                    ...editData,
+                                    rate: e.target.value
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                        />
                     </div> 
 
                 </>)}
@@ -335,12 +392,14 @@ function StockEntry() {
                         <div className='flex justify-center'>
                             <div 
                                 onClick={()=>{
-                                    setEditData({...item})
-                                    var tempStockData=[...stockData].reverse()
-                                    tempStockData[index].edit=true
-                                    setStockData([...tempStockData].reverse())
+                                    if(user.admin==true){
+                                        setEditData({...item})
+                                        var tempStockData=[...stockData].reverse()
+                                        tempStockData[index].edit=true
+                                        setStockData([...tempStockData].reverse())
+                                    }
                                 }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                className={"relative text-center rounded py-1 px-5 text-white font-medium "+(user.admin==true?"bg-blue-500 hover:bg-blue-800 cursor-pointer":"bg-gray-500")}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -350,15 +409,17 @@ function StockEntry() {
                         )}
 
                         {item.edit&&(
-                        <div className='flex justify-center'>
+                        <div className="flex justify-center">
                             <div 
                                 onClick={()=>{
-                                    var tempStockData=[...stockData].reverse()
-                                    tempStockData[index].edit=false
-                                    setStockData([...tempStockData].reverse())
-                                    editItem(item);
+                                    if(user.admin==true){
+                                        var tempStockData=[...stockData].reverse()
+                                        tempStockData[index].edit=false
+                                        setStockData([...tempStockData].reverse())
+                                        editItem(item);
+                                    }
                                 }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                className={"relative text-center rounded py-1 px-5 text-white font-medium "+(user.admin==true?"bg-blue-500 hover:bg-blue-800 cursor-pointer":"bg-gray-500")}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -368,12 +429,14 @@ function StockEntry() {
                         )}
 
                         
-                        <div className='flex justify-center'>
+                        <div className="flex justify-center">
                             <div 
                                 onClick={()=>{
-                                    deleteFromDatabase(item);
+                                    if(user.admin==true){
+                                        deleteFromDatabase(item);
+                                    }
                                 }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
+                                className={"relative text-center rounded py-1 px-5 text-white font-medium "+(user.admin==true?"bg-blue-500 hover:bg-blue-800 cursor-pointer":"bg-gray-500")}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -411,8 +474,8 @@ function StockEntry() {
 
     const RenderInputRow=()=>{
         return (
-            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-6 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-6"}>
-            <div  className='w-full grid grid-cols-6 gap-4'>
+            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-9 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-9"}>
+            <div  className='w-full grid grid-cols-9 gap-4'>
                 <div className="flex w-full flex flex-col items-start justify-start">
                     <label className='text-sm'>Material Group</label>
                     <input 
@@ -458,7 +521,7 @@ function StockEntry() {
                     />
                 </div> 
 
-                <div className="flex w-full flex flex-col items-start justify-start">
+                {/* <div className="flex w-full flex flex-col items-start justify-start">
                     <label className='text-sm'>Quantity</label>
                     <input 
                         value={newStock.qty}
@@ -471,7 +534,7 @@ function StockEntry() {
                         type="text" 
                         className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                     />
-                </div>
+                </div> */}
 
                 <div className="flex w-full flex flex-col items-start justify-start">
                     <label className='text-sm'>Unit</label>
@@ -481,6 +544,51 @@ function StockEntry() {
                             setNewStock({
                                 ...newStock,
                                 unit: e.target.value
+                            })
+                        }}
+                        type="text" 
+                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                    />
+                </div>
+
+                <div className="flex w-full flex flex-col items-start justify-start">
+                    <label className='text-sm'>Rack Position</label>
+                    <input 
+                        value={newStock.rackPosition}
+                        onChange={e=>{
+                            setNewStock({
+                                ...newStock,
+                                rackPosition: e.target.value
+                            })
+                        }}
+                        type="text" 
+                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                    />
+                </div>
+
+                <div className="flex w-full flex flex-col items-start justify-start">
+                    <label className='text-sm'>No. of Layers</label>
+                    <input 
+                        value={newStock.numberOfLayers}
+                        onChange={e=>{
+                            setNewStock({
+                                ...newStock,
+                                numberOfLayers: e.target.value
+                            })
+                        }}
+                        type="text" 
+                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                    />
+                </div>
+
+                <div className="flex w-full flex flex-col items-start justify-start">
+                    <label className='text-sm'>Rate</label>
+                    <input 
+                        value={newStock.rate}
+                        onChange={e=>{
+                            setNewStock({
+                                ...newStock,
+                                rate: e.target.value
                             })
                         }}
                         type="text" 
@@ -501,7 +609,7 @@ function StockEntry() {
 
                 <div className='col-span-3 flex justify-start items-end'>
                     <BulkExcelUploadComponent 
-                        headings={["materialGroup","materialNumber","materialDesc","qty","unit"]} 
+                        headings={["materialGroup","materialNumber","materialDesc","unit"]} 
                         templateName={"stock-template"}
                         pushFunction={pushStockToDatabaseBulk}
                     />
@@ -519,23 +627,40 @@ function StockEntry() {
             </div>
             
             
-            <div className="flex flex-col h-3/5 space-y-2 items-center justify center items-center bg-white rounded p-4">
-                <div className='flex flex-row justify-between w-full align-center'>
+            <div className={expand==true
+                ?"flex flex-col absolute z-20 inset-0 margin-2 space-y-2 items-center justify center items-center bg-white rounded p-4"
+                :"flex flex-col h-3/5 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
+                <div className='flex flex-row justify-between w-full items-center'>
                     <div className='font-semibold text-lg'>Stock Entry</div>
 
-                    <button
-                        className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
-                        onClick={()=>{DownloadExcel(spareData)}}
-                    >
-                            Export Excel
-                    </button>
+                    <div className='flex flex-row space-x-4 items-center justify-center'>
+                        {expand==false && (<div className='h-6 w-6 font-bold' onClick={()=>{setExpand(true)}}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                            </svg>
+                        </div>)}
+                        {expand==true &&(<div className='h-6 w-6 font-bold' onClick={()=>{setExpand(false)}}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                            </svg>
+                        </div>)}
+                        <button
+                            className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
+                            onClick={()=>{DownloadExcel(spareData)}}
+                        >
+                                Export Excel
+                        </button>
+                    </div>
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-6 gap-1 bg-gray-200">
+                <div className="w-full sticky top-0 p-3 grid grid-cols-9 gap-1 bg-gray-200">
                     <div className="text-sm py-2 text-left">MATERIAL GROUP</div>
                     <div className="text-sm py-2 text-left">MATERIAL NUMBER</div>
                     <div className="text-sm py-2 text-left">MATERIAL DESCRIPTION</div>
                     <div className="text-sm py-2 text-left">QUANTITY</div>
                     <div className="text-sm py-2 text-left">UNIT</div>
+                    <div className="text-sm py-2 text-left">RACK POSITION</div>
+                    <div className="text-sm py-2 text-left">NO. OF LAYERS</div>
+                    <div className="text-sm py-2 text-left">RATE</div>
                 </div>
                 {renderItems}
             </div>

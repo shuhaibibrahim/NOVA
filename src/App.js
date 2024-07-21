@@ -46,6 +46,7 @@ import MaterialInwardEntry from './AdminDesk/MaterialInward';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -60,7 +61,9 @@ function App() {
                 const data = snapshot.val();
                 ;
                   
-                // setIsAdmin(data.admin)
+                setIsAdmin(data.admin)
+                setUserData(data)
+                console.log(data)
                 // console.log(data.admin)
               });
           } else {
@@ -107,8 +110,8 @@ function App() {
               </Route>
 
               <Route path="mmdept">
-                <Route path="stock-entry" element={<StockEntry/>}/>
-                <Route path="material-issue" element={<MaterialIssueEntry/>}/>
+                <Route path="stock-entry" element={<StockEntry user={userData}/>}/>
+                <Route path="material-outward" element={<MaterialIssueEntry/>}/>
                 <Route path="material-inward" element={<MaterialInwardEntry/>}/>
               </Route>
             </Route>

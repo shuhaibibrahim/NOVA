@@ -629,7 +629,7 @@ function StockEntry({user}) {
             
             <div className={expand==true
                 ?"flex flex-col absolute z-20 inset-0 margin-2 space-y-2 items-center justify center items-center bg-white rounded p-4"
-                :"flex flex-col h-3/5 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
+                :"flex flex-col bottom-2 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
                 <div className='flex flex-row justify-between w-full items-center'>
                     <div className='font-semibold text-lg'>Stock Entry</div>
 

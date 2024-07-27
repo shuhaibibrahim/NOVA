@@ -470,10 +470,10 @@ function MaterialIssueEntry() {
                         <div className='flex justify-center'>
                             <div 
                                 onClick={()=>{
-                                    setEditData({...item})
-                                    var tempMaterialIssueData=[...materialIssueData].reverse()
-                                    tempMaterialIssueData[index].edit=true
-                                    setMaterialIssueData([...tempMaterialIssueData].reverse())
+                                    // setEditData({...item})
+                                    // var tempMaterialIssueData=[...materialIssueData].reverse()
+                                    // tempMaterialIssueData[index].edit=true
+                                    // setMaterialIssueData([...tempMaterialIssueData].reverse())
                                 }}
                                 className={"relative text-center rounded py-1 px-5 text-white font-medium "+(true==false?"bg-blue-500 hover:bg-blue-800 cursor-pointer":"bg-gray-500")}
                             >
@@ -655,9 +655,9 @@ function MaterialIssueEntry() {
             
             <div className={expand==true
                 ?"flex flex-col absolute z-20 inset-0 margin-2 space-y-2 items-center justify center items-center bg-white rounded p-4"
-                :"flex flex-col h-3/5 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
+                :"flex flex-col h-4/5 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
                 <div className='flex flex-row justify-between w-full items-center'>
-                    <div className='font-semibold text-lg'>Material Outward</div>
+                    <div className='font-semibold text-lsg'>Material Outward</div>
 
                     <div className='flex flex-row space-x-4 items-center justify-center'>
                         {expand==false && (<div className='h-6 w-6 font-bold' onClick={()=>{setExpand(true)}}>

@@ -471,10 +471,10 @@ function MaterialInwardEntry() {
                         <div className='flex justify-center'>
                             <div 
                                 onClick={()=>{
-                                    setEditData({...item})
-                                    var tempMaterialInwardData=[...materialInwardData].reverse()
-                                    tempMaterialInwardData[index].edit=true
-                                    setMaterialInwardData([...tempMaterialInwardData].reverse())
+                                    // setEditData({...item})
+                                    // var tempMaterialInwardData=[...materialInwardData].reverse()
+                                    // tempMaterialInwardData[index].edit=true
+                                    // setMaterialInwardData([...tempMaterialInwardData].reverse())
                                 }}
                                 className={"relative text-center rounded py-1 px-5 text-white font-medium "+(true==false?"bg-blue-500 hover:bg-blue-800 cursor-pointer":"bg-gray-500")}
                             >
@@ -656,7 +656,7 @@ function MaterialInwardEntry() {
             
             <div className={expand==true
                 ?"flex flex-col absolute z-20 inset-0 margin-2 space-y-2 items-center justify center items-center bg-white rounded p-4"
-                :"flex flex-col h-3/5 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
+                :"flex flex-col h-4/5 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
                 <div className='flex flex-row justify-between w-full items-center'>
                     <div className='font-semibold text-lg'>Material Inward</div>
 

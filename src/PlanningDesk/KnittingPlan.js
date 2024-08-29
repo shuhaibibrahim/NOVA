@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { db} from "../firebase_config";
-import { ref, set, push, onValue, remove } from "firebase/database";
+import { ref, set, push, onValue, remove, increment, update } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 
@@ -57,6 +57,7 @@ function KnittingPlan() {
     const filterKeys=["code","partName", "machine", "partNumber", "nickName", "spec", "origin"]
     const [tempSizeAndQty, setTempSizeAndQty] = useState([])
     const [enableCaseQtyInput, setEnableCaseQtyInput] = useState(-1)
+    const [stockData, setStockData] = useState({})
 
     const [newKnittingPlan, setNewKnittingPlan] = useState({
         planCode:"",
@@ -78,6 +79,21 @@ function KnittingPlan() {
 
     useEffect(() => {
         const reqRef = ref(db, 'requirementsData/');
+        const stockRef = ref(db, 'stockData/');
+
+        onValue(stockRef, (snapshot) => {
+            const data = snapshot.val();
+
+            var stockArray=[];
+            for(var key in data)
+            {
+                var item=data[key]
+                console.log(item)
+                stockArray.push(item)
+            }
+            
+            setStockData([...stockArray])
+        });
 
         onValue(reqRef, (snapshot) => {
             const data = snapshot.val();
@@ -106,7 +122,6 @@ function KnittingPlan() {
                 var item=data[key]
                 console.log(item)
                 articleArray.push(item)
-                // spareArray.push(item)
             }
 
             console.log(articleArray)
@@ -121,10 +136,7 @@ function KnittingPlan() {
 
             console.log("article select list : ",tempArticleList)
 
-            //Article select list is the list of articles that should come in the article select input dropdown
             setArticleSelectList([...tempArticleList])
-            // setSpareData(spareArray);
-            // setLoading(false);
         });
     }, [])
 
@@ -181,22 +193,31 @@ function KnittingPlan() {
         if(window.confirm("Please confirm deleting "+item.article))
         {
             const articleRef = ref(db, `knittingPlan/${item.id}`); 
+            const reqRef = ref(db, `requirementsData/${item.reqId}`); 
         
             remove(articleRef).then(()=>{
-                // alert("Removed article successfully")
+                const updates={}
+                updates[`requirementsData/${item.reqId}/caseQty`]=increment(parseInt(item.caseQty))
+                update(ref(db),updates).then(()=>{
+                    console.log("case qty incremented")
+                }).catch((e)=>{
+                    console.log("error : ",e)
+                })
             })
         }
     }
     
 
-    const pushToDatabase = () => {
+    const pushToDatabase = (reqItem) => {
             // setUpdateLoad(true)
 
             const planRef = ref(db, `knittingPlan/`);
+            const reqRef = ref(db, `requirementsData/${reqItem.id}`); 
             const newPlanRef = push(planRef);
 
             set(newPlanRef, {
                 ...newKnittingPlan,
+                reqId:reqItem.id,
                 id:newPlanRef.key
             })
             .then((ref)=>{
@@ -216,6 +237,15 @@ function KnittingPlan() {
                     caseQty:"",
                     packingComb:"",
                 })
+                set(reqRef, {
+                    ...reqItem,
+                    caseQty:reqItem.caseQty-newKnittingPlan.caseQty
+                }).then(()=>{
+                    console.log("case qty decremented")
+                }).catch((e)=>{
+                    console.log("error : ",e)
+                })
+                setEnableCaseQtyInput(-1)
             })
             .catch((error)=>{
                 alert("Error while saving data : ",error)
@@ -336,7 +366,7 @@ function KnittingPlan() {
                             <div className='flex flex-row space-x-2 w-full'>
                                 <div 
                                     onClick={()=>{
-                                        pushToDatabase()
+                                        pushToDatabase(item)
                                     }}
                                     className='relative text-center rounded p-2 cursor-pointer bg-green-500 hover:bg-green-800 text-white font-medium'
                                 >
@@ -421,12 +451,6 @@ function KnittingPlan() {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </div>
-                    
-                    {/* <div className='grid grid-cols-4 gap-4 text-sm p-3'>
-                        <div className='font-medium text-left'>Size</div>
-                        <div className='font-medium text-left'>Left Qty</div>
-                        <div className='font-medium text-left'>Right Qty</div>
-                    </div> */}
     
                     <table className='table-auto border-collapse border border-black p-1'>
                         <tr className=''>
@@ -507,31 +531,6 @@ function KnittingPlan() {
                     </div>
                     
                     {requirementsData.map((reqItem,index)=>RenderRequirementItem(reqItem, index))}
-
-                    {/* <div className="w-full sticky bottom-0 p-3">
-                        {enableCaseQtyInput!=-1&&(
-                            <div className='flex flex-row space-x-2'>
-                                <div 
-                                    onClick={()=>{
-                                        pushToDatabase()
-                                    }}
-                                    className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className='bg-green-400 w-2' fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-
-                                <button 
-                                    className='text-center rounded py-2 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
-                                    onClick={()=>{setEnableCaseQtyInput(-1)}}
-                                >
-                                        Cancel
-                                </button>
-
-                            </div>
-                        )}
-                    </div> */}
                 </div>
             )
         }
@@ -660,27 +659,7 @@ function KnittingPlan() {
 
 
                 </div>
-
-                {/* <div className="flex flex-row mt-2 justify-between items-center relative w-full">
-                    
-
-                    <div className='flex flex-row space-x-1'>
-                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
-                            Verify
-                        </div>
-                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
-                            Update
-                        </div>
-                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
-                            Mail
-                        </div>
-                    </div>
-                </div> */}
             </div>
-
-            {/* <div className='w-full bg-white rounded p-3 my-2'>
-                {RenderInputRow()}
-            </div> */}
             
             <div className="flex flex-col h-xxl space-y-2 items-center justify center items-center bg-white rounded p-4">
                 <div className='flex flex-row justify-between w-full align-center'>

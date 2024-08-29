@@ -112,7 +112,7 @@ function RequirementEntry() {
     }, [])
 
     useEffect(() => {
-        const reqRef = ref(db, 'requirementsData/');
+        const reqRef = ref(db, 'requirementsHistoryData/');
 
         onValue(reqRef, (snapshot) => {
             const data = snapshot.val();
@@ -161,8 +161,9 @@ function RequirementEntry() {
 
     const pushToDatabase = () => {
             // setUpdateLoad(true)
-            const reqRef = ref(db, `requirementsData/`);
+            const reqRef = ref(db, `requirementsHistoryData/`);
             const newReqRef = push(reqRef);
+            const reqDataRef = ref(db, `requirementsData/${newReqRef.key}`);
 
             set(newReqRef, {
                 ...newRequirement,
@@ -172,22 +173,20 @@ function RequirementEntry() {
                 id:newReqRef.key
             })
             .then(()=>{
-                // setUpdateLoad(false)
                 console.log("Successfully updated")
-
-                // setNewRequirement({
-                //     date:"",
-                //     article:"",
-                //     colour:"",
-                //     model:"",
-                //     category:"",
-                //     size:"",
-                //     leftQty:"",
-                //     rightQty:"",
-                //     region:"",
-                //     sizeGrid:"",
-                //     caseQty:""
-                // })
+                set(reqDataRef, {
+                    ...newRequirement,
+                    packingComb: packageInput.join(','),
+                    leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
+                    rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
+                    id:newReqRef.key
+                })
+                .then(()=>{
+                    console.log("Successfully updated")
+                })
+                .catch((error)=>{
+                    console.log("Error while saving req data : ",error)
+                })
             })
             .catch((error)=>{
                 console.log("Error while saving data : ",error)
@@ -197,14 +196,22 @@ function RequirementEntry() {
     const editItem = (item) => {
         item={...editData, id:item.id}
 
-        const reqRef = ref(db, `requirementsData/${item.id}`);
+        const reqRef = ref(db, `requirementsHistoryData/${item.id}`);
+        const reqDataRef = ref(db, `requirementsData/${item.id}`);
 
         set(reqRef, {
             ...item
         })
         .then((ref)=>{
-            // setUpdateLoad(false)
-            // alert("Successfully updated")
+            set(reqDataRef, {
+                ...item
+            })
+            .then((r)=>{
+            })
+            .catch((error)=>{
+                alert("Error while saving data : ",error)
+                console.log(error)
+            })
         })
         .catch((error)=>{
             alert("Error while saving data : ",error)
@@ -216,10 +223,15 @@ function RequirementEntry() {
 
         if(window.confirm("Please confirm deleting "+item.article))
         {
-            const reqRef = ref(db, `requirementsData/${item.id}`); 
+            const reqRef = ref(db, `requirementsHistoryData/${item.id}`); 
+            const reqDataRef = ref(db, `requirementsData/${item.id}`); 
         
             remove(reqRef).then(()=>{
-                // alert("Removed article successfully")
+                remove(reqDataRef).then(()=>{
+                    console.log("success")
+                }).catch((e)=>{
+                    console.log("error", e)
+                })
             })
         }
     }
@@ -536,7 +548,7 @@ function RequirementEntry() {
                 </>)}
 
                 <div className='col-span-1'>
-                    <div className='grid grid-cols-2 gap-x-2 w-full'>
+                    <div className='grid grid-cols-2 space-x-4 w-full'>
                         {item.edit!=true&&(
                             <div className='flex'>
                                 <div 
@@ -546,7 +558,8 @@ function RequirementEntry() {
                                         tempReqData[index].edit=true
                                         setRequirementsData([...tempReqData].reverse())
                                     }}
-                                    className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                    // className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                    className='relative text-center rounded py-1 px-5 cursor-pointer bg-gray-500 text-white font-medium'
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -559,12 +572,13 @@ function RequirementEntry() {
                             <div className='flex'>
                                 <div 
                                     onClick={()=>{
-                                        var tempReqData=[...requirementsData].reverse()
-                                        tempReqData[index].edit=false
-                                        setRequirementsData([...tempReqData].reverse())
-                                        editItem(item);
+                                        // var tempReqData=[...requirementsData].reverse()
+                                        // tempReqData[index].edit=false
+                                        // setRequirementsData([...tempReqData].reverse())
+                                        // editItem(item);
                                     }}
-                                    className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                    // className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                                    className='relative text-center rounded py-1 px-5 cursor-pointer bg-gray-500 text-white font-medium'
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -576,9 +590,10 @@ function RequirementEntry() {
                         <div className='flex'>
                             <div 
                                 onClick={()=>{
-                                    deleteFromDatabase(item);
+                                    // deleteFromDatabase(item);
                                 }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
+                                // className='relative text-center rounded py-1 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
+                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-gray-500 text-white font-medium'
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -650,17 +665,6 @@ function RequirementEntry() {
                             <option key={index} value={item}>{item}</option>
                         ))}
                     </select>
-                    {/* <input 
-                        value={newRequirement.article}
-                        onChange={e=>{
-                            setNewRequirement({
-                                ...newRequirement,
-                                article: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
                 </div> 
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
@@ -680,17 +684,6 @@ function RequirementEntry() {
                             <option key={index} value={item}>{item}</option>
                         ))}
                     </select>
-                    {/* <input 
-                        value={newRequirement.colour}
-                        onChange={e=>{
-                            setNewRequirement({
-                                ...newRequirement,
-                                colour: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
                 </div> 
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
@@ -710,17 +703,6 @@ function RequirementEntry() {
                             <option key={index} value={item}>{item}</option>
                         ))}
                     </select>
-                    {/* <input 
-                        value={newRequirement.model}
-                        onChange={e=>{
-                            setNewRequirement({
-                                ...newRequirement,
-                                model: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
                 </div> 
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
@@ -740,17 +722,6 @@ function RequirementEntry() {
                             <option key={index} value={item}>{item}</option>
                         ))}
                     </select>
-                    {/* <input 
-                        value={newRequirement.category}
-                        onChange={e=>{
-                            setNewRequirement({
-                                ...newRequirement,
-                                category: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
                 </div> 
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
@@ -861,19 +832,6 @@ function RequirementEntry() {
                     <div className="text-sm py-2 text-left">CASE QTY</div>
                     <div className="text-sm py-2 col-span-2 text-left">PACKING COMB</div>
                 </div>
-{/*                 
-                {
-                    loading && 
-                    (
-                        <div className="w-full h-full mt-24" >
-                            <div className="w-full h-full flex justify-center items-center space-x-5 mt-24">
-                                <div
-                                    className="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-500"
-                                />
-                            </div>
-                        </div>
-                    )
-                } */}
                 
                 {renderItems}
             </div>

@@ -5,6 +5,7 @@ import { ref, set, push, onValue, remove, update, query, orderByChild, equalTo, 
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
+import Checkbox from '@mui/material/Checkbox';
 
 
 function BOMDataEntry() {
@@ -38,7 +39,8 @@ function BOMDataEntry() {
 
     var bomStruct={
         item:"",
-        process:""
+        process:"",
+        sizes:""
     }
 
     var rawMaterialStruct={
@@ -786,6 +788,15 @@ function BOMDataEntry() {
                 >
                     Delete
                 </div>
+                <div 
+                    className="w-fit whitespace-nowrap px-2 py-1 font-medium cursor-pointer text-xs hover:bg-gray-200 hover:text-green-500"
+                    onClick={()=>{
+                        setCurrentBomId(item.id)
+                        RenderModal()
+                    }}
+                >
+                    Add/Update raw materials
+                </div>
             </div>
         )
     }
@@ -832,17 +843,17 @@ function BOMDataEntry() {
 
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
-            <div key={index} className="grid grid-cols-10 gap-x-4 border-solid border-b border-gray-400 p-3 bg-gray-200" >
-                <div className="flex items-center justify-center">
+            <div key={index} className="grid grid-flow-col auto-cols-fr gap-4 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+                <div className="flex items-center">
                     <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{index+1}</div>
                 </div>
 
                 {item.edit!=true&&(<>
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.item}</div>
                     </div>
 
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.process}</div>
                     </div>
                 </>)}
@@ -873,8 +884,9 @@ function BOMDataEntry() {
                                     process: e.target.value.toUpperCase()
                                 })
                             }}
+                            value={editData.process}
                         >
-                            <option>--select--</option>
+                            <option value="">--select--</option>
                             <option value="Knitting">Knitting</option>
                             <option value="Clicking">Clicking</option>
                             <option value="Printing">Printing</option>
@@ -886,30 +898,33 @@ function BOMDataEntry() {
                     </div>  
                 </>)}
 
-                <div 
-                    className='py-1 px-5 flex items-center justify-center rounded cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium col-span-2'
-                    onClick={()=>{
-                        setCurrentBomId(item.id)
-                        RenderModal()
-                    }}
-                >
-                    Add/Update raw materials
-                </div>
+                {Array.from({
+                    length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
+                    (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                        <div className='flex flex-row gap-x-2 justify-start items-center'>
+                            {/* <div>{size}</div> */}
+                            <Checkbox
+                                onChange={()=>{
+                                    var tempArr=editData.sizes==""?[]:editData.sizes.split(',')
+                                    var sizes=tempArr.includes(size.toString())?
+                                            tempArr.filter(s=>s!=size).join(',')
+                                            :[...tempArr,size].join(',')
+                                    setEditData({
+                                        ...editData,
+                                        sizes:sizes
+                                    })
+                                }}
+                                // value={newbomData.sizes.split(',').includes(size)}
+                                checked={item.edit?
+                                    editData.sizes.split(',').includes(size.toString())
+                                    :item.sizes.split(',').includes(size.toString())}
+                                disabled={!item.edit}
+                            />
+                        </div>
+                    ))
+                }
 
                 <div className='grid grid-cols-2 gap-x-2'>
-                    {/* {item.edit!=true&&(<div 
-                        onClick={()=>{
-                            setEditData({...item})
-                            var tempbomData=[...bomData].reverse()
-                            tempbomData[index].edit=true
-                            setBomData([...tempbomData].reverse())
-                        }}
-                        className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                        </svg>
-                    </div>)} */}
 
                     {item.edit&&(<div 
                         onClick={()=>{
@@ -925,18 +940,7 @@ function BOMDataEntry() {
                         </svg>
                     </div>)}
 
-                    {/* <div 
-                        onClick={()=>{
-                            deleteFromDatabase(item);
-                        }}
-                        className='relative text-center rounded py-1 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
-                    </div> */}
-
-                    <div className='flex items-center justify-center'>
+                    <div className='flex items-center'>
                         <div
                             className="nav__menu-item w-1/3"
                         >
@@ -954,77 +958,92 @@ function BOMDataEntry() {
     }
 
     const renderInputRow=()=>{
+
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
-            <form 
-                className='w-full grid grid-cols-10 gap-x-4 p-4 bg-blue-100 flex flex-row items-center'
-                onSubmit={(e)=>{
-                    e.preventDefault()
-                    if(window.confirm("Please confirm entering the article"))
-                        pushToDatabase();
-                }}
-            >
-                <div className='text-left text-sm font-semibold'>New Entry : </div>
-                <div className="flex w-full flex flex-col items-start justify-center">
-                    <input 
-                        value={newbomData.item.toUpperCase()}
-                        onChange={e=>{
-                            setNewbomData({
-                                ...newbomData,
-                                item: e.target.value.toUpperCase()
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+            <div className='w-full bg-blue-100 p-4 flex-col gap-y-4'>
+                <form 
+                    className='w-full grid grid-flow-col auto-cols-fr gap-4 flex flex-row items-end my-4'
+                    onSubmit={(e)=>{
+                        e.preventDefault()
+                        if(window.confirm("Please confirm entering the article"))
+                            pushToDatabase();
+                    }}
+                >
+                    {/* <div className='text-left text-sm font-semibold'>New Entry : </div> */}
+                    <div className="flex w-full flex flex-col items-start justify-center">
+                        <div>Item</div>
+                        <input 
+                            value={newbomData.item.toUpperCase()}
+                            onChange={e=>{
+                                setNewbomData({
+                                    ...newbomData,
+                                    item: e.target.value.toUpperCase()
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div> 
+
+                    <div className="flex w-full flex flex-col items-start justify-center">
+                        <div>Process</div>
+                        <select
+                            className='bg-white text-sm w-full ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                            onChange={e=>{
+                                setNewbomData({
+                                    ...newbomData,
+                                    process: e.target.value.toUpperCase()
+                                })
+                            }}
+                        >
+                            <option>--select--</option>
+                            <option value="Knitting">Knitting</option>
+                            <option value="Clicking">Clicking</option>
+                            <option value="Printing">Printing</option>
+                            <option value="Embossing">Embossing</option>
+                            <option value="Stitching">Stitching</option>
+                            <option value="Strobling">Strobling</option>
+                            <option value="Stuckon">Stuckon</option>
+                        </select>
+                    </div> 
+
+                    {Array.from({
+                        length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
+                        (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                            <div className='flex flex-row gap-x-2 justify-start items-center'>
+                                <div>{size}</div>
+                                <Checkbox
+                                    onChange={()=>{
+                                        var tempArr=newbomData.sizes==""?[]:newbomData.sizes.split(',')
+                                        var sizes=tempArr.includes(size.toString())?
+                                                tempArr.filter(s=>s!=size).join(',')
+                                                :[...tempArr,size].join(',')
+                                        setNewbomData({
+                                            ...newbomData,
+                                            sizes:sizes
+                                        })
+                                    }}
+                                    // value={newbomData.sizes.split(',').includes(size)}
+                                    checked={newbomData.sizes.split(',').includes(size.toString())}
+                                />
+                            </div>
+                        ))
+                    }
+                    <input
+                        type="submit" 
+                        className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                        value="Add"
                     />
-                </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-center">
-                    {/* <input 
-                        value={newbomData.itemType.toUpperCase()}
-                        onChange={e=>{
-                            setNewbomData({
-                                ...newbomData,
-                                itemType: e.target.value.toUpperCase()
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                    /> */}
-                    <select
-                        className='bg-white text-sm w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        onChange={e=>{
-                            setNewbomData({
-                                ...newbomData,
-                                process: e.target.value.toUpperCase()
-                            })
-                        }}
-                    >
-                        <option>--select--</option>
-                        <option value="Knitting">Knitting</option>
-                        <option value="Clicking">Clicking</option>
-                        <option value="Printing">Printing</option>
-                        <option value="Embossing">Embossing</option>
-                        <option value="Stitching">Stitching</option>
-                        <option value="Strobling">Strobling</option>
-                        <option value="Stuckon">Stuckon</option>
-                    </select>
-                </div> 
-
-                <input
-                    type="submit" 
-                    className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                    value="Add"
-                />
-
-                <div className='col-span-6 flex space-x-2 justify-end'>
+                </form>
+                <div className='flex justify-end'>
                     <BulkExcelUploadComponent 
                         headings={["item","process"]} 
                         templateName={"bom-template"}
                         pushFunction={pushToDatabaseBulk} 
                     />
                 </div>
-            </form>
+            </div>
         )
     }
 
@@ -1039,7 +1058,15 @@ function BOMDataEntry() {
             
             <div className="flex flex-col h-3xl space-y-2 items-center justify center items-center bg-white rounded p-4">
                 <div className='flex flex-row justify-between w-full align-center'>
-                    <div className='font-semibold text-lg'>BOM Entry : aritcle {articleItem.article}</div>
+                    <div className='flex flex-row space-x-2 hover:cursor'>
+                        <Link to="../data-entry">
+                            <div className="text-md text-gray-700">
+                                Data Entry
+                            </div>
+                        </Link>
+                        <div className="text-md text-gray-700"> > </div>
+                        <div className='font-semibold text-lg'>BOM Entry : aritcle {articleItem.article}</div>
+                    </div>
 
                     {/* <button
                         className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
@@ -1048,13 +1075,23 @@ function BOMDataEntry() {
                             Export Excel
                     </button> */}
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-10 gap-x-4 bg-gray-200">
-                    <div className="text-sm py-2 text-left text-sm">SI NO</div>
-                    <div className="text-sm py-2 text-left text-sm">ITEM</div>
-                    <div className="text-sm py-2 text-left text-sm">PROCESS</div>
-                </div>
 
                 {renderInputRow()}
+
+                <div className="w-full sticky top-0 p-3 grid grid-flow-col auto-cols-fr gap-4 bg-gray-200">
+                    <div className="text-md py-2 text-left">SI NO</div>
+                    <div className="text-md py-2 text-left">ITEM</div>
+                    <div className="text-md py-2 text-left">PROCESS</div>
+                    {Array.from({
+                        length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
+                        (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                            <div className='text-left py-2 text-md'>
+                                <div>{size}</div>
+                            </div>
+                        ))
+                    }
+                    <div></div>
+                </div>
 {/*                 
                 {
                     loading && 

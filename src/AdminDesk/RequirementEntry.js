@@ -30,6 +30,7 @@ function RequirementEntry() {
     const [colourSelectList, setColourSelectList] = useState([])
     const [modelSelectList, setModelSelectList] = useState([])
     const [categorySelectList, setCategorySelectList] = useState([])
+    const [sizeGridSelectList, setSizeGridSelectList] = useState([])
 
 
 
@@ -132,6 +133,7 @@ function RequirementEntry() {
         var tempColourList=[]
         var tempModelList=[]
         var tempCatList=[]
+        var tempSizeGridList=[]
         
         articleData.forEach(item=>{
             if(item.article==newRequirement.article)
@@ -149,24 +151,38 @@ function RequirementEntry() {
                 if(!tempCatList.includes(item.category))
                     tempCatList.push(item.category)
             }
+            if(item.article==newRequirement.article && item.colour==newRequirement.colour && item.model==newRequirement.model && item.category==newRequirement.category)
+            {
+                console.log("item : ",item)
+                if(!tempSizeGridList.includes(item.size))
+                    tempSizeGridList.push(item.size)
+            }
         })
 
-        console.log("colourlist : ",tempColourList)
 
         setColourSelectList([...tempColourList])
         setModelSelectList([...tempModelList])
         setCategorySelectList([...tempCatList])
+        setSizeGridSelectList([...tempSizeGridList])
 
-    }, [newRequirement.article, newRequirement.colour, newRequirement.model, newRequirement])
+    }, [newRequirement.article, newRequirement.colour, newRequirement.model, newRequirement.category, newRequirement])
 
     const pushToDatabase = () => {
             // setUpdateLoad(true)
             const reqRef = ref(db, `requirementsHistoryData/`);
             const newReqRef = push(reqRef);
             const reqDataRef = ref(db, `requirementsData/${newReqRef.key}`);
+            const articleDataId=articleData.filter(item=>(
+                item.article==newRequirement.article &&
+                item.colour==newRequirement.colour &&
+                item.model==newRequirement.model &&
+                item.category==newRequirement.category &&
+                item.size==newRequirement.sizeGrid
+            ))[0].id
 
             set(newReqRef, {
                 ...newRequirement,
+                articleDataId:articleDataId,
                 packingComb: packageInput.join(','),
                 leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
                 rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
@@ -176,6 +192,7 @@ function RequirementEntry() {
                 console.log("Successfully updated")
                 set(reqDataRef, {
                     ...newRequirement,
+                    articleDataId:articleDataId,
                     packingComb: packageInput.join(','),
                     leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
                     rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
@@ -341,18 +358,10 @@ function RequirementEntry() {
                     </svg>
                 </div>
                 
-                {/* <div className='grid grid-cols-4 gap-4 text-sm p-3'>
-                    <div className='font-medium text-left'>Size</div>
-                    <div className='font-medium text-left'>Left Qty</div>
-                    <div className='font-medium text-left'>Right Qty</div>
-                </div> */}
 
                 <table className='table-auto border-collapse border border-black p-1'>
                     <tr className=''>
                         {renderSizes()}
-                        {/* <th className='font-medium text-left border-collapse border border-black p-1'>Size</th>
-                        <th className='font-medium text-left border-collapse border border-black p-1'>Left Qty</th>
-                        <th className='font-medium text-left border-collapse border border-black p-1'>Right Qty</th> */}
                     </tr>
                     <tbody>
                         {renderPackageInput()}
@@ -367,38 +376,6 @@ function RequirementEntry() {
                         Submit
                     </div>
                 </div>
-
-                {/* <div className='h-auto max-h-56 flex flex-col overflow-y-scroll w-full p-2 space-y-2'>
-                    {tempSizeList.map((size,index)=>(
-                        <div className='grid grid-cols-4 gap-4'>
-                            <div className='text-left'>
-                                {size}        
-                            </div>
-                            <div className='text-left'>
-                                {tempLeftQty[index]}
-                            </div>
-                            <div className='text-left'>
-                                {tempRightQty[index]}
-                            </div>
-                            <div 
-                                onClick={()=>{
-                                    var tempArr=[...tempSizeList]
-                                    tempArr.splice(index,1)
-                                    setTempSizeList([...tempArr])
-                                    var tempArr=[...tempLeftQtyList]
-                                    tempArr.splice(index,1)
-                                    setTempLeftQtyList([...tempArr])
-                                    var tempArr=[...tempRightQtyList]
-                                    tempArr.splice(index,1)
-                                    setTempRightQtyList([...tempArr])
-                                }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                            >
-                                Delete
-                            </div>
-                        </div>
-                    ))}
-                </div> */}
             </div>
         )
     }
@@ -725,6 +702,25 @@ function RequirementEntry() {
                 </div> 
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <label className='text-sm'>Size Grid</label>
+                    <select
+                        onChange={e=>{
+                            setNewRequirement({
+                                ...newRequirement,
+                                sizeGrid: e.target.value
+                            })
+                        }}
+                        value={newRequirement.sizeGrid}
+                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                    >
+                        <option>- SELECT -</option>
+                        {sizeGridSelectList.map((item,index)=>(
+                            <option key={index} value={item}>{item}</option>
+                        ))}
+                    </select>
+                </div> 
+
+                <div className="flex w-full flex flex-col items-start justify-items-start">
                     <label className='text-sm'>Enter the region</label>
                     <input 
                         value={newRequirement.region}
@@ -738,22 +734,6 @@ function RequirementEntry() {
                         className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                     />
                 </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Size grid</label>
-                    <input 
-                        value={newRequirement.sizeGrid}
-                        onChange={e=>{
-                            setNewRequirement({
-                                ...newRequirement,
-                                sizeGrid: e.target.value
-                            })
-                
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div>
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
                     <label className='text-sm'>Case Qty</label>
@@ -827,8 +807,8 @@ function RequirementEntry() {
                     <div className="text-sm py-2 text-left">COLOUR</div>
                     <div className="text-sm py-2 text-left">MODEL</div>
                     <div className="text-sm py-2 text-left">CATEGORY</div>
-                    <div className="text-sm py-2 text-left">REGION</div>
                     <div className="text-sm py-2 text-left">SIZE GRID</div>
+                    <div className="text-sm py-2 text-left">REGION</div>
                     <div className="text-sm py-2 text-left">CASE QTY</div>
                     <div className="text-sm py-2 col-span-2 text-left">PACKING COMB</div>
                 </div>

@@ -38,9 +38,10 @@ function BOMDataEntry() {
     const [currentBomId, setCurrentBomId] = useState("")
 
     var bomStruct={
-        item:"",
-        process:"",
-        sizes:""
+        materialNumber:"",
+        materialDesc:"",
+        unit:"",
+        process:""
     }
 
     var rawMaterialStruct={
@@ -236,6 +237,7 @@ function BOMDataEntry() {
             const articleRef = ref(db, `articleData/${articleItem.id}`);
             const bomRef = ref(db, `bomData/`);
             const newbomRef = push(bomRef);
+            console.log("newbomdata : ",newbomData)
 
             set(newbomRef, {
                 ...newbomData,
@@ -439,27 +441,7 @@ function BOMDataEntry() {
             return data;
         })
 
-        const fileName = 'test.xlsx';
-        // const Heading=[[
-        //     "Code",
-        //     "Machine",
-        //     "Nickname",
-        //     "Part Name",
-        //     "Part Number",
-        //     "Origin",
-        //     "Minimum Stock",
-        //     "Quantity",
-        //     "Local Quantity",
-        //     "Unit",
-        //     "Local Vendor Name",
-        //     "Value",
-        //     "Total Value",
-        //     "Specification",
-        //     "Life",
-        //     "Remarks",
-        // ]]
         const Heading=[[...fieldHeadings]]
-        // console.log(fieldKeys.map(item=>item.split(':')[0]))
 
 		var ws = XLSX.utils.json_to_sheet(excelData, { origin: 'A2', skipHeader: true });
         var wb = XLSX.utils.book_new();
@@ -850,7 +832,15 @@ function BOMDataEntry() {
 
                 {item.edit!=true&&(<>
                     <div className="flex items-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.item}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.materialNumber}</div>
+                    </div>
+
+                    <div className="flex items-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.materialDesc}</div>
+                    </div>
+
+                    <div className="flex items-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.unit}</div>
                     </div>
 
                     <div className="flex items-center">
@@ -861,18 +851,26 @@ function BOMDataEntry() {
                 {item.edit&&(<>
                     <div className="flex w-full flex flex-col items-start justify-center">
                         <input 
-                            value={editData.item.toUpperCase()}
+                            value={editData.materialNumber.toUpperCase()}
                             onChange={e=>{
                                 setEditingInputElement(e.target)
                                 setEditData({
                                     ...editData,
-                                    item: e.target.value.toUpperCase()
+                                    materialNumber: e.target.value.toUpperCase()
                                 })
                             }}
                             type="text" 
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         />
                     </div> 
+
+                    <div className="flex items-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.materialDesc}</div>
+                    </div>
+
+                    <div className="flex items-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.unit}</div>
+                    </div>
 
                     <div className="flex w-full flex flex-col items-start justify-center">
                         <select
@@ -902,24 +900,20 @@ function BOMDataEntry() {
                     length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
                     (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
                         <div className='flex flex-row gap-x-2 justify-start items-center'>
-                            {/* <div>{size}</div> */}
-                            <Checkbox
-                                onChange={()=>{
-                                    var tempArr=editData.sizes==""?[]:editData.sizes.split(',')
-                                    var sizes=tempArr.includes(size.toString())?
-                                            tempArr.filter(s=>s!=size).join(',')
-                                            :[...tempArr,size].join(',')
-                                    setEditData({
-                                        ...editData,
-                                        sizes:sizes
-                                    })
-                                }}
-                                // value={newbomData.sizes.split(',').includes(size)}
-                                checked={item.edit?
-                                    editData.sizes.split(',').includes(size.toString())
-                                    :item.sizes.split(',').includes(size.toString())}
-                                disabled={!item.edit}
-                            />
+                            {item.edit==true?
+                                (<input
+                                    onChange={(e)=>{
+                                        setEditData({
+                                            ...editData,
+                                            [size]:e.target.value
+                                        })
+                                    }}
+                                />)
+                                :
+                                (<div className="flex items-center">
+                                    <div className="text-stone-900/30 w-10/12 break-none text-sm text-left">{item[size]}</div>
+                                </div>)
+                            }
                         </div>
                     ))
                 }
@@ -972,19 +966,39 @@ function BOMDataEntry() {
                 >
                     {/* <div className='text-left text-sm font-semibold'>New Entry : </div> */}
                     <div className="flex w-full flex flex-col items-start justify-center">
-                        <div>Item</div>
-                        <input 
-                            value={newbomData.item.toUpperCase()}
+                        <div>Material No</div>
+                        <select
+                            className='bg-white text-sm w-full ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                             onChange={e=>{
+                                var val=e.target.value.toUpperCase()
                                 setNewbomData({
                                     ...newbomData,
-                                    item: e.target.value.toUpperCase()
+                                    materialNumber: val,
+                                    materialDesc:stockData.filter(s=>s.materialNumber==val)[0]?.materialDesc,
+                                    unit:stockData.filter(s=>s.materialNumber==val)[0]?.unit
                                 })
                             }}
-                            type="text" 
-                            className='w-full ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
+                        >
+                            <option>--select--</option>
+                            {stockData.map(s=>(
+                                <option value={s.materialNumber}>{s.materialNumber}</option>
+                            ))}
+                        </select>
                     </div> 
+
+                    {newbomData.materialNumber!=""&&(<div className="flex w-full flex flex-col items-start justify-center">
+                        <div>Material Desc</div>
+                        <div
+                        className='h-8'
+                        >{stockData.filter(s=>s.materialNumber==newbomData.materialNumber)[0]?.materialDesc}</div>
+                    </div> )}
+                    
+                    {newbomData.materialNumber!=""&&(<div className="flex w-full flex flex-col items-start justify-center">
+                        <div>Unit</div>
+                        <div
+                        className='h-8'
+                        >{stockData.filter(s=>s.materialNumber==newbomData.materialNumber)[0]?.unit}</div>
+                    </div>)}
 
                     <div className="flex w-full flex flex-col items-start justify-center">
                         <div>Process</div>
@@ -1011,21 +1025,16 @@ function BOMDataEntry() {
                     {Array.from({
                         length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
                         (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
-                            <div className='flex flex-row gap-x-2 justify-start items-center'>
+                            <div className='flex w-full flex flex-col items-start justify-center'>
                                 <div>{size}</div>
-                                <Checkbox
-                                    onChange={()=>{
-                                        var tempArr=newbomData.sizes==""?[]:newbomData.sizes.split(',')
-                                        var sizes=tempArr.includes(size.toString())?
-                                                tempArr.filter(s=>s!=size).join(',')
-                                                :[...tempArr,size].join(',')
+                                <input
+                                    onChange={(e)=>{
                                         setNewbomData({
                                             ...newbomData,
-                                            sizes:sizes
+                                            [size]:e.target.value
                                         })
                                     }}
-                                    // value={newbomData.sizes.split(',').includes(size)}
-                                    checked={newbomData.sizes.split(',').includes(size.toString())}
+                                    className='w-3/4 ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                                 />
                             </div>
                         ))
@@ -1080,7 +1089,9 @@ function BOMDataEntry() {
 
                 <div className="w-full sticky top-0 p-3 grid grid-flow-col auto-cols-fr gap-4 bg-gray-200">
                     <div className="text-md py-2 text-left">SI NO</div>
-                    <div className="text-md py-2 text-left">ITEM</div>
+                    <div className="text-md py-2 text-left">MATERIAL No</div>
+                    <div className="text-md py-2 text-left">MATERIAL DESC</div>
+                    <div className="text-md py-2 text-left">UNIT</div>
                     <div className="text-md py-2 text-left">PROCESS</div>
                     {Array.from({
                         length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 

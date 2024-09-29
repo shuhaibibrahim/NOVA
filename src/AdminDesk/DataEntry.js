@@ -349,7 +349,7 @@ function DataEntry() {
                                     size: e.target.value
                                 })
                             }}
-                            type="number" 
+                            type="text" 
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         />
 
@@ -532,7 +532,7 @@ function DataEntry() {
                                     size: e.target.value
                                 })
                             }}
-                            type="number" 
+                            type="text" 
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         />
 

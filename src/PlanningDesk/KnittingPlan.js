@@ -25,6 +25,7 @@ function KnittingPlan() {
     const [categorySelectList, setCategorySelectList] = useState([])
 
     const [requirementsData, setRequirementsData] = useState([])
+    const [bomData, setBomData] = useState([])
 
     const [spareData, setSpareData] = useState([])
     const [dispData, setDispData] = useState([]) //data displayed
@@ -141,6 +142,29 @@ function KnittingPlan() {
     }, [])
 
     useEffect(() => {
+        const bomRef = ref(db, `bomData/`);
+
+        onValue(bomRef, (snapshot) => {
+            const myBomData=snapshot.val()
+
+            // console.log()
+            if(myBomData!=null)
+            {
+                var bomArray=[];
+                for(var key in myBomData)
+                {
+                    var item=myBomData[key]
+                    bomArray.push(item)
+                }
+                
+                setBomData([...bomArray])
+            }
+            else
+                setBomData([])
+        });
+    }, [])
+
+    useEffect(() => {
         const planRef = ref(db, 'knittingPlan/');
 
         onValue(planRef, (snapshot) => {
@@ -204,6 +228,21 @@ function KnittingPlan() {
                     console.log("error : ",e)
                 })
             })
+
+            const updates={}
+            item["KNITTING::stockReq"].split(',').map(kv=>{
+                var stock=stockData.find(s=>s.materialNumber==kv.split("::")[0])
+                updates[`/stockData/${kv.split("::")[0]}`]={
+                    ...stock,
+                    qty:stock.qty+Number(kv.split("::")[1])*item.caseQty
+                }
+            })
+
+            update(ref(db),updates).then(()=>{
+                console.log("stock incremented")
+            }).catch((e)=>{
+                console.log("error : ",e)
+            })
         }
     }
     
@@ -237,6 +276,25 @@ function KnittingPlan() {
                     caseQty:"",
                     packingComb:"",
                 })
+
+                setEnableCaseQtyInput(-1)
+            })
+            .catch((error)=>{
+                alert("Error while saving data : ",error)
+            })
+
+            const updates={}
+            reqItem["KNITTING::stockReq"].split(',').map(kv=>{
+                var stock=stockData.find(s=>s.materialNumber==kv.split("::")[0])
+                updates[`/stockData/${kv.split("::")[0]}`]={
+                    ...stock,
+                    qty:stock.qty-Number(kv.split("::")[1])*newKnittingPlan.caseQty
+                }
+            })
+
+            update(ref(db),updates).then(()=>{
+                console.log("stock decremented")
+
                 set(reqRef, {
                     ...reqItem,
                     caseQty:reqItem.caseQty-newKnittingPlan.caseQty
@@ -245,11 +303,9 @@ function KnittingPlan() {
                 }).catch((e)=>{
                     console.log("error : ",e)
                 })
-                setEnableCaseQtyInput(-1)
+            }).catch((e)=>{
+                console.log("error : ",e)
             })
-            .catch((error)=>{
-                alert("Error while saving data : ",error)
-            })            
     }
 
     function DownloadExcel() {
@@ -299,18 +355,86 @@ function KnittingPlan() {
 		XLSX.writeFile(wb, "sheetjs.xlsx");
     }
 
+    const checkStockAvailability=(item)=>{
+        var bomIds=articleData.filter(a=>a.id==item.articleDataId)[0].bomIds.split(',')
+
+        const [start, end] = item.sizeGrid.split('X').map(Number);
+        
+        var processes=["KNITTING","CLICKING","PRINTING","STITCHING","STUCKONG"]
+
+        var availability={}
+
+        processes.forEach(p=>{
+            console.log(p)
+            var bomReq=bomData.filter(bom=>(
+                bomIds.includes(bom.id)&&bom.process==p)
+            ).map(bom=>({
+                materialNumber:bom.materialNumber,
+                reqSum:Object.keys(bom)
+                    .filter(key => key >= start && key <= end)
+                    .reduce((acc, key) => acc + Number(bom[key])*item.packingComb.split(',')[parseInt(key)-start], 0),
+                stockQty:stockData.filter(s=>
+                        s.materialNumber==bom.materialNumber)[0].qty
+            }))
+
+            console.log(bomReq)
+            
+            if(bomReq.length==0)
+            {
+                return
+            }
+
+            bomReq=bomReq.map(bom=>({
+                ...bom,
+                possibleStockQty:Math.floor(bom.stockQty/bom.reqSum)
+            }))
+    
+            item[p+"::stockReq"]=bomReq.map(bom=>(bom.materialNumber+"::"+bom.reqSum)).join(',')
+    
+            var available=bomReq.reduce((min, obj) => obj.possibleStockQty < min.possibleStockQty ? obj : min).possibleStockQty
+            availability[p]=available
+        })
+
+        return availability
+    }
+
     const RenderRequirementItem=(item, index)=>{
+
+        var availability=checkStockAvailability(item)
+        console.log(availability, item.caseQty, availability["KNITTING"]>0)
 
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
             <div className='flex flex-col w-full border-solid border-b border-gray-400 p-3 bg-gray-200'>
-                {enableCaseQtyInput==index&&(<div className='grid grid-cols-12 gap-x-1 '>
-                    <div/><div/><div/><div/><div/><div/><div/><div/><div/><div/>
+                {enableCaseQtyInput==index&&(<div className='grid grid-flow-col auto-cols-fr gap-1'>
+                    <div/><div/><div/><div/><div/><div/><div/><div/><div/><div/><div/>
                     <div className="text-sm py-2 col-span-2 text-left font-bold">ENTER REQUIRED CASE QTY</div>
                 </div>)}
-                <div key={index} className="grid grid-cols-12 gap-x-1 " >
+                <div key={index} className="grid grid-flow-col auto-cols-fr gap-1" >
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
+                        <div className="text-stone-900/30 w-10/12 break-none text-left flex flex-row space-x-1">
+                            <div className={(Number(availability["KNITTING"])>=Number(item.caseQty)?"text-green-500":
+                            (Number(availability["KNITTING"])>0?"text-yellow-500":
+                            "text-red-500"
+                            ))+" font-bold text-md "}>K</div>
+
+                            <div className={(Number(availability["CLICKING"])>=Number(item.caseQty)?"text-green-500":
+                            (Number(availability["CLICKING"])>0?"text-yellow-500":
+                            "text-red-500"
+                            ))+" font-bold text-md "}>C</div>
+                            <div className={(Number(availability["PRINTING"])>=Number(item.caseQty)?"text-green-500":
+                            (Number(availability["PRINTING"])>0?"text-yellow-500":
+                            "text-red-500"
+                            ))+" font-bold text-md "}>P</div>
+                            <div className={(Number(availability["STITCHING"])>=Number(item.caseQty)?"text-green-500":
+                            (Number(availability["STITCHING"])>0?"text-yellow-500":
+                            "text-red-500"
+                            ))+" font-bold text-md "}>ST</div>
+                            <div className={(Number(availability["STUCKON"])>=Number(item.caseQty)?"text-green-500":
+                            (Number(availability["STUCKON"])>0?"text-yellow-500":
+                            "text-red-500"
+                            ))+" font-bold text-md "}>SC</div>
+                        </div>
                     </div>
                     <div className="flex items-center justify-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-left">{item.date}</div>
@@ -342,6 +466,10 @@ function KnittingPlan() {
 
                     <div className="flex items-center justify-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{availability["KNITTING"]}</div>
                     </div>
 
                     <div className="flex items-center justify-center col-span-1">
@@ -384,8 +512,8 @@ function KnittingPlan() {
 
                             </div>
                         </div>
-                    )
-                    :(
+                        )
+                        :(
                         
                         <>
                             <div>
@@ -398,31 +526,8 @@ function KnittingPlan() {
                                 Plan
                             </button>
                         </>
-                    )
-                    }
-
-                    {/* {enableCaseQtyInput==index&&(
-                        <div className='flex flex-row space-x-2'>
-                            <div 
-                                onClick={()=>{
-                                    pushToDatabase()
-                                }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className='bg-green-400 w-2' fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-
-                            <button 
-                                className='text-center rounded py-2 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
-                                onClick={()=>{setEnableCaseQtyInput(-1)}}
-                            >
-                                Cancel
-                        </button>
-
-                        </div>
-                    )} */}
+                        )
+                    }   
                 </div>
             </div>
         )
@@ -517,8 +622,8 @@ function KnittingPlan() {
                         </svg>
                     </div>
 
-                    <div className="w-full sticky top-0 p-3 grid grid-cols-12 gap-1 font-bold">
-                        <div className="text-sm py-2 text-left">SI NO</div>
+                    <div className="w-full sticky top-0 p-3 grid grid-flow-col auto-cols-fr gap-1 font-bold">
+                        <div className="text-sm py-2 text-left"></div>
                         <div className="text-sm py-2 text-left">DATE</div>
                         <div className="text-sm py-2 text-left">ARTICLE</div>
                         <div className="text-sm py-2 text-left">COLOUR</div>
@@ -527,7 +632,9 @@ function KnittingPlan() {
                         <div className="text-sm py-2 text-left">REGION</div>
                         <div className="text-sm py-2 text-left">SIZE GRID</div>
                         <div className="text-sm py-2 text-left">CASE QTY</div>
+                        <div className="text-sm py-2 text-left">CASES AVAILABLE FOR PLANNING</div>
                         <div className="text-sm py-2 col-span-2 text-left">PCKNG COMB</div>
+                        <div></div>
                     </div>
                     
                     {requirementsData.map((reqItem,index)=>RenderRequirementItem(reqItem, index))}

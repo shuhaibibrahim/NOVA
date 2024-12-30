@@ -92,20 +92,19 @@ function ProcessPlan() {
         console.log("Retrieved materials:", materialsArray);
         materialsArray=[...materialsArray.filter(m=>m.process=="Knitting")]
 
-        const materialsReduced = Object.values(
-            materialsArray.reduce((acc, obj) => {
-              if (acc[obj.materialNumber]) {
-                // If the name already exists, add the qty
-                acc[obj.materialNumber].qty += obj.qty;
-              } else {
-                // Otherwise, create a new entry in the accumulator
-                acc[obj.materialNumber] = {...obj};
-              }
-              return acc;
-            }, {})
-        );
+        // const materialsReduced = Object.values(
+        //     materialsArray.reduce((acc, obj) => {
+        //       if (acc[obj.materialNumber]) {
+        //         // If the name already exists, add the qty
+        //         acc[obj.materialNumber].qty += obj.qty;
+        //       } else {
+        //         // Otherwise, create a new entry in the accumulator
+        //         acc[obj.materialNumber] = {...obj};
+        //       }
+        //       return acc;
+        //     }, {})
+        // );
         
-        console.log("materials reduced : ",materialsReduced)
 
         setStockDetails([...materialsArray])
         // materials.forEach(m => {
@@ -171,7 +170,7 @@ function ProcessPlan() {
 
                     <div className="text-stone-900/30 break-all text-left">{item.requiredQty}</div>
                     
-                    <div className="text-stone-900/30 break-all text-left">{item.requestedQty}</div>
+                    <div className="text-stone-900/30 break-all text-left">{item.requestedQty+(item.reason?(" : "+item.reason):"")}</div>
                     
                     <div className="text-stone-900/30 break-all text-left">{item.prodConsumption}</div>
 
@@ -372,7 +371,7 @@ function ProcessPlan() {
                 </div>
 
                 <div className='w-full'>
-                    <div className='font-bold text-lg text-left'>Stock Requirements</div>
+                    <div className='font-bold text-lg text-left'>Stock Requests</div>
                 </div>
                 <div className={`w-full sticky top-0 p-3 grid gap-1 bg-gray-200 grid-cols-7`}>
                     <div className="text-sm py-2 text-left">MATERIAL NUMBER</div>

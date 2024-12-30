@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { db} from "../firebase_config";
-import { ref, set, push, onValue, remove, increment, update } from "firebase/database";
+import { ref, set, push, onValue, remove, increment, update, query, orderByChild, equalTo, get } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
+import { Checkbox } from '@mui/material';
 
 
 function KnittingPlan() {
@@ -73,10 +74,13 @@ function KnittingPlan() {
         sizeGrid:"",
         caseQty:"",
         packingComb:"",
-        date:""
+        date:"",
+        planDate:"",
+        status:""
     })
 
     const [planData, setPlanData] = useState([])
+    const [masterDetailIndex, setMasterDetailIndex] = useState(-1)
 
     useEffect(() => {
         const reqRef = ref(db, 'requirementsData/');
@@ -106,6 +110,7 @@ function KnittingPlan() {
                 reqArray.push(item)
             }
             
+            console.log("re triggerred")
             setRequirementsData([...reqArray])
         });
     }, [])
@@ -212,13 +217,17 @@ function KnittingPlan() {
 
     }, [newKnittingPlan.article, newKnittingPlan.colour, newKnittingPlan.model, newKnittingPlan])
 
-    const deleteFromDatabase=(item)=>{
+    // Beginning of read write 
+    const deleteFromDatabase= async (item)=>{
 
         if(window.confirm("Please confirm deleting "+item.article))
         {
             const articleRef = ref(db, `knittingPlan/${item.id}`); 
-            const reqRef = ref(db, `requirementsData/${item.reqId}`); 
+            const reqRef = ref(db, `requirementsData/${item.reqId}`);
+             
+            const materialIssueRef = ref(db, `materialIssueData/`); 
         
+            //delete article and update requirements table
             remove(articleRef).then(()=>{
                 const updates={}
                 updates[`requirementsData/${item.reqId}/caseQty`]=increment(parseInt(item.caseQty))
@@ -230,16 +239,37 @@ function KnittingPlan() {
             })
 
             const updates={}
+            const stocks=[]
+
+            console.log("plan id : ",item.id)
+            
+            const materialQuery=query(materialIssueRef, orderByChild("planId"), equalTo(item.id))
+            const materialsSnapshot = await get(materialQuery);
+            console.log('materails Snapshot : ',materialsSnapshot)
+
+            // Delete all material issues with the matching planId
+            const deletePromises = [];
+            materialsSnapshot.forEach((material) => {
+                deletePromises.push(remove(ref(db, `/materialIssueData/${material.key}`)));
+            });
+
+            // Wait for all material deletions to complete
+            await Promise.all(deletePromises);
+            
+            //update stocks
             item["KNITTING::stockReq"].split(',').map(kv=>{
                 var stock=stockData.find(s=>s.materialNumber==kv.split("::")[0])
+
                 updates[`/stockData/${kv.split("::")[0]}`]={
                     ...stock,
-                    qty:stock.qty+Number(kv.split("::")[1])*item.caseQty
+                    // qty:stock.qty+Number(kv.split("::")[1])*item.caseQty
+                    lockedQty:stock.lockedQty-Number(kv.split("::")[1])*item.caseQty
                 }
             })
 
             update(ref(db),updates).then(()=>{
                 console.log("stock incremented")
+
             }).catch((e)=>{
                 console.log("error : ",e)
             })
@@ -252,11 +282,19 @@ function KnittingPlan() {
 
             const planRef = ref(db, `knittingPlan/`);
             const reqRef = ref(db, `requirementsData/${reqItem.id}`); 
+            const materialIssueRef = ref(db, `materialIssueData/`);
+            
             const newPlanRef = push(planRef);
+
+            const today=new Date()
+            console.log("today : ",today)
 
             set(newPlanRef, {
                 ...newKnittingPlan,
+                status:"in-progress",
+                planDate:today.toISOString().split('T')[0],
                 reqId:reqItem.id,
+                markedAsComplete:false,
                 id:newPlanRef.key
             })
             .then((ref)=>{
@@ -275,6 +313,7 @@ function KnittingPlan() {
                     sizeGrid:"",
                     caseQty:"",
                     packingComb:"",
+                    status:""
                 })
 
                 setEnableCaseQtyInput(-1)
@@ -284,16 +323,72 @@ function KnittingPlan() {
             })
 
             const updates={}
+            const stocks=[]
+
             reqItem["KNITTING::stockReq"].split(',').map(kv=>{
                 var stock=stockData.find(s=>s.materialNumber==kv.split("::")[0])
+                var prodQty=stock.prodQty!=undefined?stock.prodQty:0
+
+                if(Number(kv.split("::")[1])*newKnittingPlan.caseQty<=prodQty){
+                    stock={
+                        ...stock,
+                        prodQty:(prodQty-Number(kv.split("::")[1])*newKnittingPlan.caseQty) //using up production stock
+                    }
+
+                    stocks.push({
+                        ...stock,
+                        requiredQty: Number(kv.split("::")[1])*newKnittingPlan.caseQty,
+                        requestedQty:0,
+                        prodConsumption:Number(kv.split("::")[1])*newKnittingPlan.caseQty
+                    })
+                }
+                else{
+                    stock={
+                        ...stock,
+                        prodQty:0,//using up production stock
+                        lockedQty:(stock.lockedQty!=undefined?stock.lockedQty:0)+(Number(kv.split("::")[1])*newKnittingPlan.caseQty-prodQty) //locking the actual stock
+                    }
+
+                    stocks.push({
+                        ...stock,
+                        requiredQty: Number(kv.split("::")[1])*newKnittingPlan.caseQty,
+                        requestedQty:(Number(kv.split("::")[1])*newKnittingPlan.caseQty-prodQty),
+                        prodConsumption:prodQty
+                    })
+                }
+                
                 updates[`/stockData/${kv.split("::")[0]}`]={
                     ...stock,
-                    qty:stock.qty-Number(kv.split("::")[1])*newKnittingPlan.caseQty
                 }
+                
             })
 
             update(ref(db),updates).then(()=>{
                 console.log("stock decremented")
+
+                stocks.forEach((s)=>{
+                    const newMaterialIssueRef = push(materialIssueRef);
+
+                    set(newMaterialIssueRef, {
+                        materialNumber:s.materialNumber,
+                        materialDesc:s.materialDesc,
+                        requiredQty:s.requiredQty,
+                        requestedQty:s.requestedQty,
+                        prodConsumption:s.prodConsumption,
+                        qty:0,
+                        unit:s.unit,
+                        issueType:"planIssue",
+                        process:'Knitting',
+                        qtyAllotted:false,
+                        id:newMaterialIssueRef.key,
+                        planId:newPlanRef.key
+                    }).then(()=>{
+                        console.log("materialIssue update - plan issue")
+                    }).catch((e)=>{
+                        console.log("error : ",e)
+                    })
+
+                })
 
                 set(reqRef, {
                     ...reqItem,
@@ -303,10 +398,12 @@ function KnittingPlan() {
                 }).catch((e)=>{
                     console.log("error : ",e)
                 })
+
             }).catch((e)=>{
                 console.log("error : ",e)
             })
     }
+    // End of read write
 
     function DownloadExcel() {
         
@@ -356,7 +453,11 @@ function KnittingPlan() {
     }
 
     const checkStockAvailability=(item)=>{
-        var bomIds=articleData.filter(a=>a.id==item.articleDataId)[0].bomIds.split(',')
+        var article=articleData.filter(a=>a.id==item.articleDataId)[0]
+        if(article==undefined)
+            return 0
+
+        var bomIds=article.bomIds.split(',')
 
         const [start, end] = item.sizeGrid.split('X').map(Number);
         
@@ -368,16 +469,19 @@ function KnittingPlan() {
             console.log(p)
             var bomReq=bomData.filter(bom=>(
                 bomIds.includes(bom.id)&&bom.process==p)
-            ).map(bom=>({
-                materialNumber:bom.materialNumber,
-                reqSum:Object.keys(bom)
-                    .filter(key => key >= start && key <= end)
-                    .reduce((acc, key) => acc + Number(bom[key])*item.packingComb.split(',')[parseInt(key)-start], 0),
-                stockQty:stockData.filter(s=>
-                        s.materialNumber==bom.materialNumber)[0].qty
-            }))
+            ).map(bom=>{
+                var stock=stockData.filter(s=>
+                    s.materialNumber==bom.materialNumber)[0]
+                return {
+                    materialNumber:bom.materialNumber,
+                    reqSum:Object.keys(bom)
+                        .filter(key => key >= start && key <= end)
+                        .reduce((acc, key) => acc + Number(bom[key])*item.packingComb.split(',')[parseInt(key)-start], 0),
+                    stockQty:stock.qty-(stock.lockedQty!=undefined?stock.lockedQty:0)
+                }
+            })
 
-            console.log(bomReq)
+            console.log("bomreq :: ",bomReq)
             
             if(bomReq.length==0)
             {
@@ -402,6 +506,7 @@ function KnittingPlan() {
 
         var availability=checkStockAvailability(item)
         console.log(availability, item.caseQty, availability["KNITTING"]>0)
+        console.log("re rendered")
 
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
@@ -646,64 +751,131 @@ function KnittingPlan() {
     useEffect(() => {
         if(Modal)
             RenderModal('planEntry')
-    }, [newKnittingPlan.caseQty,enableCaseQtyInput]);
+    }, [newKnittingPlan.caseQty,enableCaseQtyInput,requirementsData]);
+
+    const markItemAsCompleted=(item)=>{
+        if(window.confirm("Please confirm that knitting is completed for the item")){
+            const updates={}
+            updates[`knittingPlan/${item.id}/markedAsComplete`]=true
+            update(ref(db),updates).then(()=>{
+                console.log("item marked as completed")
+            }).catch((e)=>{
+                console.log("error : ",e)
+            })
+        
+        }
+    }
 
     const RenderItem=(item, index)=>{
 
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
-            <div key={index} className="grid grid-cols-11 text-sm gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.date}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.article}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.colour}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.model}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.region}</div>
-                </div>
-
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.sizeGrid}</div>
-                </div>
-
-                <div className="flex items-center justify-center col-span-1">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.packingComb}</div>
-                </div>
-                
-                <div className="flex items-center justify-center">
-                    <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
-                </div>
-                
-                <div 
-                    class="w-7 h-7 bg-white p-1 rounded-lg text-red-800 hover:text-red-500 self-center"
-                    onClick={()=>{deleteFromDatabase(item)}}
+            // <div key={index}>
+            <Link to="../process-plan" state={{planItem:item}} >
+                <div
+                    // onClick={()=>{
+                    //     var i=masterDetailIndex==index?-1:index
+                    //     console.log(i)
+                    //     setMasterDetailIndex(i)
+                    //     console.log("masterDetailIndex : ",masterDetailIndex,index)
+                    // }} 
+                    className="cursor-pointer hover:bg-gray-300 grid grid-cols-12 text-sm gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" 
                 >
-                    <svg  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                    </svg>
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.planDate}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.article}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.colour}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.model}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.region}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.sizeGrid}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center col-span-1">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.packingComb}</div>
+                    </div>
+                    
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
+                    </div>
+
+                    <div>
+                        <Checkbox
+                            checked={item.markedAsComplete}
+                            onChange={()=>{markItemAsCompleted(item)}}
+                            disabled={item.markedAsComplete}
+                            inputProps={{ 'aria-label': 'controlled' }}
+                        />
+                    </div>
+                    
+                    <div 
+                        class="w-7 h-7 bg-white p-1 rounded-lg text-red-800 hover:text-red-500 self-center"
+                        onClick={()=>{deleteFromDatabase(item)}}
+                    >
+                        <svg  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </div>  
                 </div>
-            
+            </Link>
                 
-            </div>
+                // <div className={(masterDetailIndex==index?"dropdown-visible":" dropdown-hidden")}>
+                //     <div className={"bg-gray-100 mb-1 p-2 grid grid-cols-6 gap-x-4 items-center"}>
+                //         <div className='font-bold text-lg'>Stock Request : </div>
+                //         <div className="flex w-full flex flex-col items-start justify-start">
+                //             <label className='text-sm'>Quantity</label>
+                //             <input 
+                //                 // value={newMaterialIssue.materialNumber}
+                //                 // onChange={e=>{
+                //                 //     setNewMaterialIssue({
+                //                 //         ...newMaterialIssue,
+                //                 //         materialNumber: e.target.value
+                //                 //     })
+                //                 // }}
+                //                 type="text" 
+                //                 className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                //             />
+                //         </div> 
+
+                //         <div className="flex w-full flex flex-col items-start justify-start">
+                //             <label className='text-sm'>Material Description</label>
+                //             <input 
+                //                 // value={newMaterialIssue.materialDesc}
+                //                 // onChange={e=>{
+                //                 //     setNewMaterialIssue({
+                //                 //         ...newMaterialIssue,
+                //                 //         materialDesc: e.target.value
+                //                 //     })
+                //                 // }}
+                //                 type="text" 
+                //                 className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                //             />
+                //         </div> 
+                //     </div>
+                // </div>
+            // </div>
         )
     }
 
@@ -725,7 +897,7 @@ function KnittingPlan() {
                 <div/>
             )
         }
-    }, [planData])
+    }, [planData,masterDetailIndex])
 
     return (
         <div className="pb-2 bg-blue-50 h-full px-3">
@@ -788,7 +960,7 @@ function KnittingPlan() {
                         </div>
                     </div>
                 </div>
-                <div className="w-full text-xs font-bold sticky top-0 p-3 grid grid-cols-11 gap-1 bg-gray-200">
+                <div className="w-full text-xs font-bold sticky top-0 p-3 grid grid-cols-12 gap-1 bg-gray-200">
                     <div className="py-2 text-left">SI NO</div>
                     <div className="py-2 text-left">DATE</div>
                     <div className="py-2 text-left">ARTICLE</div>
@@ -799,6 +971,7 @@ function KnittingPlan() {
                     <div className="py-2 text-left">SIZE GRID</div>
                     <div className="py-2 col-span-1 text-left">PCKNG COMB</div>
                     <div className="py-2 text-left">CASE QTY</div>
+                    <div className="text-sm py-2 col-span-2 text-left">MARK AS COMPLETE</div>
                 </div>
                 
                 {renderItems}

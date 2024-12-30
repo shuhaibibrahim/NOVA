@@ -85,6 +85,8 @@ function MaterialIssueEntry() {
 
     const [expand, setExpand] = useState(false)
 
+    const [tabSelected, setTabSelected] = useState("materialIssue")
+
     useEffect(() => {
         const materialIssueRef = ref(db, 'materialIssueData/');
 
@@ -206,6 +208,7 @@ function MaterialIssueEntry() {
 
             set(newMaterialIssueRef, {
                 ...newMaterialIssue,
+                issueType:"materialIssue",
                 id:newMaterialIssueRef.key
             })
             .then(()=>{
@@ -310,16 +313,54 @@ function MaterialIssueEntry() {
     }
 
     const editItem = (item) => {
-        item={...editData, id:item.id}
+        var validate=validateMaterialIssue(item.materialNumber, item.qty, item.unit)
+
+        if(validate!=""){
+            displayValidateMessage(validate)
+            return
+        }
+
+        item={
+            ...item, 
+            qtyAllotted:true,
+            id:item.id
+        }
 
         const materialIssueRef = ref(db, `materialIssueData/${item.id}`);
 
         set(materialIssueRef, {
             ...item
         })
-        .then((ref)=>{
+        .then(()=>{
             // setUpdateLoad(false)
             // alert("Successfully updated")
+            var stock=stockData.filter(s=>(s.materialNumber==item.materialNumber))[0]
+            stock["prodQty"]=stock["prodQty"]!=undefined?stock["prodQty"]:0
+
+            if(item.qty>=item.requestedQty){
+                stock.lockedQty=Number(stock.lockedQty)-Number(item.qty)
+                stock.qty=Number(stock.qty)-Number(item.qty)
+                stock.prodQty=Number(stock.prodQty)+(Number(item.qty)-Number(item.requestedQty))
+            }
+            else{
+                stock.lockedQty=Number(stock.lockedQty)-Number(item.qty)
+                stock.qty=Number(stock.qty)-Number(item.qty)
+            }
+
+            const stockRef = ref(db, `stockData/${stock.id}`);
+            console.log("prd : ",stock["prodQty"])
+
+            set(stockRef, {
+                ...stock
+            })
+            .then((ref)=>{
+                // setUpdateLoad(false)
+                // alert("Successfully updated")
+            })
+            .catch((error)=>{
+                alert("Error while saving data : ",error)
+                console.log(error)
+            })
         })
         .catch((error)=>{
             alert("Error while saving data : ",error)
@@ -390,15 +431,48 @@ function MaterialIssueEntry() {
 
         return (
             // <div key={index} className={item.qty<item.minMaterialIssue?"w-11/12 p-2 grid grid-cols-5 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-5"}>
-            <div key={index} className="grid grid-cols-5 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+            <div key={index} className={`grid gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200  ${tabSelected=="materialIssue"?"grid-cols-7":"grid-cols-6"}`} >
                 {item.edit!=true&&(<>
                     <div className="text-stone-900/30 break-all text-left">{item.materialNumber}</div>
 
                     <div className="text-stone-900/30 break-all text-left">{item.materialDesc}</div>
 
-                    <div className="text-stone-900/30 break-all text-left">{item.qty}</div>
-
                     <div className="text-stone-900/30 break-all text-left">{item.unit}</div>
+
+                    <div className="text-stone-900/30 break-all text-left">{item.requestedQty}</div>
+
+                    {tabSelected=="materialIssue"&&(<div className="text-stone-900/30 break-all text-left">{item.reason}</div>)}
+
+                    {(tabSelected=="planIssue" || tabSelected=="materialIssue")&&
+                    (<div className="flex w-full flex flex-col items-start justify-start">
+                        <input 
+                            value={materialIssueData.find(m => m.id === item.id)?.qty || ''}
+                            disabled={item.qtyAllotted}
+                            onChange={e => {
+                                const updatedMaterialIssueData = materialIssueData.map(m => 
+                                    m.id === item.id ? { ...m, qty: e.target.value } : m
+                                );
+                                setMaterialIssueData(updatedMaterialIssueData);
+                            }}
+                            type="text" 
+                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div>)}
+
+                    {(tabSelected=="planIssue" || tabSelected=="materialIssue")&&(
+                    <div className='flex justify-center'>
+                        <div 
+                            onClick={()=>{
+                                editItem(item);
+                            }}
+                            className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>    
+                    )} 
                 </>)}
 
                 {item.edit&&(<>
@@ -464,7 +538,7 @@ function MaterialIssueEntry() {
 
                 </>)}
 
-                <div className='col-span-1'>
+                {/* <div className='col-span-1'>
                     <div className='grid grid-cols-2 gap-x-2 w-full'>
                         {item.edit!=true&&(
                         <div className='flex justify-center'>
@@ -516,8 +590,7 @@ function MaterialIssueEntry() {
                             </div>
                         </div>
                     </div>
-                </div>
-
+                </div> */}
                
             </div>
         )
@@ -529,7 +602,13 @@ function MaterialIssueEntry() {
         {
             setRenderItems(
                 <div className='w-full overflow-y-auto'>
-                    {[...materialIssueData].reverse().map((item, index)=>RenderItem(item,index))}
+                    {[...materialIssueData].filter((m)=>m.issueType==tabSelected).reverse().map((item, index)=>{
+                        if(tabSelected=="planIssue" && item.requestedQty>0)
+                            return RenderItem(item,index)
+                        else if(tabSelected=="planIssue")
+                            return <div/>
+                        return RenderItem(item,index)
+                    })}
                     {/* <RenderInputRow/> */}
                 </div>
             )
@@ -541,7 +620,7 @@ function MaterialIssueEntry() {
                 <div/>
             )
         }
-    }, [materialIssueData, editData])
+    }, [materialIssueData, editData, tabSelected])
 
 
     const RenderInputRow=()=>{
@@ -647,17 +726,29 @@ function MaterialIssueEntry() {
                 </div>)
             }
 
-            <div className='w-full bg-white rounded p-3 my-2'>
-                {/* <RenderInputRow/> */}
+            {/* <div className='w-full bg-white rounded p-3 my-2'>
                 {RenderInputRow()}
-            </div>
+            </div> */}
             
             
             <div className={expand==true
                 ?"flex flex-col absolute z-20 inset-0 margin-2 space-y-2 items-center justify center items-center bg-white rounded p-4"
                 :"flex flex-col h-4/5 space-y-2 items-center justify center items-center bg-white rounded p-4"}>
                 <div className='flex flex-row justify-between w-full items-center'>
-                    <div className='font-semibold text-lsg'>Material Outward</div>
+                    <div className='grid grid-cols-2 gap-x-4'>
+                        <div 
+                            onClick={()=>{setTabSelected("materialIssue")}}
+                            className={`cursor-pointer font-semibold text-lsg p-1 px-4 border-b-4 border-gray-400 ${tabSelected=="materialIssue"?"bg-gray-200 rounded-t":""}`}
+                        >
+                            Material Issue
+                        </div>
+                        <div 
+                            onClick={()=>{setTabSelected("planIssue")}}
+                            className={`cursor-pointer font-semibold text-lsg p-1 px-4 border-b-4 border-gray-400 ${tabSelected=="planIssue"?"bg-gray-200 rounded-t":""}`}
+                        >
+                            Plan Issue
+                        </div>
+                    </div>
 
                     <div className='flex flex-row space-x-4 items-center justify-center'>
                         {expand==false && (<div className='h-6 w-6 font-bold' onClick={()=>{setExpand(true)}}>
@@ -678,11 +769,14 @@ function MaterialIssueEntry() {
                         </button>
                     </div>
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-5 gap-1 bg-gray-200">
+                <div className={`w-full sticky top-0 p-3 grid gap-1 bg-gray-200 ${tabSelected=="materialIssue"?"grid-cols-7":"grid-cols-6"}`}>
                     <div className="text-sm py-2 text-left">MATERIAL NUMBER</div>
                     <div className="text-sm py-2 text-left">MATERIAL DESCRIPTION</div>
-                    <div className="text-sm py-2 text-left">QUANTITY</div>
+                    {/* {tabSelected!="planIssue"&&(<div className="text-sm py-2 text-left">QUANTITY</div>)} */}
                     <div className="text-sm py-2 text-left">UNIT</div>
+                    <div className="text-sm py-2 text-left">REQUESTED QUANTITY</div>
+                    {tabSelected=="materialIssue"&&(<div className="text-sm py-2 text-left">REASON FOR REQUEST</div>)}
+                    <div className="text-sm py-2 text-left">QUANTITY ALLOTED</div>
                 </div>
                 {renderItems}
             </div>

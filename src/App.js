@@ -41,8 +41,9 @@ import DataEntry from './AdminDesk/DataEntry';
 import RequirementEntry from './AdminDesk/RequirementEntry';
 import BOMDataEntry from './AdminDesk/BomDataEntry';
 import StockEntry from './AdminDesk/StockEntry';
-import MaterialIssueEntry from './AdminDesk/MaterialIssue';
+import MaterialIssueEntry from './AdminDesk/MaterialOutward';
 import MaterialInwardEntry from './AdminDesk/MaterialInward';
+import ProcessPlan from './PlanningDesk/ProcessPlan';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -96,6 +97,7 @@ function App() {
                 <Route path="previous-stitching-plan" element={<PreviousStitchingPlan/>}/>
                 <Route path="stuckon-plan" element={<StuckonPlan/>}/>
                 <Route path="previous-stuckon-plan" element={<PreviousStuckonPlan/>}/>
+                <Route path="process-plan" element={<ProcessPlan/>}/>
               </Route>
               
               {/* <Route path="admin" element={<AdminHome setUser={setUser} user={user}/>} > */}

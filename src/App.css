@@ -33,6 +33,18 @@
   transition: max-height .3s ease-out;
 }
 
+.masterdetail-visible{
+  max-height: max-content;
+  transition: max-height .7s ease-out;
+  overflow: hidden;
+}
+
+.masterdetail-hidden{
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .3s ease-out;
+}
+
 .home-button{
   @apply flex flex-col justify-between items-center border-l-4 border-b-4 rounded-xl border-green-700 p-10 m-5 bg-green-300 hover:border-green-900 h-full;
 }

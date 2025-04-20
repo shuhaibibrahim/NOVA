@@ -5,6 +5,7 @@ import { ref, set, push, onValue, remove, increment, update, query, orderByChild
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import { Checkbox } from '@mui/material';
+import ExportExcel from '../ExportExcel';
 
 
 function KnittingPlan() {
@@ -174,6 +175,7 @@ function KnittingPlan() {
 
         onValue(planRef, (snapshot) => {
             const data = snapshot.val();
+            console.log("triggered")
             
             var planArray=[];
             for(var key in data)
@@ -405,53 +407,7 @@ function KnittingPlan() {
     }
     // End of read write
 
-    function DownloadExcel() {
-        
-
-        // const fields={
-        //     "code" : "Code",
-        //     "partName" : "Part Name",
-        //     "partNumber" : "Part Number"
-        // }
-
-        const excelData=spareData.map(item=>{
-
-            var qty=item.qty||0
-            var localQty=item.localQty||0
-            var servQty=item.servQty||0
-
-            var ogValue=item.value||0
-            var localValue=item.localValue||0
-
-            item["totalQty"]=parseInt(qty)+parseInt(localQty)+parseInt(servQty)
-            item["totalValue"]=(parseFloat(qty)*parseFloat(ogValue)+parseFloat(localQty)*parseFloat(localValue)).toPrecision(10)
-             
-            var data={}
-            fieldKeys.forEach(key=>{
-                var mykey=key.split(":")[0]
-                data={
-                    ...data,
-                    [mykey]:item[mykey]
-                }
-            })
-            return data;
-        })
-
-        const fileName = 'test.xlsx';
-
-        const Heading=[[...fieldHeadings]]
-        // console.log(fieldKeys.map(item=>item.split(':')[0]))
-
-		var ws = XLSX.utils.json_to_sheet(excelData, { origin: 'A2', skipHeader: true });
-        var wb = XLSX.utils.book_new();
-
-        XLSX.utils.sheet_add_aoa(ws, Heading);
-        
-        XLSX.utils.book_append_sheet(wb, ws, "WorksheetName");
-
-		XLSX.writeFile(wb, "sheetjs.xlsx");
-    }
-
+    
     const checkStockAvailability=(item)=>{
         var article=articleData.filter(a=>a.id==item.articleDataId)[0]
         if(article==undefined)
@@ -771,7 +727,14 @@ function KnittingPlan() {
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
             // <div key={index}>
-            <Link to="../process-plan" state={{planItem:item}} >
+            <Link key={index} to="../process-plan" state={{planItem:item}} 
+                onClick={(e) => {
+                    // Prevent navigation if the click originates from a button or input
+                    if (e.target.closest(".prevent-link")){
+                    e.preventDefault();
+                    }
+                }}
+            >
                 <div
                     // onClick={()=>{
                     //     var i=masterDetailIndex==index?-1:index
@@ -821,17 +784,30 @@ function KnittingPlan() {
                         <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
                     </div>
 
-                    <div>
-                        <Checkbox
+                    <div className='flex items-center'>
+                        {item.markedAsComplete
+                        ?(<input
+                            type='checkbox'
+                            checked={true}
+                            disabled
+                            className='h-4 w-4 prevent-link'
+                        />)
+                        :(<input
+                            type='checkbox'
+                            onChange={()=>{markItemAsCompleted(item)}}
+                            className='h-4 w-4 prevent-link'
+                            checked={false}
+                        />)}
+                        {/* <Checkbox
                             checked={item.markedAsComplete}
                             onChange={()=>{markItemAsCompleted(item)}}
                             disabled={item.markedAsComplete}
                             inputProps={{ 'aria-label': 'controlled' }}
-                        />
+                        /> */}
                     </div>
                     
                     <div 
-                        class="w-7 h-7 bg-white p-1 rounded-lg text-red-800 hover:text-red-500 self-center"
+                        class="w-7 h-7 bg-white p-1 rounded-lg text-red-800 hover:text-red-500 self-center prevent-link"
                         onClick={()=>{deleteFromDatabase(item)}}
                     >
                         <svg  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
@@ -841,48 +817,14 @@ function KnittingPlan() {
                 </div>
             </Link>
                 
-                // <div className={(masterDetailIndex==index?"dropdown-visible":" dropdown-hidden")}>
-                //     <div className={"bg-gray-100 mb-1 p-2 grid grid-cols-6 gap-x-4 items-center"}>
-                //         <div className='font-bold text-lg'>Stock Request : </div>
-                //         <div className="flex w-full flex flex-col items-start justify-start">
-                //             <label className='text-sm'>Quantity</label>
-                //             <input 
-                //                 // value={newMaterialIssue.materialNumber}
-                //                 // onChange={e=>{
-                //                 //     setNewMaterialIssue({
-                //                 //         ...newMaterialIssue,
-                //                 //         materialNumber: e.target.value
-                //                 //     })
-                //                 // }}
-                //                 type="text" 
-                //                 className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                //             />
-                //         </div> 
-
-                //         <div className="flex w-full flex flex-col items-start justify-start">
-                //             <label className='text-sm'>Material Description</label>
-                //             <input 
-                //                 // value={newMaterialIssue.materialDesc}
-                //                 // onChange={e=>{
-                //                 //     setNewMaterialIssue({
-                //                 //         ...newMaterialIssue,
-                //                 //         materialDesc: e.target.value
-                //                 //     })
-                //                 // }}
-                //                 type="text" 
-                //                 className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                //             />
-                //         </div> 
-                //     </div>
-                // </div>
             // </div>
         )
     }
 
     useEffect(() => {
-        
         if(planData.length>0)
-        {
+            {
+            console.log("retriggered")
             setRenderItems(
                 <div className='w-full overflow-y-auto'>
                     {[...planData].reverse().map((item, index)=>RenderItem(item,index))}
@@ -945,12 +887,10 @@ function KnittingPlan() {
                     <div className='font-semibold text-lg'>Knitting Planning Sheet</div>
 
                     <div className='flex flex-row space-x-2'>
-                        <button
-                            className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
-                            onClick={()=>{DownloadExcel(spareData)}}
-                        >
-                                Export Excel
-                        </button>
+                        <ExportExcel
+                            excelData={planData}
+                            fileName={"Knitting-Plan"}
+                        />
 
                         <div 
                             className='text-center rounded py-2 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'

@@ -107,25 +107,6 @@ function DataEntry() {
             })            
     }
 
-    const pushArticlesToDatabaseBulk = (bulkData) => {
-        // setUpdateLoad(true)
-
-        const articleRef = ref(db, `articleData/`);
-
-        bulkData.forEach(article=>{
-            const newArticleRef = push(articleRef);
-    
-            set(newArticleRef, {
-                ...article,
-                id:newArticleRef.key
-            })
-            .then((ref)=>{
-            })
-            .catch((error)=>{
-                console.log(error)
-            })            
-        })
-    }
 
     const editItem = (item) => {
         // setUpdateLoad(true)
@@ -642,8 +623,9 @@ function DataEntry() {
                     </button> */}
 
                     <BulkExcelUploadComponent
-                        headings={["article","colour","model","category","size","sizeType"]}
-                        pushFunction={pushArticlesToDatabaseBulk}
+                        // headings={["article","colour","model","category","size","sizeType"]}
+                        headings={Object.keys(newArticleData)}
+                        dbPath={`articleData/`}
                         templateName={"Article-template"}
                     />
                 </div>

@@ -1047,7 +1047,14 @@ function BOMDataEntry() {
                 </form>
                 <div className='flex justify-end'>
                     <BulkExcelUploadComponent 
-                        headings={["item","process"]} 
+                        headings={[
+                            ...Object.keys(newbomData),
+                            ...Array.from({
+                            length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
+                            (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                                size
+                            ))
+                        ]} 
                         templateName={"bom-template"}
                         pushFunction={pushToDatabaseBulk} 
                     />

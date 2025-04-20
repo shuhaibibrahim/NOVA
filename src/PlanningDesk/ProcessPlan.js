@@ -20,8 +20,8 @@ function ProcessPlan() {
 
     const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
-      setSelectedLink("admin/data-entry")
-      setOpenedTab("adminDesk")
+        setSelectedLink("planning-desk/knitting-plan")
+        setOpenedTab("planningDesk")
     }, [])
     
 

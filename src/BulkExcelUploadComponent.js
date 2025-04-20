@@ -1,10 +1,33 @@
+import { push, ref, set } from 'firebase/database';
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
+import { db } from './firebase_config';
 
 
-function BulkExcelUploadComponent({headings, templateName, pushFunction}){
+function BulkExcelUploadComponent({headings, templateName, dbPath, pushFunction}){
 
     const [file, setFile] = useState(null)
+
+    const pushDataToTableBulk = (pushData) => {
+        // setUpdateLoad(true)
+
+        const dataRef = ref(db, dbPath);
+
+        pushData.forEach(data=>{
+            const newDataRef = push(dataRef);
+    
+            set(newDataRef, {
+                ...data,
+                id:newDataRef.key
+            })
+            .then((ref)=>{
+                console.log("done")
+            })
+            .catch((error)=>{
+                console.log(error)
+            })            
+        })
+    }
 
     function downloadTemplate() {
         
@@ -38,7 +61,10 @@ function BulkExcelUploadComponent({headings, templateName, pushFunction}){
             })
 
             console.log("parsedata : ",parseData)
-            pushFunction(parseData)
+            if(pushFunction!=undefined)
+                pushFunction(parseData)
+            else
+                pushDataToTableBulk(parseData)
             setFile(null)
 
         }

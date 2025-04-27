@@ -76,7 +76,8 @@ function RequirementEntry() {
         packingComb:""
     })
 
-    const [packageInput, setPackageInput] = useState([])
+
+    const [packingCombinations, setPackingCombinations] = useState([])
 
     useEffect(() => {
         const articleRef = ref(db, 'articleData/');
@@ -107,6 +108,32 @@ function RequirementEntry() {
             console.log("article select list : ",tempArticleList)
 
             setArticleSelectList([...tempArticleList])
+            // setSpareData(spareArray);
+            // setLoading(false);
+        });
+    }, [])
+
+    useEffect(() => {
+        const packRef = ref(db, 'packingCombination/');
+
+        onValue(packRef, (snapshot) => {
+            const data = snapshot.val();
+            // ;
+
+            var packArray=[];
+            for(var key in data)
+            {
+                var item=data[key]
+                console.log(item)
+                packArray.push(item)
+                // spareArray.push(item)
+            }
+
+            console.log(packArray)
+            
+            setPackingCombinations([...packArray])
+
+            setSizeGridSelectList([...packArray.map(p=>p.packingLabel)])
             // setSpareData(spareArray);
             // setLoading(false);
         });
@@ -151,19 +178,19 @@ function RequirementEntry() {
                 if(!tempCatList.includes(item.category))
                     tempCatList.push(item.category)
             }
-            if(item.article==newRequirement.article && item.colour==newRequirement.colour && item.model==newRequirement.model && item.category==newRequirement.category)
-            {
-                console.log("item : ",item)
-                if(!tempSizeGridList.includes(item.size))
-                    tempSizeGridList.push(item.size)
-            }
+            // if(item.article==newRequirement.article && item.colour==newRequirement.colour && item.model==newRequirement.model && item.category==newRequirement.category)
+            // {
+            //     console.log("item : ",item)
+            //     if(!tempSizeGridList.includes(item.size))
+            //         tempSizeGridList.push(item.size)
+            // }
         })
 
 
         setColourSelectList([...tempColourList])
         setModelSelectList([...tempModelList])
         setCategorySelectList([...tempCatList])
-        setSizeGridSelectList([...tempSizeGridList])
+        // setSizeGridSelectList([...tempSizeGridList])
 
     }, [newRequirement.article, newRequirement.colour, newRequirement.model, newRequirement.category, newRequirement])
 
@@ -176,14 +203,15 @@ function RequirementEntry() {
                 item.article==newRequirement.article &&
                 item.colour==newRequirement.colour &&
                 item.model==newRequirement.model &&
-                item.category==newRequirement.category &&
-                item.size==newRequirement.sizeGrid
+                item.category==newRequirement.category
             ))[0].id
+
+            var packageInput=newRequirement.packingComb.split(",")
 
             set(newReqRef, {
                 ...newRequirement,
                 articleDataId:articleDataId,
-                packingComb: packageInput.join(','),
+                // packingComb: packageInput.join(','),
                 leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
                 rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(newRequirement.caseQty)).join(','),
                 id:newReqRef.key
@@ -321,84 +349,6 @@ function RequirementEntry() {
         ))
     }
 
-    const renderPackageInput=()=>{
-        
-        return (
-            <tr>
-            {
-                packageInput.map((pi,index)=>(
-                    <td className='text-left border-collapse border border-black p-1'>
-                        <input 
-                            value={packageInput[index]}
-                            onChange={e=>{
-                                var tempArr=[...packageInput]
-                                tempArr[index]=e.target.value
-                                setPackageInput([...tempArr])
-                            }}
-                            type="number" 
-                            className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </td>
-                ))
-            }
-            </tr>
-        )
-    }
-
-    const RenderModal=()=>{
-        setModal(
-            <div className="flex flex-col bg-white h-auto w-5/12 rounded overflow-hidden p-2">
-                <div className="flex flex-row justify-end">
-                    {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg> */}
-
-                    <svg onClick={()=>{setModal(null)}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </div>
-                
-
-                <table className='table-auto border-collapse border border-black p-1'>
-                    <tr className=''>
-                        {renderSizes()}
-                    </tr>
-                    <tbody>
-                        {renderPackageInput()}
-                    </tbody>
-                </table>
-
-                <div className="flex flex-row justify-end mt-2">
-                    <div 
-                        className='relative  text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                        onClick={()=>{setModal(null)}}
-                    >
-                        Submit
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    useEffect(() => {
-        var firstSize=parseInt(newRequirement.sizeGrid.split('X')[0])
-        var secondSize=parseInt(newRequirement.sizeGrid.split('X')[1])
-
-        var sizeArray=[]
-        var tempPackageInput=[]
-        for(var i=firstSize;i<=secondSize;i++)
-        {
-            sizeArray.push(i)
-            tempPackageInput.push(0)
-        }
-
-        setPackageInput([...tempPackageInput])
-    }, [newRequirement.sizeGrid])
-    
-    useEffect(() => {
-        if(Modal)
-            RenderModal()
-    }, [packageInput]);
 
     const RenderItem=(item, index)=>{
 
@@ -705,12 +655,20 @@ function RequirementEntry() {
                     <label className='text-sm'>Size Grid</label>
                     <select
                         onChange={e=>{
+                            var pc=packingCombinations.filter(p=>p.packingLabel==e.target.value)[0]
                             setNewRequirement({
                                 ...newRequirement,
-                                sizeGrid: e.target.value
+                                sizeGrid: pc.sizeGrid,
+                                packingLabel:e.target.value,
+                                packingComb:Array.from({
+                                    length: 7 + 1}, 
+                                    (_, i) => 6 + i).filter((size,index)=>{
+                                        if(pc[size]!=undefined && pc[size]!=0)
+                                            return size
+                                    }).map(s=>pc[s]).join(",")
                             })
                         }}
-                        value={newRequirement.sizeGrid}
+                        value={newRequirement.packingLabel}
                         className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                     >
                         <option>- SELECT -</option>
@@ -751,15 +709,6 @@ function RequirementEntry() {
                     />
                 </div>
 
-                <div className='col-span-2 flex items-end'>
-                    <div 
-                        onClick={()=>{RenderModal()}}
-                        className='relative text-center w-full rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                    >
-                        Enter packing combination
-                    </div>
-                </div>
-
                 <div className='flex flex-row space-x-1  items-end'>
                     <div 
                         className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
@@ -777,11 +726,6 @@ function RequirementEntry() {
 
     return (
         <div className="pb-2 bg-blue-50 h-full px-3 pt-4">
-            {Modal&&(
-                <div onClick={backdropClickHandler} className="bg-black z-20 bg-opacity-80 fixed inset-0 flex justify-center items-center">
-                    {Modal}
-                </div>)
-            }
 
             <div className='w-full bg-white rounded p-3 my-2'>
                 {/* <RenderInputRow/> */}

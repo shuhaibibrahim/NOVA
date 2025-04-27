@@ -41,7 +41,9 @@ function BOMDataEntry() {
         materialNumber:"",
         materialDesc:"",
         unit:"",
-        process:""
+        process:"",
+        dependantOn:"",
+        qty:0
     }
 
     var rawMaterialStruct={
@@ -374,6 +376,7 @@ function BOMDataEntry() {
         // setUpdateLoad(true)
         item={...editData, id:item.id}
         const bomRef = ref(db, `bomData/${item.id}`);
+        console.log("edit : ",item)
 
         set(bomRef, {
             ...item
@@ -840,12 +843,21 @@ function BOMDataEntry() {
                     </div>
 
                     <div className="flex items-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.dependantOn}</div>
+                    </div>
+
+                    <div className="flex items-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.qty}</div>
+                    </div>
+
+                    <div className="flex items-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.unit}</div>
                     </div>
 
                     <div className="flex items-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.process}</div>
                     </div>
+                    
                 </>)}
 
                 {item.edit&&(<>
@@ -868,6 +880,40 @@ function BOMDataEntry() {
                         <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.materialDesc}</div>
                     </div>
 
+                    <div className="flex w-full flex flex-col items-start justify-center">
+                        <select
+                            className='bg-white text-sm w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                            onChange={e=>{
+                                setEditingInputElement(e.target)
+                                setEditData({
+                                    ...editData,
+                                    dependantOn: e.target.value
+                                })
+                            }}
+                            value={editData.dependantOn}
+                        >
+                            <option value="">--select--</option>
+                            <option value="PR">PR</option>
+                            <option value="CS">CS</option>
+                        </select>
+                    </div>
+
+                    <div className="flex w-full flex flex-col items-start justify-center">
+                        <input 
+                            value={editData.qty}
+                            onChange={e=>{
+                                setEditingInputElement(e.target)
+                                setEditData({
+                                    ...editData,
+                                    qty: e.target.value
+                                })
+                            }}
+                            type="number" 
+                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                            disabled={editData.dependantOn=="PR"}
+                        />
+                    </div>
+
                     <div className="flex items-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-sm text-left">{item.unit}</div>
                     </div>
@@ -885,13 +931,13 @@ function BOMDataEntry() {
                             value={editData.process}
                         >
                             <option value="">--select--</option>
-                            <option value="Knitting">Knitting</option>
-                            <option value="Clicking">Clicking</option>
-                            <option value="Printing">Printing</option>
-                            <option value="Embossing">Embossing</option>
-                            <option value="Stitching">Stitching</option>
-                            <option value="Strobling">Strobling</option>
-                            <option value="Stuckon">Stuckon</option>
+                            <option value="KNITTING">Knitting</option>
+                            <option value="CLICKING">Clicking</option>
+                            <option value="PRINTING">Printing</option>
+                            <option value="EMBOSSING">Embossing</option>
+                            <option value="STITCHING">Stitching</option>
+                            <option value="STROBLING">Strobling</option>
+                            <option value="STUCKON">Stuckon</option>
                         </select>
                     </div>  
                 </>)}
@@ -908,6 +954,8 @@ function BOMDataEntry() {
                                             [size]:e.target.value
                                         })
                                     }}
+                                    disabled={editData.dependantOn=="CS"}
+                                    className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                                 />)
                                 :
                                 (<div className="flex items-center">
@@ -1001,6 +1049,38 @@ function BOMDataEntry() {
                     </div>)}
 
                     <div className="flex w-full flex flex-col items-start justify-center">
+                        <div>Size Oriented</div>
+                        <select
+                            className='bg-white text-sm w-full ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                            onChange={e=>{
+                                setNewbomData({
+                                    ...newbomData,
+                                    dependantOn: e.target.value
+                                })
+                            }}
+                            value={newbomData.dependantOn}
+                        >
+                            <option>--select--</option>
+                            <option value="PR">PR</option>
+                            <option value="CS">CS</option>
+                        </select>
+                    </div>
+
+                    <div className='flex w-full flex flex-col items-start justify-center'>
+                        <div>Quantity</div>
+                        <input
+                            onChange={(e)=>{
+                                setNewbomData({
+                                    ...newbomData,
+                                    qty:e.target.value
+                                })
+                            }}
+                            className='w-3/4 ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                            disabled={newbomData.dependantOn=="PR"}
+                        />
+                    </div>
+
+                    <div className="flex w-full flex flex-col items-start justify-center">
                         <div>Process</div>
                         <select
                             className='bg-white text-sm w-full ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
@@ -1035,6 +1115,7 @@ function BOMDataEntry() {
                                         })
                                     }}
                                     className='w-3/4 ring-2 p-1 h-8 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                                    disabled={newbomData.dependantOn=="CS"}
                                 />
                             </div>
                         ))
@@ -1047,7 +1128,14 @@ function BOMDataEntry() {
                 </form>
                 <div className='flex justify-end'>
                     <BulkExcelUploadComponent 
-                        headings={[
+                        headings={["MATERIAL NO","MATERIAL DESCRIPTION","UNIT","AREA","DEPENDANT (CS/PR)","QTY (If CS Dependant)",
+                            ...Array.from({
+                                length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
+                                (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                                    size
+                                ))
+                        ]}
+                        varNames={[
                             ...Object.keys(newbomData),
                             ...Array.from({
                             length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
@@ -1098,6 +1186,8 @@ function BOMDataEntry() {
                     <div className="text-md py-2 text-left">SI NO</div>
                     <div className="text-md py-2 text-left">MATERIAL No</div>
                     <div className="text-md py-2 text-left">MATERIAL DESC</div>
+                    <div className="text-md py-2 text-left">DEPENDANT</div>
+                    <div className="text-md py-2 text-left">QTY</div>
                     <div className="text-md py-2 text-left">UNIT</div>
                     <div className="text-md py-2 text-left">PROCESS</div>
                     {Array.from({

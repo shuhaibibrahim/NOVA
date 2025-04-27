@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { db } from './firebase_config';
 
 
-function BulkExcelUploadComponent({headings, templateName, dbPath, pushFunction}){
+function BulkExcelUploadComponent({headings, templateName, dbPath, pushFunction, varNames}){
 
     const [file, setFile] = useState(null)
 
@@ -56,10 +56,21 @@ function BulkExcelUploadComponent({headings, templateName, dbPath, pushFunction}
             const ws=workbook.Sheets[wsname]
 
             const parseData=XLSX.utils.sheet_to_json(ws).map(obj=>{
-                var {__rowNum__,...newObj} = obj
-                return newObj
+                console.log("Obj : ",obj)
+                if(varNames==undefined)
+                    var {__rowNum__,...myObj} = obj
+                else{
+                    var myObj={}
+                    headings.forEach((key,i)=>{
+                        if(key!="__rowNum__")
+                            myObj[varNames[i]]=obj[key]
+                        else
+                            myObj[key]=obj[key]
+                    })
+                }
+                return myObj
             })
-
+            console.log(varNames,headings)
             console.log("parsedata : ",parseData)
             if(pushFunction!=undefined)
                 pushFunction(parseData)

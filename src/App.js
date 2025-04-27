@@ -44,6 +44,7 @@ import StockEntry from './AdminDesk/StockEntry';
 import MaterialIssueEntry from './AdminDesk/MaterialOutward';
 import MaterialInwardEntry from './AdminDesk/MaterialInward';
 import ProcessPlan from './PlanningDesk/ProcessPlan';
+import PackingCombination from './AdminDesk/PackingCombination';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -109,6 +110,7 @@ function App() {
                 <Route path="bom-data-entry" element={<BOMDataEntry />}/>
                 <Route path="requirement-entry" element={<RequirementEntry/>}/>
                 <Route path="stock-entry" element={<StockEntry/>}/>
+                <Route path="packingcombination-entry" element={<PackingCombination/>}/>
               </Route>
 
               <Route path="mmdept">

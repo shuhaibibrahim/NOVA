@@ -431,8 +431,10 @@ function MaterialIssueEntry() {
 
         return (
             // <div key={index} className={item.qty<item.minMaterialIssue?"w-11/12 p-2 grid grid-cols-5 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-5"}>
-            <div key={index} className={`grid gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200  ${tabSelected=="materialIssue"?"grid-cols-7":"grid-cols-6"}`} >
+            <div key={index} className={`grid gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200  ${tabSelected=="materialIssue"?"grid-cols-8":"grid-cols-7"}`} >
                 {item.edit!=true&&(<>
+                    <div className="text-stone-900/30 break-all text-left">{item.planUniqueKey}</div>
+
                     <div className="text-stone-900/30 break-all text-left">{item.materialNumber}</div>
 
                     <div className="text-stone-900/30 break-all text-left">{item.materialDesc}</div>
@@ -476,6 +478,21 @@ function MaterialIssueEntry() {
                 </>)}
 
                 {item.edit&&(<>
+                    <div className="flex w-full flex flex-col items-start justify-start">
+                        <input 
+                            value={editData.planUniqueKey}
+                            onChange={e=>{
+                                setEditingInputElement(e.target)
+                                setEditData({
+                                    ...editData,
+                                    planUniqueKey:e.target.value
+                                })
+                            }}
+                            type="text" 
+                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
+                        />
+                    </div>
+                    
                     <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
                             value={editData.materialNumber}
@@ -537,60 +554,6 @@ function MaterialIssueEntry() {
                     </div> 
 
                 </>)}
-
-                {/* <div className='col-span-1'>
-                    <div className='grid grid-cols-2 gap-x-2 w-full'>
-                        {item.edit!=true&&(
-                        <div className='flex justify-center'>
-                            <div 
-                                onClick={()=>{
-                                    // setEditData({...item})
-                                    // var tempMaterialIssueData=[...materialIssueData].reverse()
-                                    // tempMaterialIssueData[index].edit=true
-                                    // setMaterialIssueData([...tempMaterialIssueData].reverse())
-                                }}
-                                className={"relative text-center rounded py-1 px-5 text-white font-medium "+(true==false?"bg-blue-500 hover:bg-blue-800 cursor-pointer":"bg-gray-500")}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                </svg>
-                            </div>
-                        </div>
-                        )}
-
-                        {item.edit&&(
-                        <div className='flex justify-center'>
-                            <div 
-                                onClick={()=>{
-                                    var tempMaterialIssueData=[...materialIssueData].reverse()
-                                    tempMaterialIssueData[index].edit=false
-                                    setMaterialIssueData([...tempMaterialIssueData].reverse())
-                                    editItem(item);
-                                }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>    
-                        )}
-
-                        
-                        <div className='flex justify-center'>
-                            <div 
-                                onClick={()=>{
-                                    deleteFromDatabase(item);
-                                }}
-                                className='relative text-center rounded py-1 px-5 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div> */}
                
             </div>
         )
@@ -769,7 +732,8 @@ function MaterialIssueEntry() {
                         </button>
                     </div>
                 </div>
-                <div className={`w-full sticky top-0 p-3 grid gap-1 bg-gray-200 ${tabSelected=="materialIssue"?"grid-cols-7":"grid-cols-6"}`}>
+                <div className={`w-full sticky top-0 p-3 grid gap-1 bg-gray-200 ${tabSelected=="materialIssue"?"grid-cols-8":"grid-cols-7"}`}>
+                    <div className="text-sm py-2 text-left">PLAN ID</div>
                     <div className="text-sm py-2 text-left">MATERIAL NUMBER</div>
                     <div className="text-sm py-2 text-left">MATERIAL DESCRIPTION</div>
                     {/* {tabSelected!="planIssue"&&(<div className="text-sm py-2 text-left">QUANTITY</div>)} */}

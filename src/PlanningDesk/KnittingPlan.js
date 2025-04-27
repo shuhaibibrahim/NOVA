@@ -77,7 +77,8 @@ function KnittingPlan() {
         packingComb:"",
         date:"",
         planDate:"",
-        status:""
+        status:"",
+        planUniqueKey:""
     })
 
     const [planData, setPlanData] = useState([])
@@ -289,6 +290,7 @@ function KnittingPlan() {
             const newPlanRef = push(planRef);
 
             const today=new Date()
+            var planUKey=today.toISOString().split('T')[0].split("-").join("")+"-"+(planData.filter(p=>p.planDate==today.toISOString().split('T')[0]).length+1)
             console.log("today : ",today)
 
             set(newPlanRef, {
@@ -297,7 +299,8 @@ function KnittingPlan() {
                 planDate:today.toISOString().split('T')[0],
                 reqId:reqItem.id,
                 markedAsComplete:false,
-                id:newPlanRef.key
+                id:newPlanRef.key,
+                planUniqueKey:planUKey
             })
             .then((ref)=>{
                 // setUpdateLoad(false)
@@ -315,13 +318,15 @@ function KnittingPlan() {
                     sizeGrid:"",
                     caseQty:"",
                     packingComb:"",
-                    status:""
+                    status:"",
+                    planUniqueKey:""
                 })
 
                 setEnableCaseQtyInput(-1)
             })
             .catch((error)=>{
                 alert("Error while saving data : ",error)
+                return
             })
 
             const updates={}
@@ -383,7 +388,8 @@ function KnittingPlan() {
                         process:'Knitting',
                         qtyAllotted:false,
                         id:newMaterialIssueRef.key,
-                        planId:newPlanRef.key
+                        planId:newPlanRef.key,
+                        planUniqueKey:planUKey
                     }).then(()=>{
                         console.log("materialIssue update - plan issue")
                     }).catch((e)=>{
@@ -428,12 +434,22 @@ function KnittingPlan() {
             ).map(bom=>{
                 var stock=stockData.filter(s=>
                     s.materialNumber==bom.materialNumber)[0]
+                
+                var stockQty=stock!=undefined?stock.qty-(stock.lockedQty!=undefined?stock.lockedQty:0):0
+                var reqSum=0
+                
+                if(bom.dependantOn=="PR"){
+                    reqSum=Object.keys(bom)
+                        .filter(key => key >= start && key <= end)
+                        .reduce((acc, key) => acc + Number(bom[key])*item.packingComb.split(',')[parseInt(key)-start], 0)
+                }
+                else{
+                    reqSum=bom.qty
+                }    
                 return {
                     materialNumber:bom.materialNumber,
-                    reqSum:Object.keys(bom)
-                        .filter(key => key >= start && key <= end)
-                        .reduce((acc, key) => acc + Number(bom[key])*item.packingComb.split(',')[parseInt(key)-start], 0),
-                    stockQty:stock.qty-(stock.lockedQty!=undefined?stock.lockedQty:0)
+                    reqSum:reqSum,
+                    stockQty:stockQty
                 }
             })
 
@@ -745,7 +761,7 @@ function KnittingPlan() {
                     className="cursor-pointer hover:bg-gray-300 grid grid-cols-12 text-sm gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" 
                 >
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.planUniqueKey}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
@@ -901,7 +917,7 @@ function KnittingPlan() {
                     </div>
                 </div>
                 <div className="w-full text-xs font-bold sticky top-0 p-3 grid grid-cols-12 gap-1 bg-gray-200">
-                    <div className="py-2 text-left">SI NO</div>
+                    <div className="py-2 text-left">PLAN ID</div>
                     <div className="py-2 text-left">DATE</div>
                     <div className="py-2 text-left">ARTICLE</div>
                     <div className="py-2 text-left">COLOUR</div>

@@ -377,7 +377,26 @@ function PackingCombination() {
             
             <div className="flex flex-col h-3xl space-y-2 items-center justify center items-center bg-white rounded p-4">
 
-                {renderInputRow()}
+                {renderInputRow()}  
+                <div className='flex flex-row justify-between w-full align-center'>
+                    <div className='font-semibold text-lg'>Packing Combinations</div>
+
+                    <div className='flex justify-end items-center space-x-2'>
+
+                        <BulkExcelUploadComponent
+                            headings={["PACKING LABEL","SIZE GRID",
+                                ...Array.from({
+                                    length: 8}, 
+                                    (_, i) => 6 + i).map((size,index)=>(
+                                        "SIZE "+size
+                                ))
+                            ]}
+                            varNames={["packingLabel","sizeGrid","6","7","8","9","10","11","12","13"]} 
+                            templateName={"packing-combinations-template"}
+                            dbPath={`packingCombination/`}
+                        />
+                    </div>
+                </div>
 
                 <div className="w-full sticky top-0 p-3 grid grid-flow-col auto-cols-fr gap-4 bg-gray-200">
                     <div className="text-md py-2 text-left">SI NO</div>

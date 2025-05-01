@@ -4,6 +4,8 @@ import { db} from "../firebase_config";
 import { ref, set, push, onValue, remove } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
+import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
+import { Alert } from '@mui/material';
 
 
 function RequirementEntry() {
@@ -66,17 +68,20 @@ function RequirementEntry() {
 
     const [newRequirement, setNewRequirement] = useState({
         date:"",
+        type:"",
         article:"",
         colour:"",
         model:"",
-        category:"",
-        region:"",
-        sizeGrid:"",
+        packingLabel:"",
         caseQty:"",
-        packingComb:""
+        region:"",
+        targetDate:"",
+        category:"",
+        packingComb:"",
+        sizeGrid:""
     })
 
-
+    const [validateMessage, setValidateMessage] = useState(null)
     const [packingCombinations, setPackingCombinations] = useState([])
 
     useEffect(() => {
@@ -194,6 +199,26 @@ function RequirementEntry() {
 
     }, [newRequirement.article, newRequirement.colour, newRequirement.model, newRequirement.category, newRequirement])
 
+    const displayValidateMessage=(validate)=>{
+        setValidateMessage(
+            <div className="flex flex-col bg-white h-auto w-5/12 rounded overflow-hidden p-2">
+                <div className="flex flex-row justify-end">
+                    {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg> */}
+
+                    <svg onClick={()=>{setValidateMessage(null)}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+                <div className='flex flex-col m-4 bg-red-400 rounded p-4 text-left'>
+                    <div className='font-bold my-1 text-lg'>The following articles could not be entered because of missing data entries in the system</div>
+                    {validate.split("::").map(err=><div className='font-bold my-1 text-lg'>{err}</div>)}
+                </div>
+            </div>
+        )
+    }
+
     const pushToDatabase = () => {
             // setUpdateLoad(true)
             const reqRef = ref(db, `requirementsHistoryData/`);
@@ -236,6 +261,89 @@ function RequirementEntry() {
             .catch((error)=>{
                 console.log("Error while saving data : ",error)
             })            
+    }
+
+    const pushToDatabaseBulk = async(bulkData=[]) => {
+            // setUpdateLoad(true)
+
+            const reqRef = ref(db, `requirementsHistoryData/`);
+            const asyncPromises=[]
+
+            var validate=""
+
+            bulkData.forEach((reqItem=>{
+                const newReqRef = push(reqRef);
+                const reqDataRef = ref(db, `requirementsData/${newReqRef.key}`);
+
+                const myArticle=articleData.filter(item=>(
+                    item.article==reqItem.article &&
+                    item.colour==reqItem.colour &&
+                    item.model==reqItem.model &&
+                    item.category==reqItem.category
+                ))[0]
+
+                var pc=packingCombinations.filter(p=>p.packingLabel==reqItem.packingLabel)[0]
+
+                if(myArticle==undefined)
+                {
+                    validate+="Missing Article : "+reqItem.article+", Color : "+reqItem.colour+", Gender : "+reqItem.model+", Category : "+reqItem.category+"::"
+                }
+                else if(pc==undefined){
+                    validate+="Packing Combination "+reqItem.packingLabel+" given for Artcile : "+reqItem.article+", Color : "+reqItem.colour+", Gender : "+reqItem.model+", Category : "+reqItem.category+" is not present in the system::"
+                }
+                else{
+                    const articleDataId=myArticle.id
+                    
+                    console.log("packing combinations and pc : ", packingCombinations,pc)
+                    
+                    var newPackingComb=Array.from({
+                        length: 7 + 1}, 
+                        (_, i) => 6 + i).filter((size,index)=>{
+                            if(pc[size]!=undefined && pc[size]!=0)
+                                return size
+                        }).map(s=>pc[s]).join(",")
+                    var packageInput=newPackingComb.split(",")
+
+                    asyncPromises.push(
+                        set(newReqRef, {
+                            ...reqItem,
+                            articleDataId:articleDataId,
+                            // packingComb: packageInput.join(','),
+                            sizeGrid: pc.sizeGrid,
+                            packingComb:newPackingComb,
+                            leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(reqItem.caseQty)).join(','),
+                            rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(reqItem.caseQty)).join(','),
+                            id:newReqRef.key
+                        })
+                        .then((ref)=>{
+                            set(reqDataRef, {
+                                ...reqItem,
+                                articleDataId:articleDataId,
+                                packingComb: packageInput.join(','),
+                                leftQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(reqItem.caseQty)).join(','),
+                                rightQtys:packageInput.map((comb)=>parseInt(comb)*parseInt(reqItem.caseQty)).join(','),
+                                id:newReqRef.key
+                            })
+                            .then(()=>{
+                                console.log("Successfully updated")
+                            })
+                            .catch((error)=>{
+                                console.log("Error while saving req data : ",error)
+                            })
+                        })
+                        .catch((error)=>{
+                            Alert("Error while uploading")
+                        }) 
+                    )           
+                }
+            }))
+
+            await Promise.all(asyncPromises)
+
+            if(validate!=""){
+                displayValidateMessage(validate)
+                return
+            }
     }
 
     const editItem = (item) => {
@@ -328,14 +436,6 @@ function RequirementEntry() {
 		XLSX.writeFile(wb, "sheetjs.xlsx");
     }
 
-
-
-    const backdropClickHandler = (event) => {
-        if (event.target === event.currentTarget) {
-            setModal(null)
-        }
-    }
-
     const renderSizes=()=>{
         var firstSize=parseInt(newRequirement.sizeGrid.toUpperCase().split('X')[0])
         var secondSize=parseInt(newRequirement.sizeGrid.toUpperCase().split('X')[1])
@@ -354,7 +454,7 @@ function RequirementEntry() {
 
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
-            <div key={index} className="grid grid-cols-12 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+            <div key={index} className="grid grid-flow-col auto-cols-fr gap-4 border-solid border-b border-gray-400 p-3 bg-gray-200" >
                 <div className="flex items-center justify-center">
                     <div className="text-stone-900/30 w-10/12 break-all text-left">{index+1}</div>
                 </div>
@@ -362,6 +462,10 @@ function RequirementEntry() {
                 {item.edit!=true&&(<>
                     <div className="flex items-center justify-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-left">{item.date}</div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.type}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
@@ -375,9 +479,13 @@ function RequirementEntry() {
                     <div className="flex items-center justify-center">
                         <div className="text-stone-900/30 w-10/12 break-all text-left">{item.model}</div>
                     </div>
-
+                    
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.sizeGrid}</div>
+                    </div>
+                    
+                    <div className="flex items-center justify-center">
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
@@ -385,13 +493,13 @@ function RequirementEntry() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.sizeGrid}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.targetDate}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
                     </div>
-
+                    
                     <div className="flex items-center justify-center col-span-1">
                         <div className="text-stone-900/30 w-10/12 break-all text-left">{item.packingComb}</div>
                     </div>
@@ -561,7 +669,7 @@ function RequirementEntry() {
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
             <div  className='w-full grid grid-cols-7 gap-4'>
                 <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the date</label>
+                    <label className='text-sm'>Date of Allotment</label>
                     <input 
                         value={newRequirement.date}
                         onChange={e=>{
@@ -576,7 +684,26 @@ function RequirementEntry() {
                 </div> 
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the article</label>
+                    <label className='text-sm'>Type</label>
+                    <select
+                        onChange={e=>{
+                            setNewRequirement({
+                                ...newRequirement,
+                                type: e.target.value
+                            })
+                        }}
+                        value={newRequirement.type}
+                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                    >
+                        <option>- SELECT -</option>
+                        <option value="Knitted Shoe">Knitted Shoe</option>
+                        <option value="Mesh Shoe">Mesh Shoe</option>
+                        <option value="Cork">Cork</option>
+                    </select>
+                </div> 
+
+                <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <label className='text-sm'>Article</label>
                     <select
                         onChange={e=>{
                             setNewRequirement({
@@ -595,7 +722,7 @@ function RequirementEntry() {
                 </div> 
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the colour</label>
+                    <label className='text-sm'>Colour</label>
                     <select
                         onChange={e=>{
                             setNewRequirement({
@@ -614,7 +741,7 @@ function RequirementEntry() {
                 </div> 
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the model</label>
+                    <label className='text-sm'>Gender</label>
                     <select
                         onChange={e=>{
                             setNewRequirement({
@@ -630,26 +757,7 @@ function RequirementEntry() {
                             <option key={index} value={item}>{item}</option>
                         ))}
                     </select>
-                </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the category</label>
-                    <select
-                        onChange={e=>{
-                            setNewRequirement({
-                                ...newRequirement,
-                                category: e.target.value
-                            })
-                        }}
-                        value={newRequirement.category}
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    >
-                        <option>- SELECT -</option>
-                        {categorySelectList.map((item,index)=>(
-                            <option key={index} value={item}>{item}</option>
-                        ))}
-                    </select>
-                </div> 
+                </div>  
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
                     <label className='text-sm'>Size Grid</label>
@@ -677,22 +785,7 @@ function RequirementEntry() {
                         ))}
                     </select>
                 </div> 
-
-                <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Enter the region</label>
-                    <input 
-                        value={newRequirement.region}
-                        onChange={e=>{
-                            setNewRequirement({
-                                ...newRequirement,
-                                region: e.target.value
-                            })
-                        }}
-                        type="text" 
-                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                    />
-                </div> 
-
+                
                 <div className="flex w-full flex flex-col items-start justify-items-start">
                     <label className='text-sm'>Case Qty</label>
                     <input 
@@ -707,6 +800,55 @@ function RequirementEntry() {
                         type="text" 
                         className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                     />
+                </div>
+
+                <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <label className='text-sm'>Region</label>
+                    <input 
+                        value={newRequirement.region}
+                        onChange={e=>{
+                            setNewRequirement({
+                                ...newRequirement,
+                                region: e.target.value
+                            })
+                        }}
+                        type="text" 
+                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                    />
+                </div> 
+
+                <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <label className='text-sm'>Target Date</label>
+                    <input 
+                        value={newRequirement.targetDate}
+                        onChange={e=>{
+                            setNewRequirement({
+                                ...newRequirement,
+                                targetDate: e.target.value
+                            })
+                        }}
+                        type="date" 
+                        className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                    />
+                </div>
+
+                <div className="flex w-full flex flex-col items-start justify-items-start">
+                    <label className='text-sm'>Category</label>
+                    <select
+                        onChange={e=>{
+                            setNewRequirement({
+                                ...newRequirement,
+                                category: e.target.value
+                            })
+                        }}
+                        value={newRequirement.category}
+                        className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
+                    >
+                        <option>- SELECT -</option>
+                        {categorySelectList.map((item,index)=>(
+                            <option key={index} value={item}>{item}</option>
+                        ))}
+                    </select>
                 </div>
 
                 <div className='flex flex-row space-x-1  items-end'>
@@ -724,8 +866,20 @@ function RequirementEntry() {
         )
     }
 
+    const backdropClickHandler = (event) => {
+        if (event.target === event.currentTarget) {
+            setValidateMessage(null)
+        }
+    }
+
     return (
         <div className="pb-2 bg-blue-50 h-full px-3 pt-4">
+
+            {validateMessage&&(
+                <div onClick={backdropClickHandler} className="bg-black z-20 bg-opacity-80 fixed inset-0 flex justify-center items-center">
+                    {validateMessage}
+                </div>)
+            }
 
             <div className='w-full bg-white rounded p-3 my-2'>
                 {/* <RenderInputRow/> */}
@@ -735,25 +889,40 @@ function RequirementEntry() {
             
             <div className="flex flex-col h-xlg space-y-2 items-center justify center items-center bg-white rounded p-4">
                 <div className='flex flex-row justify-between w-full align-center'>
-                    <div className='font-semibold text-lg'>Knitting Planning Sheet</div>
+                    <div className='font-semibold text-lg'>Requirement Sheet</div>
 
-                    <button
-                        className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
-                        onClick={()=>{DownloadExcel(spareData)}}
-                    >
-                            Export Excel
-                    </button>
+                    <div className='flex justify-end items-center space-x-2'>
+
+                        <BulkExcelUploadComponent
+                            headings={["DATE OF ALLOTMENT","TYPE","ARTICLE","COLOUR","GENDER","SIZE GRID","CASE QTY","REGION","TARGET","CATEGORY"]}
+                            varNames={[
+                                ...Object.keys(newRequirement).filter(k=>k!="sizeGrid"),
+                            ]} 
+                            templateName={"requirement-template"}
+                            pushFunction={pushToDatabaseBulk} 
+                        />
+                    
+                        <button
+                            className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
+                            onClick={()=>{DownloadExcel(spareData)}}
+                        >
+                                Export Excel
+                        </button>
+                    </div>
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-12 gap-1 bg-gray-200">
+
+                <div className="w-full sticky top-0 p-3 grid grid-flow-col auto-cols-fr gap-4 bg-gray-200">
                     <div className="text-sm py-2 text-left">SI NO</div>
-                    <div className="text-sm py-2 text-left">DATE</div>
+                    <div className="text-sm py-2 text-left">DATE OF ALLOTMENT</div>
+                    <div className="text-sm py-2 text-left">TYPE</div>
                     <div className="text-sm py-2 text-left">ARTICLE</div>
                     <div className="text-sm py-2 text-left">COLOUR</div>
-                    <div className="text-sm py-2 text-left">MODEL</div>
-                    <div className="text-sm py-2 text-left">CATEGORY</div>
+                    <div className="text-sm py-2 text-left">GENDER</div>
                     <div className="text-sm py-2 text-left">SIZE GRID</div>
-                    <div className="text-sm py-2 text-left">REGION</div>
                     <div className="text-sm py-2 text-left">CASE QTY</div>
+                    <div className="text-sm py-2 text-left">REGION</div>
+                    <div className="text-sm py-2 text-left">TARGET DATE</div>
+                    <div className="text-sm py-2 text-left">CATEGORY</div>
                     <div className="text-sm py-2 col-span-2 text-left">PACKING COMB</div>
                 </div>
                 

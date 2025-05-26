@@ -123,7 +123,7 @@ function App() {
               )}
 
               {/* MM Department Routes - Accessible to MM Head and Store Incharge */}
-              {(userRole === 'MM Head' || userRole === 'Store Incharge') && (
+              {(userRole === 'MM Head' || userRole === 'Store Incharge' || userRole === 'Production Section Charge') && (
                 <Route path="mmdept">
                   <Route path="stock-entry" element={<StockEntry user={userData}/>}/>
                   <Route path="material-outward" element={<MaterialIssueEntry userRole={userRole} />}/>

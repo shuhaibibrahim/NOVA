@@ -7,8 +7,8 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
     const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray)=>{
         return (
             <div className='px-1'>
-                <div
-                    className={" flex flex-row space-x-2 hover:bg-secondary text-neutral-dark w-full py-3 cursor-pointer "+ (openedTab==mainTabValue?" border-l-4 border-accent":"")}
+                <div 
+                    className={" flex flex-row space-x-2 hover:bg-gray-300 w-full py-3 cursor-pointer "+ (openedTab==mainTabValue?" border-l-4 border-blue-500":"")}
                     onClick={()=>{setCurrentOpenedTab(tab=>{return tab===mainTabValue?"":mainTabValue})}}
                 >
                     <div>
@@ -19,15 +19,15 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     <div className="font-medium text-base">{mainTabLabel}</div>
                 </div>
 
-                <div className={"flex flex-col items-start w-full "+(currentOpenedTab===mainTabValue?" dropdown-visible":" dropdown-hidden")}>
+                <div className={"flex flex-col items-start w-full bg-blue-50"+(currentOpenedTab===mainTabValue?" dropdown-visible":" dropdown-hidden")}>
                 {
                     subTabsArray.map((tabItem, index)=>(
-                        <Link
+                        <Link 
                             key={index}
-                            to={tabItem.to}
-                            className={" flex flex-row space-x-2 px-2 pl-4 hover:bg-secondary w-full py-3 text-neutral-dark "+ (selectedLink===tabItem.to?" bg-gray-300 border-r-4 border-accent":"")}>
+                            to={tabItem.to} 
+                            className={" flex flex-row space-x-2 px-2 pl-4 hover:bg-blue-300 w-full py-3 "+ (selectedLink===tabItem.to?" bg-gray-300 border-r-4 border-blue-500":"")}>
                             <div>
-                                {tabItem.icon} {/* Assuming icons are SVGs, they will inherit text color */}
+                                {tabItem.icon}
                             </div>
                             <div className="font-medium text-sm">{tabItem.label}</div>
                         </Link>
@@ -41,8 +41,8 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
     }
 
     return (
-    <div className='flex flex-row bg-neutral-light w-full h-full text-sm'>
-        <div className='flex flex-col w-full overflow-y-auto '>
+    <div className='flex flex-row bg-primary w-full h-full text-sm'>
+        <div className='flex flex-col w-full bg-white overflow-y-auto '>
             {/* <div className='flex flex-row items-center px-2 py-4 space-x-3'>
                 <div className='bg-white border border-solid border-black rounded-full w-12 aspect-square'/>
                 <div>Name</div>

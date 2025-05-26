@@ -80,7 +80,7 @@ function App() {
     <div className="App bg-slate-100 h-screen">
       <BrowserRouter>
         <Routes >
-            {!user&&(<Route path="/" element={<UserLogin />} />)}
+            {!user&&(<Route path="/" element={<UserLogin userRole={userRole}/>} />)}
             {user&&(
             <Route path="/" element={<HomePage/>}>
               <Route index element={<SpareView/>} />

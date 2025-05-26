@@ -3,7 +3,7 @@ import {Link} from "react-router-dom";
 
 function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab}) {
 
-    const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab)
+    const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
 
     const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray)=>{
         return (
@@ -146,6 +146,8 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
             )}
 
             {sideBarComponent("Planning Desk", "planningDesk",
+                // Visible to PP Head, Production Section Charge, MM Head, and Store Incharge
+                ['PP Head', 'Production Section Charge', 'MM Head', 'Store Incharge'].includes(userRole) ?
                     [
                         {
                             to:"planning-desk/knitting-plan",
@@ -183,6 +185,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         </svg>)
                         }
                     ])
+                    : [] // Render empty array if user role doesn't have access
             }
 
             {sideBarComponent("Admin Desk", "adminDesk",
@@ -209,6 +212,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         </svg>)
                         }
                     ])
+                    : [] // Render empty array if user role doesn't have access
             }
 
             {sideBarComponent("MM Department", "mmDept",
@@ -235,6 +239,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         </svg>)
                         }
                     ])
+                    : [] // Render empty array if user role doesn't have access
             }
         </div>
     </div>

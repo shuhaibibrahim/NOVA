@@ -84,7 +84,7 @@ function App() {
         <Routes >
             {!user&&(<Route path="/" element={<UserLogin userRole={userRole}/>} />)}
             {user&&(
-            <Route path="/" element={<HomePage/>}>
+            <Route path="/" element={<HomePage userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}>
               <Route index element={<SpareView/>} />
               {/* Spare Routes - Assuming accessible to all logged-in users for now */}
               <Route path="spareview" element={<SpareView userRole={userRole} />} />

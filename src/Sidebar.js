@@ -149,35 +149,35 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     [
                         // Conditionally render Knitting Plan
                         (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Knitting'))) && {
-                            to:"planning-desk/knitting-plan",
-                            label:"Knitting Plan",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
+ to: "planning-desk/knitting-plan",
+ label: "Knitting Plan",
+ icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+ </svg>)
                         },
                         // Conditionally render Clicking Plan
                         (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Clicking'))) && {
-                            to:"planning-desk/clicking-plan",
-                            label:"Clicking Plan",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
+ to: "planning-desk/clicking-plan",
+ label: "Clicking Plan",
+ icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+ </svg>)
                         },
                         // Conditionally render Printing Plan
                         (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Printing'))) && {
-                            to:"planning-desk/printing-plan",
-                            label:"Printing Plan",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
+ to: "planning-desk/printing-plan",
+ label: "Printing Plan",
+ icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+ </svg>)
                         },
                         // Conditionally render Stitching Plan
                         (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stitching'))) && {
-                            to:"planning-desk/stitching-plan",
-                            label:"Stiching Plan",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
+ to: "planning-desk/stitching-plan",
+ label: "Stiching Plan",
+ icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+ </svg>)
                         },
                         // Conditionally render Stuckon Plan
                         (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stuckon'))) && {

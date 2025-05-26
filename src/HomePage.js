@@ -4,7 +4,7 @@ import spareData from './DummyData';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
-function HomePage({setUser}) {
+function HomePage({setUser, userRole, preallocatedProcesses}) {
 
     const [selectedLink, setSelectedLink] = useState("")
     const [openedTab, setOpenedTab] = useState("")
@@ -25,7 +25,7 @@ function HomePage({setUser}) {
                         </svg>
                     </div>
                     <div className={'w-full '+(hideSideBar?'hidden':'')}>
-                        <Sidebar spareData={spareData} selectedLink={selectedLink} openedTab={openedTab} setOpenedTab={setOpenedTab}/>
+                        <Sidebar spareData={spareData} selectedLink={selectedLink} openedTab={openedTab} setOpenedTab={setOpenedTab} userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>
                     </div>
                 </div>
 

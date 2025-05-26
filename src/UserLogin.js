@@ -21,12 +21,16 @@ function UserLogin() {
     const signup = () => {
         createUserWithEmailAndPassword(auth, email, password)
         .then((userCred)=>{
-            const userRef = ref(db, `users/${userCred.user.uid}`);
-            set(userRef, {
+            const userData = {
                 admin:false,
                 email: userCred.user.email,
                 role: selectedRole
-            })
+            };
+            if (selectedRole === 'Production Section Charge') {
+                userData.preallocatedProcesses = selectedProcesses;
+            }
+            const userRef = ref(db, `users/${userCred.user.uid}`);
+            set(userRef, userData);
         })
         .catch((err) => {
             setError(err.message);

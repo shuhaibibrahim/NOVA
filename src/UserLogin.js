@@ -8,7 +8,9 @@ function UserLogin() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [selectedRole, setSelectedRole] = useState("");
     const [hasAccount, setHasAccount] = useState(true)
+    const [selectedProcesses, setSelectedProcesses] = useState([]);
     const [view, setView] = useState(false)
     const login = () => {
         signInWithEmailAndPassword(auth, email, password).catch((err) => {
@@ -22,7 +24,8 @@ function UserLogin() {
             const userRef = ref(db, `users/${userCred.user.uid}`);
             set(userRef, {
                 admin:false,
-                email: userCred.user.email
+                email: userCred.user.email,
+                role: selectedRole
             })
         })
         .catch((err) => {
@@ -88,6 +91,57 @@ function UserLogin() {
                             </svg>)}
                         </div>
                     </div>
+
+                    {!hasAccount && ( // Show role selection only during signup
+                        <div className="mt-3">
+                            <label className="text-left block text-sm text-gray-600 mb-1" htmlFor="role">
+                                Select Role
+                            </label>
+                            <select
+                                className="form-control block w-full p-3 ring-2 ring-blue-200 focus:outline-none focus:ring-blue-400 rounded-xl"
+                                value={selectedRole}
+                                onChange={(e) => setSelectedRole(e.target.value)}
+                            >
+                                <option value="">--Select Role--</option>
+                                <option value="PP Head">PP Head</option>
+                                <option value="MM Head">MM Head</option>
+                                <option value="Store Incharge">Store Incharge</option>
+                                <option value="Production Section Charge">Production Section Charge</option>
+                            </select>
+                        </div>
+                    )}
+
+                    {
+                        !hasAccount && selectedRole === 'Production Section Charge' && (
+                            <div className="mt-3">
+                                <label className="text-left block text-sm text-gray-600 mb-1" htmlFor="processes">
+                                    Select Processes
+                                </label>
+                                <div>
+                                    {['Knitting', 'Clicking', 'Stitching', 'Printing', 'Stuckon'].map(
+                                        (process) => (
+                                            <div key={process} className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id={process}
+                                                    value={process}
+                                                    checked={selectedProcesses.includes(process)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedProcesses([...selectedProcesses, process]);
+                                                        } else {
+                                                            setSelectedProcesses(selectedProcesses.filter((p) => p !== process));
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor={process} className="ml-2">{process}</label>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    }
                     {error && <div className="text-red-600">{error}</div>}
                     {hasAccount ? (
                         <div>

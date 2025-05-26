@@ -49,7 +49,9 @@ import PackingCombination from './AdminDesk/PackingCombination';
 function App() {
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null)
+  const [userRole, setUserRole] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [preallocatedProcesses, setPreallocatedProcesses] = useState([]);
 
   useEffect(() => {
       auth.onAuthStateChanged((user) => {
@@ -63,6 +65,8 @@ function App() {
                 const data = snapshot.val();
                 ;
                   
+                setPreallocatedProcesses(data?.preallocatedProcesses || []); // Fetch and store preallocated processes
+                setUserRole(data.role); // Fetch and store user role
                 setIsAdmin(data.admin)
                 setUserData(data)
                 console.log(data)
@@ -82,41 +86,48 @@ function App() {
             {user&&(
             <Route path="/" element={<HomePage/>}>
               <Route index element={<SpareView/>} />
-              <Route path="spareview" element={<SpareView/>} />
-              <Route path="sparein" element={<SpareIn/>} />
-              <Route path="spareout" element={<SpareOut/>} />
-              <Route path="sparehistory" element={<SpareHistory/>}/>
+              {/* Spare Routes - Assuming accessible to all logged-in users for now */}
+              <Route path="spareview" element={<SpareView userRole={userRole} />} />
+              <Route path="sparein" element={<SpareIn userRole={userRole} />} />
+              <Route path="spareout" element={<SpareOut userRole={userRole} />} />
+              <Route path="sparehistory" element={<SpareHistory userRole={userRole} />}/>
 
-              <Route path="planning-desk">
-                <Route path="knitting-plan" element={<KnittingPlan/>}/>
-                <Route path="previous-knitting-plan" element={<PreviousKnittingPlan/>}/>
-                <Route path="clicking-plan" element={<ClickingPlan />}/>
-                <Route path="previous-clicking-plan" element={ <PreviousClickingPlan /> }/>
-                <Route path="printing-plan" element={<PrintingPlan/>}/>
-                <Route path="previous-printing-plan" element={<PreviousPrintingPlan/>}/>
-                <Route path="stitching-plan" element={<StitchingPlan/>}/>
-                <Route path="previous-stitching-plan" element={<PreviousStitchingPlan/>}/>
-                <Route path="stuckon-plan" element={<StuckonPlan/>}/>
-                <Route path="previous-stuckon-plan" element={<PreviousStuckonPlan/>}/>
-                <Route path="process-plan" element={<ProcessPlan/>}/>
-              </Route>
+              {(userRole === 'PP Head' || userRole === 'Production Section Charge') && (
+                <Route path="planning-desk">
+                  <Route path="knitting-plan" element={<KnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="previous-knitting-plan" element={<PreviousKnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="clicking-plan" element={<ClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="previous-clicking-plan" element={ <PreviousClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/> }/>
+                  <Route path="printing-plan" element={<PrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="previous-printing-plan" element={<PreviousPrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="stitching-plan" element={<StitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="previous-stitching-plan" element={<PreviousStitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="stuckon-plan" element={<StuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="previous-stuckon-plan" element={<PreviousStuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                  <Route path="process-plan" element={<ProcessPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses}/>}/>
+                </Route>
+ ) }
               
-              {/* <Route path="admin" element={<AdminHome setUser={setUser} user={user}/>} > */}
-              <Route path="admin">
-                <Route path="adminadd" element={<AdminAddExcel/>} />
-                <Route path="admindelete" element={<AdminDelete/>} />
-                <Route path="adminedit" element={<AdminEdit/>} />
-                <Route path="data-entry" element={<DataEntry/>}/>
-                <Route path="bom-data-entry" element={<BOMDataEntry />}/>
-                <Route path="requirement-entry" element={<RequirementEntry/>}/>
-                <Route path="stock-entry" element={<StockEntry/>}/>
-                <Route path="packingcombination-entry" element={<PackingCombination/>}/>
-              </Route>
+              {/* Admin Routes - Accessible only to admins */}
+              {isAdmin && (
+                <Route path="admin">
+                  <Route path="adminadd" element={<AdminAddExcel/>} />
+                  <Route path="admindelete" element={<AdminDelete/>} />
+                  <Route path="adminedit" element={<AdminEdit/>} />
+                  <Route path="data-entry" element={<DataEntry userRole={userRole}/>}/>
+                  <Route path="bom-data-entry" element={<BOMDataEntry />}/>
+                  <Route path="requirement-entry" element={<RequirementEntry/>}/>
+                  <Route path="stock-entry" element={<StockEntry/>}/>
+                  <Route path="packingcombination-entry" element={<PackingCombination/>}/>
+                </Route>
+              )}
 
-              <Route path="mmdept">
-                <Route path="stock-entry" element={<StockEntry user={userData}/>}/>
-                <Route path="material-outward" element={<MaterialIssueEntry/>}/>
-                <Route path="material-inward" element={<MaterialInwardEntry/>}/>
+              {/* MM Department Routes - Accessible to MM Head and Store Incharge */}
+              {(userRole === 'MM Head' || userRole === 'Store Incharge') && (
+                <Route path="mmdept">
+                  <Route path="stock-entry" element={<StockEntry user={userData}/>}/>
+                  <Route path="material-outward" element={<MaterialIssueEntry userRole={userRole}/>}/>
+                <Route path="material-inward" element={<MaterialInwardEntry userRole={userRole} />}/>
               </Route>
             </Route>
             )}

@@ -19,7 +19,7 @@ function HomePage({setUser, userRole, preallocatedProcesses}) {
                     <div className="font-bold text-5xl w-full text-center text-gray-900">SPARE MANAGEMENT CONSOLE</div>
                 </div> */}
                 <div className={'flex flex-col items-start '+(hideSideBar?' sidebar-hidden ':' sidebar-visible ')}>
-                    <div className={hideSideBar?'w-xl':'w-full'}>
+                    <div className={hideSideBar?'w-96':'w-full'}>
                         <Sidebar spareData={spareData} selectedLink={selectedLink} openedTab={openedTab} setOpenedTab={setOpenedTab} userRole={userRole} preallocatedProcesses={preallocatedProcesses} className={hideSideBar?'sidebar-content-hidden':''}/>
                     </div>
                 </div>

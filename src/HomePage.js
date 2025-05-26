@@ -24,7 +24,7 @@ function HomePage({setUser, userRole, preallocatedProcesses}) {
                     </div>
                 </div>
 
-                <div className={'h-full '+(hideSideBar?' w-full ':' w-10/12 ')}>
+                <div className={'h-full w-full'}>
                     <Outlet context={[setSelectedLink, setOpenedTab]}/>
                 </div>
             </div>

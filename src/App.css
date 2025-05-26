@@ -10,7 +10,7 @@
 
 .sidebar-visible{
   width: 16.666667%;
-  transition: width .7s ease-out;
+  transition: width .1s ease-out;
   overflow: hidden;
 
 }
@@ -18,7 +18,7 @@
 .sidebar-hidden{
   overflow: hidden;
   width: 0;
-  transition: width .3s ease-out;
+  transition: width .1s ease-out;
 }
 
 .dropdown-visible{

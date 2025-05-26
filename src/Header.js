@@ -1,7 +1,7 @@
 import React from 'react'
 import { auth } from './firebase_config';
 
-function Header({heading, setUser}) {
+function Header({heading, setUser, setHideSideBar}) {
     
     const logout = () => {
         auth.signOut().then(() => {
@@ -17,6 +17,12 @@ function Header({heading, setUser}) {
                 </div>
                 <div className='text-brandnote'>4 WALKAROO</div>
                 {/* <div className='text-brandnote'>WALKAROO</div> */}
+
+                <div onClick={()=>{setHideSideBar(t=>!t)}} className='cursor-pointer pt-2 hover:text-blue-500'>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </div>
             </div>
 
             <button 

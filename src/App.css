@@ -45,6 +45,12 @@
   transition: max-height .3s ease-out;
 }
 
+.sidebar-content-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out;
+}
+
 .home-button{
   @apply flex flex-col justify-between items-center border-l-4 border-b-4 rounded-xl border-green-700 p-10 m-5 bg-green-300 hover:border-green-900 h-full;
 }

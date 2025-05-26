@@ -15,7 +15,7 @@
 
 }
 
-.siderbar-hidden{
+.sidebar-hidden{
   overflow: hidden;
   width: 0;
   transition: width .3s ease-out;

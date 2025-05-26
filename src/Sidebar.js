@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import {Link} from "react-router-dom";
 
-function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab}) {
-    const { userRole, preallocatedProcesses, isAdmin } = props;
+function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab, userRole, preallocatedProcesses, isAdmin}) {
     const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
 
     const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray)=>{

@@ -12,4 +12,4 @@ const colors = {
   info: 'bg-blue-400',
 };
 
-export default colors;
+export { colors };

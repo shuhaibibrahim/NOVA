@@ -3,6 +3,7 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { ref, set, onValue } from "firebase/database";
 import { db } from "../firebase_config";
 import * as XLSX from 'xlsx';
+import { colors } from "../Theme";
 import {fieldHeadings, fieldKeys} from "../Requirements"
 
 
@@ -24,7 +25,7 @@ function ClickingPlan() {
     const [search, setSearch] = useState("")
     const [renderItems, setRenderItems] = useState(
         <div className="flex items-center justify-center w-full h-full">
-            <div className="text-blue-300 text-5xl">Nothing here !</div>
+            <div className={`text-5xl ${colors.textInfo}`}>Nothing here !</div>
         </div>
     )
 
@@ -142,7 +143,7 @@ function ClickingPlan() {
 
     const RenderModal=(mindex)=>{
         setModal(
-            <div className="flex flex-col bg-blue-700 text-white h-2xl w-8/12 rounded-xl">
+            <div className={`flex flex-col text-white h-2xl w-8/12 rounded-xl ${colors.backgroundAccent}`}>
                 <div className="flex flex-row justify-end px-8 pt-3 ">
                     <svg onClick={()=>{setModal(null)}} xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -150,7 +151,7 @@ function ClickingPlan() {
                 </div>
 
                 <div className="w-full h-lg px-8 py-4 text-white flex flex-row bg-blue-700 justify-between">    
-                    <div className="mr-3 overflow-y-scroll flex flex-col space-y-4 items-start w-8/12">
+                    <div className={`mr-3 overflow-y-scroll flex flex-col space-y-4 items-start w-8/12`}>
                         
                         {fieldHeadings.map((heading,index)=>(
                             <div className="w-full grid grid-cols-2">
@@ -165,7 +166,7 @@ function ClickingPlan() {
 
                     </div>
                     <div className="flex flex-col space-y-4 w-4/12 justify-between items-center">
-                        <div className="flex h-full w-full rounded-2xl bg-blue-100 justify-center items-center">
+                        <div className={`flex h-full w-full rounded-2xl justify-center items-center ${colors.backgroundLight}`}>
                             <img className="h-64 w-56 rounded-xl" src={dispData[mindex].image} alt="image" />
                         </div>
                     </div>
@@ -180,10 +181,10 @@ function ClickingPlan() {
         var minStock=parseInt(item.minStock)
 
         if(totalQty<minStock && totalQty!="0")
-            rowclass+="bg-yellow-300 bg-opacity-90 "
+            rowclass+=`${colors.backgroundWarning} `
         else if(minStock>0 && totalQty=="0")
         {
-            rowclass+="bg-red-300 bg-opacity-90 "
+            rowclass+=`${colors.backgroundDanger} `
         }
 
         return (
@@ -234,7 +235,7 @@ function ClickingPlan() {
                 <div className="flex items-center justify-center">
                     <div 
                         className="font-semibold cursor-pointer text-blue-500 hover:text-blue-800"
-                        onClick={()=>{
+                        onClick={() => {
                             setModalIndex(index)
                             RenderModal(index)
                         }}
@@ -244,7 +245,7 @@ function ClickingPlan() {
                 <div className="flex items-center justify-center">
                     <div 
                         className="font-semibold cursor-pointer text-blue-500 hover:text-blue-800"
-                        onClick={()=>{
+                        onClick={() => {
                             navigate("../sparehistory",{
                                 state: {spareId:item.id} 
                             });
@@ -331,7 +332,7 @@ function ClickingPlan() {
         else
             setRenderItems(        
                 <div className="flex items-center justify-center w-full h-full">
-                    <div className="text-blue-300 text-5xl">Nothing here !</div>
+                    <div className={`text-5xl ${colors.textInfo}`}>Nothing here !</div>
                 </div>
             )
     }, [dispData])
@@ -406,10 +407,10 @@ function ClickingPlan() {
     }, [dispData])
 
     return (
-        <div className="pb-6 bg-blue-50 h-full px-3">
+        <div className={`pb-6 h-full px-3 ${colors.backgroundBase}`}>
             {Modal&&(
-                <div onClick={backdropClickHandler} className="bg-white z-20 bg-opacity-95 space-x-10 fixed inset-0 flex justify-center items-center">
-                    <div className="p-3 bg-blue-400 text-white rounded-3xl hover:bg-blue-800" onClick={()=>{
+                <div onClick={backdropClickHandler} className={`z-20 bg-opacity-95 space-x-10 fixed inset-0 flex justify-center items-center ${colors.backgroundModal}`}>
+                    <div className={`p-3 text-white rounded-3xl ${colors.backgroundButton} ${colors.backgroundButtonHover}`} onClick={()=>{
                         var mindex=modalIndex-1>=0?modalIndex-1:dispData.length-1
                         setModalIndex(mindex)
                         RenderModal(mindex)
@@ -420,7 +421,7 @@ function ClickingPlan() {
                     </div>
                     {Modal}
 
-                    <div className="p-3 bg-blue-400 text-white rounded-3xl hover:bg-blue-800" onClick={()=>{
+                    <div className={`p-3 text-white rounded-3xl ${colors.backgroundButton} ${colors.backgroundButtonHover}`} onClick={()=>{
                         var mindex=(modalIndex+1)%dispData.length
                         setModalIndex(mindex)
                         RenderModal(mindex)
@@ -434,8 +435,8 @@ function ClickingPlan() {
 
             <div className="h-5/12 pt-6 pb-6 flex flex-col items-center filter drop-shadow-lg">
                 <div className='flex flex-row w-full justify-between'>
-                    <div className="bg-white pl-2 w-fit flex flex-row self-start items-center space-x-3 w-auto ring ring-1 ring-gray-300 rounded-sm">
-                        <div className='font-medium w-auto'>Date : </div>
+                    <div className={`${colors.backgroundPaper} pl-2 w-fit flex flex-row self-start items-center space-x-3 w-auto ring ring-1 ring-gray-300 rounded-sm`}>
+                        <div className={`font-medium w-auto`}>Date : </div>
                         <input  
                             type="date" 
                             className="w-fit py-2 focus:outline-none" 
@@ -443,8 +444,8 @@ function ClickingPlan() {
                     </div>
 
                     <div className='flex flex-row font-medium bg-white rounded items-center'>
-                        <div className='border border-gray-300 p-2'>Total Pair : </div>
-                        <div className='border border-gray-300 p-2'>Last Created Plan Code : </div>
+                        <div className={`border border-gray-300 p-2`}>Total Pair : </div>
+                        <div className={`border border-gray-300 p-2`}>Last Created Plan Code : </div>
                     </div>
 
                 </div>
@@ -452,19 +453,19 @@ function ClickingPlan() {
                 <div className="flex flex-row mt-6 justify-between items-center relative w-full">
                     <Link to="../previous-clicking-plan">
                         <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
-                            Previous Plan
+                            Previous Plan test
                         </div>
                     </Link>
 
                     <div className='flex flex-row space-x-1'>
-                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                        <div className={`text-center rounded py-1 px-5 cursor-pointer text-white font-medium ${colors.backgroundButton} ${colors.backgroundButtonHover}`}>
                             Verify
                         </div>
-                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                        <div className={`text-center rounded py-1 px-5 cursor-pointer text-white font-medium ${colors.backgroundButton} ${colors.backgroundButtonHover}`}>
                             Update
                         </div>
-                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
-                            Mail
+                        <div className={`text-center rounded py-1 px-5 cursor-pointer text-white font-medium ${colors.backgroundButton} ${colors.backgroundButtonHover}`}>
+                            Mail test
                         </div>
                     </div>
                 </div>
@@ -472,8 +473,8 @@ function ClickingPlan() {
             
             
             <div className="flex flex-col h-lg space-y-2 items-center justify center items-center bg-white rounded-xl p-4">
-                <div className='flex flex-row justify-between py-3 w-full align-center'>
-                    <div className='font-semibold text-lg'>Clicking Planning Sheet</div>
+                <div className={`flex flex-row justify-between py-3 w-full align-center`}>
+                    <div className={`font-semibold text-lg`}>Clicking Planning Sheet</div>
 
                     <button
                         className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
@@ -482,7 +483,7 @@ function ClickingPlan() {
                             Export Excel
                     </button>
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-11 gap-1 bg-gray-200">
+                <div className={`w-full sticky top-0 p-3 grid grid-cols-11 gap-1 ${colors.backgroundHeader}`}>
                     <div className="text-sm py-2 ">SI NO</div>
                     <div className="text-sm py-2 ">PLAN CODE</div>
                     <div className="text-sm py-2 ">ARTICLE</div>
@@ -501,7 +502,7 @@ function ClickingPlan() {
                     (
                         <div className="w-full h-full mt-24" >
                             <div className="w-full h-full flex justify-center items-center space-x-5 mt-24">
-                                <div
+                                    <div 
                                     className="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-500"
                                 />
                                 {/* <div

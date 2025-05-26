@@ -6,6 +6,13 @@ module.exports = {
   theme: {
     extend: {
       height: {
+        colors: {
+ primary: '#ff8c00',
+ secondary: '#cc5500',
+ accent: '#0047ab',
+ neutral_light: '#f5f5dc',
+ neutral_dark: '#36454f',
+        },
         '2xl': '32rem',
         '3xl':'35rem',
         lg: '23rem',

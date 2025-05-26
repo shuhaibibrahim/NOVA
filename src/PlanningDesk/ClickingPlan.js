@@ -406,10 +406,10 @@ function ClickingPlan() {
     }, [dispData])
 
     return (
-        <div className="pb-6 bg-blue-50 h-full px-3">
+        <div className="pb-6 bg-neutral_light h-full px-3">
             {Modal&&(
-                <div onClick={backdropClickHandler} className="bg-white z-20 bg-opacity-95 space-x-10 fixed inset-0 flex justify-center items-center">
-                    <div className="p-3 bg-blue-400 text-white rounded-3xl hover:bg-blue-800" onClick={()=>{
+                <div onClick={backdropClickHandler} className="bg-neutral_light z-20 bg-opacity-95 space-x-10 fixed inset-0 flex justify-center items-center">
+                    <div className="p-3 bg-accent text-neutral_light rounded-3xl hover:bg-secondary" onClick={()=>{
                         var mindex=modalIndex-1>=0?modalIndex-1:dispData.length-1
                         setModalIndex(mindex)
                         RenderModal(mindex)
@@ -420,7 +420,7 @@ function ClickingPlan() {
                     </div>
                     {Modal}
 
-                    <div className="p-3 bg-blue-400 text-white rounded-3xl hover:bg-blue-800" onClick={()=>{
+                    <div className="p-3 bg-accent text-neutral_light rounded-3xl hover:bg-secondary" onClick={()=>{
                         var mindex=(modalIndex+1)%dispData.length
                         setModalIndex(mindex)
                         RenderModal(mindex)
@@ -433,8 +433,8 @@ function ClickingPlan() {
             }
 
             <div className="h-5/12 pt-6 pb-6 flex flex-col items-center filter drop-shadow-lg">
-                <div className='flex flex-row w-full justify-between'>
-                    <div className="bg-white pl-2 w-fit flex flex-row self-start items-center space-x-3 w-auto ring ring-1 ring-gray-300 rounded-sm">
+                <div className='flex flex-row w-full justify-between text-neutral_dark'>
+                    <div className="bg-white pl-2 w-fit flex flex-row self-start items-center space-x-3 w-auto ring ring-1 ring-secondary rounded-sm">
                         <div className='font-medium w-auto'>Date : </div>
                         <input  
                             type="date" 
@@ -442,22 +442,22 @@ function ClickingPlan() {
                         />
                     </div>
 
-                    <div className='flex flex-row font-medium bg-white rounded items-center'>
-                        <div className='border border-gray-300 p-2'>Total Pair : </div>
-                        <div className='border border-gray-300 p-2'>Last Created Plan Code : </div>
+                    <div className='flex flex-row font-medium bg-neutral_light rounded items-center'>
+                        <div className='border border-secondary p-2'>Total Pair : </div>
+                        <div className='border border-secondary p-2'>Last Created Plan Code : </div>
                     </div>
 
                 </div>
 
                 <div className="flex flex-row mt-6 justify-between items-center relative w-full">
                     <Link to="../previous-clicking-plan">
-                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-accent hover:bg-secondary text-neutral_light font-medium'>
                             Previous Plan
                         </div>
                     </Link>
 
                     <div className='flex flex-row space-x-1'>
-                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                        <div className='text-center rounded py-1 px-5 cursor-pointer bg-accent hover:bg-secondary text-neutral_light font-medium'>
                             Verify
                         </div>
                         <div className='text-center rounded py-1 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
@@ -472,11 +472,11 @@ function ClickingPlan() {
             
             
             <div className="flex flex-col h-lg space-y-2 items-center justify center items-center bg-white rounded-xl p-4">
-                <div className='flex flex-row justify-between py-3 w-full align-center'>
-                    <div className='font-semibold text-lg'>Clicking Planning Sheet</div>
+                <div className='flex flex-row justify-between py-3 w-full align-center text-neutral_dark'>
+                    <div className='font-semibold text-lg '>Clicking Planning Sheet</div>
 
                     <button
-                        className="text-sm font-medium text-blue-500 py-2 px-5 rounded ring-2 ring-blue-500 hover:bg-blue-500 hover:text-white"
+                        className="text-sm font-medium text-accent py-2 px-5 rounded ring-2 ring-accent hover:bg-accent hover:text-neutral_light"
                         onClick={()=>{DownloadExcel(spareData)}}
                     >
                             Export Excel
@@ -500,7 +500,7 @@ function ClickingPlan() {
                     loading && 
                     (
                         <div className="w-full h-full mt-24" >
-                            <div className="w-full h-full flex justify-center items-center space-x-5 mt-24">
+                            <div className="w-full h-full flex justify-center items-center space-x-5 mt-24 text-accent">
                                 <div
                                     className="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-500"
                                 />

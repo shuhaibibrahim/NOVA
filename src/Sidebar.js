@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {Link} from "react-router-dom";
 
 function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab}) {
-
+    const { userRole, preallocatedProcesses, isAdmin } = props;
     const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
 
     const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray)=>{
@@ -114,7 +114,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
 
             {sideBarComponent("Spare Management", "spare",
                     [
-                        {
+                        { 
                             to:"spareview",
                             label:"Spare View",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -144,65 +144,71 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         },
                     ]
             )}
-
+            
             {sideBarComponent("Planning Desk", "planningDesk",
-                // Visible to PP Head, Production Section Charge, MM Head, and Store Incharge
-                ['PP Head', 'Production Section Charge', 'MM Head', 'Store Incharge'].includes(userRole) ?
+                (userRole === 'PP Head' || userRole === 'MM Head' || userRole === 'Store Incharge' || (userRole === 'Production Section Charge' && preallocatedProcesses && preallocatedProcesses.length > 0)) ? (
                     [
-                        {
+                        // Conditionally render Knitting Plan
+                        (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Knitting'))) && {
                             to:"planning-desk/knitting-plan",
                             label:"Knitting Plan",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
                         },
-                        {
+                        // Conditionally render Clicking Plan
+                        (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Clicking'))) && {
                             to:"planning-desk/clicking-plan",
                             label:"Clicking Plan",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
                         },
-                        {
+                        // Conditionally render Printing Plan
+                        (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Printing'))) && {
                             to:"planning-desk/printing-plan",
                             label:"Printing Plan",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
                         },
-                        {
+                        // Conditionally render Stitching Plan
+                        (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stitching'))) && {
                             to:"planning-desk/stitching-plan",
                             label:"Stiching Plan",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
                         },
-                        {
+                        // Conditionally render Stuckon Plan
+                        (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stuckon'))) && {
                             to:"planning-desk/stuckon-plan",
                             label:"Stuckon Prodn Plan",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
-                        }
-                    ])
-                    : [] // Render empty array if user role doesn't have access
-            }
+                        },
+                        // Filter out null or undefined items that might result from false conditions
+                    ].filter(item => item)
+                    )
+                    : []
+            )}
 
-            {sideBarComponent("Admin Desk", "adminDesk",
+            {isAdmin ? sideBarComponent("Admin Desk", "adminDesk", // Assuming isAdmin prop is used for Admin role
                     [
                         {
                             to:"admin/data-entry",
                             label:"Data Entry",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                                </svg>)
                         },
                         {
                             to:"admin/requirement-entry",
                             label:"Requirement Entry",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                                </svg>)
                         },
                         {
                             to:"admin/packingcombination-entry",
@@ -211,10 +217,9 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
                         }
-                    ])
-                    : [] // Render empty array if user role doesn't have access
+                    ]) : [] // Render empty array if not Admin
             }
-
+            
             {sideBarComponent("MM Department", "mmDept",
                     [
                         {
@@ -239,7 +244,6 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         </svg>)
                         }
                     ])
-                    : [] // Render empty array if user role doesn't have access
             }
         </div>
     </div>

@@ -51,6 +51,7 @@ function App() {
   const [userData, setUserData] = useState(null)
   const [userRole, setUserRole] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [preallocatedProcesses, setPreallocatedProcesses] = useState([]);
 
   useEffect(() => {
       auth.onAuthStateChanged((user) => {
@@ -65,6 +66,7 @@ function App() {
                 ;
                   
                 setUserRole(data.role); // Fetch and store user role
+                setPreallocatedProcesses(data.preallocatedProcesses || []); // Fetch and store preallocated processes
                 setIsAdmin(data.admin)
                 setUserData(data)
                 console.log(data)
@@ -78,7 +80,7 @@ function App() {
 
   return (
     <div className="App bg-slate-100 h-screen">
-      <BrowserRouter>
+      <BrowserRouter >
         <Routes >
             {!user&&(<Route path="/" element={<UserLogin userRole={userRole}/>} />)}
             {user&&(
@@ -92,17 +94,17 @@ function App() {
 
               {(userRole === 'PP Head' || userRole === 'Production Section Charge') && (
                 <Route path="planning-desk">
-                  <Route path="knitting-plan" element={<KnittingPlan userRole={userRole} />}/>
-                  <Route path="previous-knitting-plan" element={<PreviousKnittingPlan userRole={userRole} />}/>
-                  <Route path="clicking-plan" element={<ClickingPlan userRole={userRole} />}/>
-                  <Route path="previous-clicking-plan" element={ <PreviousClickingPlan userRole={userRole} /> }/>
-                  <Route path="printing-plan" element={<PrintingPlan userRole={userRole} />}/>
-                  <Route path="previous-printing-plan" element={<PreviousPrintingPlan userRole={userRole} />}/>
-                  <Route path="stitching-plan" element={<StitchingPlan userRole={userRole} />}/>
-                  <Route path="previous-stitching-plan" element={<PreviousStitchingPlan userRole={userRole} />}/>
-                  <Route path="stuckon-plan" element={<StuckonPlan userRole={userRole} />}/>
-                  <Route path="previous-stuckon-plan" element={<PreviousStuckonPlan userRole={userRole} />}/>
-                  <Route path="process-plan" element={<ProcessPlan userRole={userRole} />}/>
+                  <Route path="knitting-plan" element={<KnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="previous-knitting-plan" element={<PreviousKnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="clicking-plan" element={<ClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="previous-clicking-plan" element={ <PreviousClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> }/>
+                  <Route path="printing-plan" element={<PrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="previous-printing-plan" element={<PreviousPrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="stitching-plan" element={<StitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="previous-stitching-plan" element={<PreviousStitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="stuckon-plan" element={<StuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="previous-stuckon-plan" element={<PreviousStuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="process-plan" element={<ProcessPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
                 </Route>
               )}
               
@@ -125,8 +127,9 @@ function App() {
                 <Route path="mmdept">
                   <Route path="stock-entry" element={<StockEntry user={userData}/>}/>
                   <Route path="material-outward" element={<MaterialIssueEntry userRole={userRole} />}/>
-                <Route path="material-inward" element={<MaterialInwardEntry userRole={userRole} />}/>
-              </Route>)}
+                 <Route path="material-inward" element={<MaterialInwardEntry userRole={userRole} />}/>
+               </Route>
+             )}
 
             </Route>
             )}

@@ -5,6 +5,7 @@ import { ref, set, push, onValue, remove, increment, update, query, orderByChild
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import { Checkbox } from '@mui/material';
+import { colors } from '../Theme';
 import ExportExcel from '../ExportExcel';
 
 
@@ -475,7 +476,7 @@ function KnittingPlan() {
     }
 
     const RenderRequirementItem=(item, index)=>{
-
+        console.log(colors)
         var availability=checkStockAvailability(item)
         console.log(availability, item.caseQty, availability["KNITTING"]>0)
         console.log("re rendered")
@@ -483,81 +484,71 @@ function KnittingPlan() {
         return (
             // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-8 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-8"}>
             <div className='flex flex-col w-full border-solid border-b border-gray-400 p-3 bg-gray-200'>
-                {enableCaseQtyInput==index&&(<div className='grid grid-flow-col auto-cols-fr gap-1'>
+                {enableCaseQtyInput==index&&(<div className={`${colors.gray200} grid grid-flow-col auto-cols-fr gap-1`}>
                     <div/><div/><div/><div/><div/><div/><div/><div/><div/><div/><div/>
                     <div className="text-sm py-2 col-span-2 text-left font-bold">ENTER REQUIRED CASE QTY</div>
                 </div>)}
-                <div key={index} className="grid grid-flow-col auto-cols-fr gap-1" >
+                <div key={index} className={`${colors.gray200} grid grid-flow-col auto-cols-fr gap-1`} >
                     <div className="flex items-center justify-center">
                         <div className="text-stone-900/30 w-10/12 break-none text-left flex flex-row space-x-1">
-                            <div className={(Number(availability["KNITTING"])>=Number(item.caseQty)?"text-green-500":
-                            (Number(availability["KNITTING"])>0?"text-yellow-500":
-                            "text-red-500"
-                            ))+" font-bold text-md "}>K</div>
+                            <div className={(Number(availability["KNITTING"])>=Number(item.caseQty)?"text-green-500": (Number(availability["KNITTING"])>0?"text-yellow-500": "text-red-500"
+                            ))+" font-bold text-md"}>K</div>
 
-                            <div className={(Number(availability["CLICKING"])>=Number(item.caseQty)?"text-green-500":
-                            (Number(availability["CLICKING"])>0?"text-yellow-500":
-                            "text-red-500"
-                            ))+" font-bold text-md "}>C</div>
-                            <div className={(Number(availability["PRINTING"])>=Number(item.caseQty)?"text-green-500":
-                            (Number(availability["PRINTING"])>0?"text-yellow-500":
-                            "text-red-500"
-                            ))+" font-bold text-md "}>P</div>
-                            <div className={(Number(availability["STITCHING"])>=Number(item.caseQty)?"text-green-500":
-                            (Number(availability["STITCHING"])>0?"text-yellow-500":
-                            "text-red-500"
-                            ))+" font-bold text-md "}>ST</div>
-                            <div className={(Number(availability["STUCKON"])>=Number(item.caseQty)?"text-green-500":
-                            (Number(availability["STUCKON"])>0?"text-yellow-500":
-                            "text-red-500"
+                            <div className={(Number(availability["CLICKING"])>=Number(item.caseQty)?"text-green-500": (Number(availability["CLICKING"])>0?"text-yellow-500": "text-red-500"
+                            ))+" font-bold text-md"}>C</div>
+                            <div className={(Number(availability["PRINTING"])>=Number(item.caseQty)?"text-green-500": (Number(availability["PRINTING"])>0?"text-yellow-500": "text-red-500"
+                            ))+" font-bold text-md"}>P</div>
+                            <div className={(Number(availability["STITCHING"])>=Number(item.caseQty)?"text-green-500": (Number(availability["STITCHING"])>0?"text-yellow-500": "text-red-500"
+                            ))+" font-bold text-md"}>ST</div>
+                            <div className={(Number(availability["STUCKON"])>=Number(item.caseQty)?"text-green-500": (Number(availability["STUCKON"])>0?"text-yellow-500": "text-red-500"
                             ))+" font-bold text-md "}>SC</div>
                         </div>
                     </div>
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.date}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.date}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.article}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.article}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.colour}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.colour}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.model}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.model}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.category}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.region}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.region}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.sizeGrid}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.sizeGrid}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.caseQty}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{availability["KNITTING"]}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{availability["KNITTING"]}</div>
                     </div>
 
                     <div className="flex items-center justify-center col-span-1">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.packingComb}</div>
+                        <div className={`text-stone-900/30 w-10/12 break-all text-left`}>{item.packingComb}</div>
                     </div>
 
                     {enableCaseQtyInput==index?(
                         <div className='flex col-span-2 space-x-2'>
                             <input 
                                 value={newKnittingPlan.caseQty}
-                                onChange={e=>{
+                                onChange={(e)=>{
                                     setNewKnittingPlan({
                                         ...item,
                                         date:newKnittingPlan.date,
@@ -566,14 +557,14 @@ function KnittingPlan() {
                                 }}
                                 type="number" 
                                 className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                            />
+                           />
                             
-                            <div className='flex flex-row space-x-2 w-full'>
-                                <div 
+                           <div className='flex flex-row space-x-2 w-full'>
+                                <div
                                     onClick={()=>{
                                         pushToDatabase(item)
                                     }}
-                                    className='relative text-center rounded p-2 cursor-pointer bg-green-500 hover:bg-green-800 text-white font-medium'
+                                    className={`${colors.green500} ${colors.green800Hover} relative text-center rounded p-2 cursor-pointer text-white font-medium`}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className='bg-green-400 w-2' fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -581,7 +572,7 @@ function KnittingPlan() {
                                 </div>
 
                                 <button 
-                                    className='text-center rounded p-2 cursor-pointer bg-red-500 hover:bg-red-800 text-white font-medium'
+                                    className={`${colors.red500} ${colors.red800Hover} text-center rounded p-2 cursor-pointer text-white font-medium`}
                                     onClick={()=>{setEnableCaseQtyInput(-1)}}
                                 >
                                         Cancel
@@ -598,7 +589,7 @@ function KnittingPlan() {
                             </div>
                             <button 
                                 className='text-center rounded py-2 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
-                                onClick={()=>{setEnableCaseQtyInput(index)}}
+                                onClick={()=>{setEnableCaseQtyInput(index); setNewKnittingPlan({...item, caseQty: ""})}}
                             >
                                 Plan
                             </button>
@@ -623,7 +614,7 @@ function KnittingPlan() {
         {
 
             setModal(
-                <div className="flex flex-col bg-white h-auto w-5/12 rounded overflow-hidden p-2">
+                <div className={`flex flex-col ${colors.backgroundLight} h-auto w-5/12 rounded overflow-hidden p-2`}>
                     <div className="flex flex-row justify-end">
                         {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -662,7 +653,7 @@ function KnittingPlan() {
                                                     }}
                                                     type="number" 
                                                     className='ring-2 w-full ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
-                                                />
+                                               />
                                             </td>
                                             <td className='border-collapse border border-black p-1'>
                                                 <input 
@@ -688,7 +679,7 @@ function KnittingPlan() {
         if(modalType=='planEntry')
         {
             setModal(
-                <div className="flex flex-col bg-white h-5/6 w-full mx-3 rounded overflow-hidden p-2">
+                <div className={`flex flex-col ${colors.backgroundLight} h-5/6 w-full mx-3 rounded overflow-hidden p-2`}>
                     <div className="flex flex-row justify-end">
                         {/* <svg  xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -699,7 +690,7 @@ function KnittingPlan() {
                         </svg>
                     </div>
 
-                    <div className="w-full sticky top-0 p-3 grid grid-flow-col auto-cols-fr gap-1 font-bold">
+                    <div className={`${colors.gray200} w-full sticky top-0 p-3 grid grid-flow-col auto-cols-fr gap-1 font-bold`}>
                         <div className="text-sm py-2 text-left"></div>
                         <div className="text-sm py-2 text-left">DATE</div>
                         <div className="text-sm py-2 text-left">ARTICLE</div>
@@ -759,45 +750,45 @@ function KnittingPlan() {
                     //     console.log("masterDetailIndex : ",masterDetailIndex,index)
                     // }} 
                     className="cursor-pointer hover:bg-gray-300 grid grid-cols-12 text-sm gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" 
-                >
+                   >
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.planUniqueKey}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.planUniqueKey}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.planDate}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.planDate}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.article}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.article}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.colour}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.colour}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.model}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.model}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.category}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.region}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.region}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.sizeGrid}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.sizeGrid}</div>
                     </div>
 
                     <div className="flex items-center justify-center col-span-1">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.packingComb}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.packingComb}</div>
                     </div>
                     
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.caseQty}</div>
+                        <div className={`${colors.textLight} w-10/12 break-all text-left`}>{item.caseQty}</div>
                     </div>
 
                     <div className='flex items-center'>
@@ -823,7 +814,7 @@ function KnittingPlan() {
                     </div>
                     
                     <div 
-                        class="w-7 h-7 bg-white p-1 rounded-lg text-red-800 hover:text-red-500 self-center prevent-link"
+                        class={`w-7 h-7 ${colors.backgroundLight} p-1 rounded-lg ${colors.red800Text} ${colors.red500HoverText} self-center prevent-link`}
                         onClick={()=>{deleteFromDatabase(item)}}
                     >
                         <svg  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
@@ -852,7 +843,7 @@ function KnittingPlan() {
         else
         {
             setRenderItems(        
-                <div/>
+                <div className={`${colors.gray200}`}/>
             )
         }
     }, [planData,masterDetailIndex])
@@ -860,10 +851,10 @@ function KnittingPlan() {
     return (
         <div className="pb-2 bg-blue-50 h-full px-3">
             {Modal&&(
-                <div onClick={backdropClickHandler} className="h-full bg-black z-20 bg-opacity-80 fixed inset-0 flex justify-center items-center">
+                <div onClick={backdropClickHandler} className={`h-full ${colors.black} z-20 bg-opacity-80 fixed inset-0 flex justify-center items-center`}>
                     {Modal}
                 </div>)
-            }
+           }
 
             <div className="h-5/12 pt-4 pb-2 flex flex-col items-center filter drop-shadow-lg">
                 <div className='flex flex-row w-full justify-between'>
@@ -884,11 +875,11 @@ function KnittingPlan() {
 
                     <div className='flex flex-row space-x-2 items-center'>
                         <Link to="../previous-knitting-plan">
-                            <div className='text-center rounded py-2 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'>
+                            <div className={`${colors.blue500} ${colors.blue800Hover} text-center rounded py-2 px-5 cursor-pointer text-white font-medium`}>
                                 Previous Plan
                             </div>
                         </Link>
-                        <div className='flex flex-row font-medium bg-white rounded items-center'>
+                        <div className={`flex flex-row font-medium ${colors.backgroundLight} rounded items-center`}>
                             <div className='border border-gray-300 p-2'>Total Pair : </div>
                             <div className='border border-gray-300 p-2'>Last Created Plan Code : </div>
                         </div>
@@ -898,10 +889,10 @@ function KnittingPlan() {
                 </div>
             </div>
             
-            <div className="flex flex-col h-xxl space-y-2 items-center justify center items-center bg-white rounded p-4">
+            <div className={`flex flex-col h-xxl space-y-2 items-center justify center items-center ${colors.backgroundLight} rounded p-4`}>
                 <div className='flex flex-row justify-between w-full align-center'>
                     <div className='font-semibold text-lg'>Knitting Planning Sheet</div>
-
+ 
                     <div className='flex flex-row space-x-2'>
                         <ExportExcel
                             excelData={planData}
@@ -909,14 +900,14 @@ function KnittingPlan() {
                         />
 
                         <div 
-                            className='text-center rounded py-2 px-5 cursor-pointer bg-blue-500 hover:bg-blue-800 text-white font-medium'
+                            className={`${colors.blue500} ${colors.blue800Hover} text-center rounded py-2 px-5 cursor-pointer text-white font-medium`}
                             onClick={()=>{RenderModal('planEntry')}}
                         >
                             Enter new Plan
                         </div>
                     </div>
                 </div>
-                <div className="w-full text-xs font-bold sticky top-0 p-3 grid grid-cols-12 gap-1 bg-gray-200">
+                <div className={`${colors.gray200} w-full text-xs font-bold sticky top-0 p-3 grid grid-cols-12 gap-1`}>
                     <div className="py-2 text-left">PLAN ID</div>
                     <div className="py-2 text-left">DATE</div>
                     <div className="py-2 text-left">ARTICLE</div>

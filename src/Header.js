@@ -8,8 +8,8 @@ function Header({heading, setUser, setHideSideBar}) {
 
     const logout = () => {
         auth.signOut().then(() => {
-            // setUser(null);
             navigate('/'); // Navigate to the login screen
+            setUser(null);
         });
     };
     return (

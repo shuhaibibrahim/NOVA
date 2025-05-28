@@ -1,14 +1,17 @@
 import React from 'react'
 import { auth } from './firebase_config';
+import { useNavigate } from 'react-router-dom';
 
 function Header({heading, setUser, setHideSideBar}) {
     
+    const navigate = useNavigate();
+
     const logout = () => {
         auth.signOut().then(() => {
             setUser(null);
+            navigate('/'); // Navigate to the login screen
         });
     };
-
     return (
         <div className=" py-4 pl-2 pr-4 flex flex-row items-center justify-between bg-gray-100 filter drop-shadow-lg w-full">
             <div className='flex flex-col text-gray-900 text-left'>

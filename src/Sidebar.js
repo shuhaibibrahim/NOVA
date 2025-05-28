@@ -77,7 +77,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     ]
             )}
             
-            {(userRole === 'PP Head' || userRole === 'MM Head' || userRole === 'Store Incharge' || (userRole === 'Production Section Charge' && preallocatedProcesses && preallocatedProcesses.length > 0)) &&
+            {(isAdmin || userRole === 'PP Head' || userRole === 'MM Head' || userRole === 'Store Incharge' || (userRole === 'Production Section Charge' && preallocatedProcesses && preallocatedProcesses.length > 0)) &&
                 sideBarComponent("Planning Desk", "planningDesk",
                 [
                         // Conditionally render Knitting Plan

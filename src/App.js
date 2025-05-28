@@ -84,7 +84,7 @@ function App() {
         <Routes >
             {!user&&(<Route path="/" element={<UserLogin userRole={userRole}/>} />)}
             {user&&(
-            <Route path="/" element={<HomePage userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}>
+            <Route path="/" element={<HomePage userRole={userRole} preallocatedProcesses={preallocatedProcesses} isAdmin={isAdmin}/>}>
               <Route index element={<SpareView/>} />
               {/* Spare Routes - Assuming accessible to all logged-in users for now */}
               <Route path="spareview" element={<SpareView userRole={userRole} />} />
@@ -92,7 +92,7 @@ function App() {
               <Route path="spareout" element={<SpareOut userRole={userRole} />} />
               <Route path="sparehistory" element={<SpareHistory userRole={userRole} />}/>
 
-              {(userRole === 'PP Head' || userRole === 'Production Section Charge') && (
+              {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge') && (
                 <Route path="planning-desk">
                   <Route path="knitting-plan" element={<KnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
                   <Route path="previous-knitting-plan" element={<PreviousKnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
@@ -123,7 +123,7 @@ function App() {
               )}
 
               {/* MM Department Routes - Accessible to MM Head and Store Incharge */}
-              {(userRole === 'MM Head' || userRole === 'Store Incharge' || userRole === 'Production Section Charge') && (
+              {(isAdmin || userRole === 'MM Head' || userRole === 'Store Incharge' || userRole === 'Production Section Charge') && (
                 <Route path="mmdept">
                   <Route path="stock-entry" element={<StockEntry user={userData}/>}/>
                   <Route path="material-outward" element={<MaterialIssueEntry userRole={userRole} />}/>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { database } from './firebase_config'; // Assuming firebase_config.js contains your Firebase initialization
-
+import { database } from '../firebase_config'; // Assuming firebase_config.js contains your Firebase initialization
+ 
 const UserManagement = () => {
   const [userRequests, setUserRequests] = useState([]);
 

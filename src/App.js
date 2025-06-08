@@ -44,6 +44,7 @@ import StockEntry from './AdminDesk/StockEntry';
 import MaterialIssueEntry from './AdminDesk/MaterialOutward';
 import MaterialInwardEntry from './AdminDesk/MaterialInward';
 import ProcessPlan from './PlanningDesk/ProcessPlan';
+import UserManagement from './AdminDesk/UserManagement';
 import PackingCombination from './AdminDesk/PackingCombination';
 
 function App() {
@@ -119,6 +120,7 @@ function App() {
                   <Route path="requirement-entry" element={<RequirementEntry/>}/>
                   <Route path="stock-entry" element={<StockEntry/>}/>
                   <Route path="packingcombination-entry" element={<PackingCombination/>}/>
+ <Route path="user-management" element={<UserManagement/>}/>
                 </Route>
               )}
 

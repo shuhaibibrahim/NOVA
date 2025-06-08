@@ -1,15 +1,14 @@
 import React from 'react'
 import AdminLogin from './AdminLogin';
 import AdminHome from './AdminHome';
+import UserManagement from './AdminDesk/UserManagement';
 
 function AdminMain({user, setUser}) {
 
     return (
-        // <div className="h-full min-h-screen flex items-center justify-center">
         <>
-            {!user?<AdminLogin/>:<AdminHome setUser={setUser}/>}
+            {!user ? <AdminLogin /> : <AdminHome setUser={setUser} />}
         </>
-        // </div>
     )
 }
 

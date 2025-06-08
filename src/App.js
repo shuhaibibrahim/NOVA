@@ -120,7 +120,7 @@ function App() {
                   <Route path="requirement-entry" element={<RequirementEntry/>}/>
                   <Route path="stock-entry" element={<StockEntry/>}/>
                   <Route path="packingcombination-entry" element={<PackingCombination/>}/>
- <Route path="user-management" element={<UserManagement/>}/>
+                  <Route path="user-management" element={<UserManagement/>}/>
                 </Route>
               )}
 

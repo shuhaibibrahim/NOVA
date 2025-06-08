@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { database } from '../firebase_config'; // Assuming firebase_config.js contains your Firebase initialization
+import { db } from '../firebase_config'; // Assuming firebase_config.js contains your Firebase initialization
  
 const UserManagement = () => {
   const [userRequests, setUserRequests] = useState([]);
 
   useEffect(() => {
-    const userRequestsRef = database.ref('userRequests');
+    const userRequestsRef = db.ref('userRequests');
     userRequestsRef.on('value', (snapshot) => {
       const requestsData = snapshot.val();
       if (requestsData) {
@@ -26,14 +26,14 @@ const UserManagement = () => {
 
   const handleApprove = async (request) => {
     try {
-      const userRef = database.ref(`users/${request.id}`);
+      const userRef = db.ref(`users/${request.id}`);
       await userRef.set({
         email: request.email,
         role: request.role,
         // Add any other relevant user details here
       });
 
-      const requestRef = database.ref(`userRequests/${request.id}`);
+      const requestRef = db.ref(`userRequests/${request.id}`);
       await requestRef.remove();
     } catch (error) {
       console.error('Error approving user:', error);
@@ -42,7 +42,7 @@ const UserManagement = () => {
 
   const handleReject = async (request) => {
     try {
-      const requestRef = database.ref(`userRequests/${request.id}`);
+      const requestRef = db.ref(`userRequests/${request.id}`);
       await requestRef.remove();
     } catch (error) {
       console.error('Error rejecting user:', error);

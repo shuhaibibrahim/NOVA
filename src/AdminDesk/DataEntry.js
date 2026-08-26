@@ -22,9 +22,10 @@ const emptyArticle = () => Object.fromEntries(ARTICLE_FIELDS.map(({ key }) => [k
 function normalizeArticle(article) {
   const normalized = { ...article };
 
-  ARTICLE_FIELDS.forEach(({ key, upper }) => {
+  ARTICLE_FIELDS.forEach(({ key, upper, type }) => {
     if (normalized[key] === undefined || normalized[key] === null) normalized[key] = '';
     if (upper && normalized[key] !== '') normalized[key] = String(normalized[key]).toUpperCase();
+    if (type === 'number' && normalized[key] !== '') normalized[key] = Number(normalized[key]);
   });
 
   return normalized;
@@ -76,6 +77,13 @@ function ArticleEntry() {
     setNewArticle(emptyArticle());
   };
 
+  const importArticles = async (rows) => {
+    await Promise.all(rows.map(async (row) => {
+      const articleRef = push(ref(db, 'articleData/'));
+      await set(articleRef, { ...normalizeArticle(row), id: articleRef.key });
+    }));
+  };
+
   const startEditing = (article) => {
     setEditingId(article.id);
     setEditingArticle(normalizeArticle(article));
@@ -116,6 +124,7 @@ function ArticleEntry() {
             headings={ARTICLE_FIELDS.map(({ key }) => key)}
             dbPath="articleData/"
             templateName="Article-template"
+            pushFunction={importArticles}
           />
         </div>
 

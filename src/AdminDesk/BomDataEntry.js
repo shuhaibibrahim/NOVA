@@ -14,12 +14,19 @@ function BOMDataEntry() {
     let navigate = useNavigate();
 
     const location=useLocation()
-
-    const {articleItem}=location.state
+    const [articleData, setArticleData] = useState([])
+    const [selectedArticleId, setSelectedArticleId] = useState(location.state?.articleItem?.id || "")
+    const articleItem = articleData.find((article) => article.id === selectedArticleId)
+    const bomSizes = articleItem?.size
+        ? Array.from(
+            { length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1 },
+            (_, index) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + index
+          )
+        : Array.from({ length: 9 }, (_, index) => index + 5)
 
     const [setSelectedLink, setOpenedTab] = useOutletContext();
     useEffect(() => {
-      setSelectedLink("admin/data-entry")
+      setSelectedLink("admin/bom-data-entry")
       setOpenedTab("adminDesk")
     }, [])
     
@@ -100,6 +107,14 @@ function BOMDataEntry() {
     //UseEffects
 
     useEffect(() => {
+        const articleRef = ref(db, 'articleData/');
+        return onValue(articleRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            setArticleData(Object.entries(data).map(([id, article]) => ({ ...article, id })));
+        });
+    }, []);
+
+    useEffect(() => {
         if(currentBomId!=undefined || currentBomId!="")
         {
             const rawMaterialsRef=query(ref(db, `bomDependentMaterials/`), orderByChild("bomId"), equalTo(`${currentBomId}`));
@@ -125,14 +140,18 @@ function BOMDataEntry() {
     }, [currentBomId])
     
     useEffect(() => {
-        const articleBomRef=ref(db, `articleData/${articleItem.id}/bomIds`);
+        if (!articleItem) {
+            setBomIds("");
+            return;
+        }
 
-        onValue(articleBomRef, (snapshot) => {
+        const articleBomRef=ref(db, `articleData/${articleItem.id}/bomIds`);
+        return onValue(articleBomRef, (snapshot) => {
             var myBomIds=snapshot.val();
             console.log("myBomIds : ",myBomIds)
-            setBomIds(myBomIds);
+            setBomIds(myBomIds || "");
         });
-    }, [])
+    }, [articleItem]);
     
     useEffect(() => {
         const bomRef = ref(db, `bomData/`);
@@ -942,9 +961,7 @@ function BOMDataEntry() {
                     </div>  
                 </>)}
 
-                {Array.from({
-                    length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
-                    (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                {bomSizes.map((size,index)=>(
                         <div className='flex flex-row gap-x-2 justify-start items-center'>
                             {item.edit==true?
                                 (<input
@@ -1102,9 +1119,7 @@ function BOMDataEntry() {
                         </select>
                     </div> 
 
-                    {Array.from({
-                        length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
-                        (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                    {bomSizes.map((size,index)=>(
                             <div className='flex w-full flex flex-col items-start justify-center'>
                                 <div>{size}</div>
                                 <input
@@ -1129,17 +1144,13 @@ function BOMDataEntry() {
                 <div className='flex justify-end'>
                     <BulkExcelUploadComponent 
                         headings={["MATERIAL NO","MATERIAL DESCRIPTION","UNIT","AREA","DEPENDANT (CS/PR)","QTY (If CS Dependant)",
-                            ...Array.from({
-                                length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
-                                (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                            ...bomSizes.map((size,index)=>(
                                     size
                                 ))
                         ]}
                         varNames={[
                             ...Object.keys(newbomData),
-                            ...Array.from({
-                            length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
-                            (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                            ...bomSizes.map((size,index)=>(
                                 size
                             ))
                         ]} 
@@ -1169,7 +1180,7 @@ function BOMDataEntry() {
                             </div>
                         </Link>
                         <div className="text-md text-gray-700"> > </div>
-                        <div className='font-semibold text-lg'>BOM Entry : aritcle {articleItem.article}</div>
+                        <div className='font-semibold text-lg'>BOM Entry : Article {articleItem?.article || "Select an article"}</div>
                     </div>
 
                     {/* <button
@@ -1180,7 +1191,27 @@ function BOMDataEntry() {
                     </button> */}
                 </div>
 
-                {renderInputRow()}
+                <div className="flex w-full max-w-xl flex-col items-start">
+                    <label className="mb-1 text-sm font-medium">Article</label>
+                    <select
+                        value={selectedArticleId}
+                        onChange={(event) => setSelectedArticleId(event.target.value)}
+                        className="w-full rounded border border-blue-200 bg-white p-2 text-sm focus:border-blue-500 focus:outline-none"
+                    >
+                        <option value="">-- Select article --</option>
+                        {articleData.map((article) => (
+                            <option key={article.id} value={article.id}>
+                                {[article.article, article.colour, article.model, article.gender].filter(Boolean).join(" — ")}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {articleItem ? renderInputRow() : (
+                    <div className="w-full rounded bg-gray-50 p-6 text-center text-gray-500">
+                        Select an article to view or manage its BOM.
+                    </div>
+                )}
 
                 <div className="w-full sticky top-0 p-3 grid grid-flow-col auto-cols-fr gap-4 bg-gray-200">
                     <div className="text-md py-2 text-left">SI NO</div>
@@ -1190,9 +1221,7 @@ function BOMDataEntry() {
                     <div className="text-md py-2 text-left">QTY</div>
                     <div className="text-md py-2 text-left">UNIT</div>
                     <div className="text-md py-2 text-left">PROCESS</div>
-                    {Array.from({
-                        length: parseInt(articleItem.size.toUpperCase().split('X')[1]) - parseInt(articleItem.size.toUpperCase().split('X')[0]) + 1}, 
-                        (_, i) => parseInt(articleItem.size.toUpperCase().split('X')[0]) + i).map((size,index)=>(
+                    {bomSizes.map((size,index)=>(
                             <div className='text-left py-2 text-md'>
                                 <div>{size}</div>
                             </div>

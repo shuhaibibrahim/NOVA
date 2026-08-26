@@ -24,7 +24,7 @@ function KnittingPlan() {
     const [articleSelectList, setArticleSelectList] = useState([])
     const [colourSelectList, setColourSelectList] = useState([])
     const [modelSelectList, setModelSelectList] = useState([])
-    const [categorySelectList, setCategorySelectList] = useState([])
+    const [genderSelectList, setGenderSelectList] = useState([])
 
     const [requirementsData, setRequirementsData] = useState([])
     const [bomData, setBomData] = useState([])
@@ -70,7 +70,7 @@ function KnittingPlan() {
         article:"",
         colour:"",
         model:"",
-        category:"",
+        gender:"",
         region:"",
         sizeGrid:"",
         caseQty:"",
@@ -192,7 +192,7 @@ function KnittingPlan() {
     useEffect(() => {
         var tempColourList=[]
         var tempModelList=[]
-        var tempCatList=[]
+        var tempGenderList=[]
         
         articleData.forEach(item=>{
             if(item.article==newKnittingPlan.article)
@@ -207,8 +207,8 @@ function KnittingPlan() {
             }
             if(item.article==newKnittingPlan.article && item.colour==newKnittingPlan.colour && item.model==newKnittingPlan.model)
             {
-                if(!tempCatList.includes(item.category))
-                    tempCatList.push(item.category)
+                if(!tempGenderList.includes(item.gender))
+                    tempGenderList.push(item.gender)
             }
         })
 
@@ -216,7 +216,7 @@ function KnittingPlan() {
 
         setColourSelectList([...tempColourList])
         setModelSelectList([...tempModelList])
-        setCategorySelectList([...tempCatList])
+        setGenderSelectList([...tempGenderList])
 
     }, [newKnittingPlan.article, newKnittingPlan.colour, newKnittingPlan.model, newKnittingPlan])
 
@@ -313,7 +313,7 @@ function KnittingPlan() {
                     article:"",
                     colour:"",
                     model:"",
-                    category:"",
+                    gender:"",
                     region:"",
                     sizeGrid:"",
                     caseQty:"",
@@ -530,7 +530,7 @@ function KnittingPlan() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.gender}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
@@ -642,7 +642,7 @@ function KnittingPlan() {
                         </tr>
                         <tbody>
                             {articleData.map((item, index)=>{
-                                if(item.article==newKnittingPlan.article && item.colour==newKnittingPlan.colour && item.model==newKnittingPlan.model && item.category==newKnittingPlan.category)
+                                if(item.article==newKnittingPlan.article && item.colour==newKnittingPlan.colour && item.model==newKnittingPlan.model && item.gender==newKnittingPlan.gender)
                                 {
                                     console.log("item.size : ",item.size)
                                     
@@ -705,7 +705,7 @@ function KnittingPlan() {
                         <div className="text-sm py-2 text-left">ARTICLE</div>
                         <div className="text-sm py-2 text-left">COLOUR</div>
                         <div className="text-sm py-2 text-left">MODEL</div>
-                        <div className="text-sm py-2 text-left">CATEGORY</div>
+                        <div className="text-sm py-2 text-left">GENDER</div>
                         <div className="text-sm py-2 text-left">REGION</div>
                         <div className="text-sm py-2 text-left">SIZE GRID</div>
                         <div className="text-sm py-2 text-left">CASE QTY</div>
@@ -781,7 +781,7 @@ function KnittingPlan() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.gender}</div>
                     </div>
 
                     <div className="flex items-center justify-center">
@@ -922,7 +922,7 @@ function KnittingPlan() {
                     <div className="py-2 text-left">ARTICLE</div>
                     <div className="py-2 text-left">COLOUR</div>
                     <div className="py-2 text-left">MODEL</div>
-                    <div className="py-2 text-left">CATEGORY</div>
+                    <div className="py-2 text-left">GENDER</div>
                     <div className="py-2 text-left">REGION</div>
                     <div className="py-2 text-left">SIZE GRID</div>
                     <div className="py-2 col-span-1 text-left">PCKNG COMB</div>

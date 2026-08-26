@@ -38,6 +38,7 @@ function ArticleEntry() {
   const [editingId, setEditingId] = useState(null);
   const [editingArticle, setEditingArticle] = useState(emptyArticle);
   const [search, setSearch] = useState('');
+  const [columnFilters, setColumnFilters] = useState(emptyArticle);
 
   useEffect(() => {
     setSelectedLink('admin/data-entry');
@@ -56,10 +57,18 @@ function ArticleEntry() {
     const term = search.trim().toLowerCase();
     if (!term) return articleData;
 
-    return articleData.filter((article) =>
-      ARTICLE_FIELDS.some(({ key }) => String(article[key] ?? '').toLowerCase().includes(term))
-    );
-  }, [articleData, search]);
+    return articleData.filter((article) => {
+      const matchesSearch = !term || ARTICLE_FIELDS.some(({ key }) =>
+        String(article[key] ?? '').toLowerCase().includes(term)
+      );
+      const matchesColumnFilters = ARTICLE_FIELDS.every(({ key }) =>
+        !columnFilters[key] ||
+        String(article[key] ?? '').toLowerCase().includes(columnFilters[key].toLowerCase())
+      );
+
+      return matchesSearch && matchesColumnFilters;
+    });
+  }, [articleData, search, columnFilters]);
 
   const updateField = (setter, current, field, value) => {
     setter({
@@ -131,9 +140,41 @@ function ArticleEntry() {
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search articles"
+          placeholder="Search all article fields"
           className="w-full max-w-md rounded border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
         />
+
+        <div className="rounded bg-gray-50 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-sm font-medium">Column filters</div>
+            <button
+              type="button"
+              onClick={() => setColumnFilters(emptyArticle())}
+              className="text-sm text-blue-600 hover:text-blue-900"
+            >
+              Clear filters
+            </button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {ARTICLE_FIELDS.map((field) => (
+              <label key={field.key} className="text-xs text-gray-700">
+                {field.label}
+                <input
+                  type={field.type}
+                  min={field.type === 'number' ? '0' : undefined}
+                  step={field.step}
+                  value={columnFilters[field.key]}
+                  onChange={(event) => setColumnFilters({
+                    ...columnFilters,
+                    [field.key]: event.target.value,
+                  })}
+                  placeholder={`Filter ${field.label}`}
+                  className="mt-1 w-full rounded border border-gray-300 p-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                />
+              </label>
+            ))}
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
           <div className="min-w-[1500px]">

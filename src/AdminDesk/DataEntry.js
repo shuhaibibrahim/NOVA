@@ -199,7 +199,6 @@ function ArticleEntry() {
                     <>
                       <button type="button" onClick={() => startEditing(article)} className="text-blue-600 hover:text-blue-900">Edit</button>
                       <button type="button" onClick={() => deleteArticle(article)} className="text-red-600 hover:text-red-900">Delete</button>
-                      <span className="cursor-not-allowed text-gray-400" title="BOM Entry is temporarily unavailable">BOM Entry</span>
                     </>
                   )}
                 </div>

@@ -350,7 +350,7 @@ function ProcessPlan() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">Category : {planItem.category}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">Gender : {planItem.gender}</div>
                     </div>
 
                     <div className="flex items-center justify-center">

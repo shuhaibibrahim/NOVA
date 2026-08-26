@@ -31,7 +31,7 @@ function RequirementEntry() {
     const [articleSelectList, setArticleSelectList] = useState([])
     const [colourSelectList, setColourSelectList] = useState([])
     const [modelSelectList, setModelSelectList] = useState([])
-    const [categorySelectList, setCategorySelectList] = useState([])
+    const [genderSelectList, setGenderSelectList] = useState([])
     const [sizeGridSelectList, setSizeGridSelectList] = useState([])
 
 
@@ -76,7 +76,7 @@ function RequirementEntry() {
         caseQty:"",
         region:"",
         targetDate:"",
-        category:"",
+        gender:"",
         packingComb:"",
         sizeGrid:""
     })
@@ -164,7 +164,7 @@ function RequirementEntry() {
     useEffect(() => {
         var tempColourList=[]
         var tempModelList=[]
-        var tempCatList=[]
+        var tempGenderList=[]
         var tempSizeGridList=[]
         
         articleData.forEach(item=>{
@@ -180,10 +180,10 @@ function RequirementEntry() {
             }
             if(item.article==newRequirement.article && item.colour==newRequirement.colour && item.model==newRequirement.model)
             {
-                if(!tempCatList.includes(item.category))
-                    tempCatList.push(item.category)
+                if(!tempGenderList.includes(item.gender))
+                    tempGenderList.push(item.gender)
             }
-            // if(item.article==newRequirement.article && item.colour==newRequirement.colour && item.model==newRequirement.model && item.category==newRequirement.category)
+            // if(item.article==newRequirement.article && item.colour==newRequirement.colour && item.model==newRequirement.model && item.gender==newRequirement.gender)
             // {
             //     console.log("item : ",item)
             //     if(!tempSizeGridList.includes(item.size))
@@ -194,10 +194,10 @@ function RequirementEntry() {
 
         setColourSelectList([...tempColourList])
         setModelSelectList([...tempModelList])
-        setCategorySelectList([...tempCatList])
+        setGenderSelectList([...tempGenderList])
         // setSizeGridSelectList([...tempSizeGridList])
 
-    }, [newRequirement.article, newRequirement.colour, newRequirement.model, newRequirement.category, newRequirement])
+    }, [newRequirement.article, newRequirement.colour, newRequirement.model, newRequirement.gender, newRequirement])
 
     const displayValidateMessage=(validate)=>{
         setValidateMessage(
@@ -228,7 +228,7 @@ function RequirementEntry() {
                 item.article==newRequirement.article &&
                 item.colour==newRequirement.colour &&
                 item.model==newRequirement.model &&
-                item.category==newRequirement.category
+                item.gender==newRequirement.gender
             ))[0].id
 
             var packageInput=newRequirement.packingComb.split(",")
@@ -279,17 +279,17 @@ function RequirementEntry() {
                     item.article==reqItem.article &&
                     item.colour==reqItem.colour &&
                     item.model==reqItem.model &&
-                    item.category==reqItem.category
+                    item.gender==reqItem.gender
                 ))[0]
 
                 var pc=packingCombinations.filter(p=>p.packingLabel==reqItem.packingLabel)[0]
 
                 if(myArticle==undefined)
                 {
-                    validate+="Missing Article : "+reqItem.article+", Color : "+reqItem.colour+", Gender : "+reqItem.model+", Category : "+reqItem.category+"::"
+                    validate+="Missing Article : "+reqItem.article+", Color : "+reqItem.colour+", Gender : "+reqItem.model+", Gender : "+reqItem.gender+"::"
                 }
                 else if(pc==undefined){
-                    validate+="Packing Combination "+reqItem.packingLabel+" given for Artcile : "+reqItem.article+", Color : "+reqItem.colour+", Gender : "+reqItem.model+", Category : "+reqItem.category+" is not present in the system::"
+                    validate+="Packing Combination "+reqItem.packingLabel+" given for Artcile : "+reqItem.article+", Color : "+reqItem.colour+", Gender : "+reqItem.model+", Gender : "+reqItem.gender+" is not present in the system::"
                 }
                 else{
                     const articleDataId=myArticle.id
@@ -497,7 +497,7 @@ function RequirementEntry() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.category}</div>
+                        <div className="text-stone-900/30 w-10/12 break-all text-left">{item.gender}</div>
                     </div>
                     
                     <div className="flex items-center justify-center col-span-1">
@@ -553,12 +553,12 @@ function RequirementEntry() {
 
                     <div className="flex w-full flex flex-col items-start justify-items-start">
                         <input 
-                            value={editData.category.toUpperCase()}
+                            value={editData.gender.toUpperCase()}
                             onChange={e=>{
                                 setEditingInputElement(e.target)
                                 setEditData({
                                     ...editData,
-                                    category: e.target.value.toUpperCase()
+                                    gender: e.target.value.toUpperCase()
                                 })
                             }}
                             type="text" 
@@ -833,19 +833,19 @@ function RequirementEntry() {
                 </div>
 
                 <div className="flex w-full flex flex-col items-start justify-items-start">
-                    <label className='text-sm'>Category</label>
+                    <label className='text-sm'>Gender</label>
                     <select
                         onChange={e=>{
                             setNewRequirement({
                                 ...newRequirement,
-                                category: e.target.value
+                                gender: e.target.value
                             })
                         }}
-                        value={newRequirement.category}
+                        value={newRequirement.gender}
                         className='w-full ring-2 ring-blue-200 bg-white  h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                     >
                         <option>- SELECT -</option>
-                        {categorySelectList.map((item,index)=>(
+                        {genderSelectList.map((item,index)=>(
                             <option key={index} value={item}>{item}</option>
                         ))}
                     </select>
@@ -894,7 +894,7 @@ function RequirementEntry() {
                     <div className='flex justify-end items-center space-x-2'>
 
                         <BulkExcelUploadComponent
-                            headings={["DATE OF ALLOTMENT","TYPE","ARTICLE","COLOUR","GENDER","SIZE GRID","CASE QTY","REGION","TARGET","CATEGORY"]}
+                            headings={["DATE OF ALLOTMENT","TYPE","ARTICLE","COLOUR","GENDER","SIZE GRID","CASE QTY","REGION","TARGET","GENDER"]}
                             varNames={[
                                 ...Object.keys(newRequirement).filter(k=>k!="sizeGrid"),
                             ]} 
@@ -922,7 +922,7 @@ function RequirementEntry() {
                     <div className="text-sm py-2 text-left">CASE QTY</div>
                     <div className="text-sm py-2 text-left">REGION</div>
                     <div className="text-sm py-2 text-left">TARGET DATE</div>
-                    <div className="text-sm py-2 text-left">CATEGORY</div>
+                    <div className="text-sm py-2 text-left">GENDER</div>
                     <div className="text-sm py-2 col-span-2 text-left">PACKING COMB</div>
                 </div>
                 

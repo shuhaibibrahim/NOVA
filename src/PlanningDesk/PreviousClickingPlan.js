@@ -499,7 +499,7 @@ function PreviousClickingPlan() {
                     <div className="text-sm py-2 ">ARTICLE</div>
                     <div className="text-sm py-2 ">COLOUR</div>
                     <div className="text-sm py-2 ">MODEL</div>
-                    <div className="text-sm py-2 ">CATEGORY</div>
+                    <div className="text-sm py-2 ">GENDER</div>
                     <div className="text-sm py-2 ">SIZE</div>
                     <div className="text-sm py-2 ">LEFT QTY</div>
                     <div className="text-sm py-2 ">RIGHT QTY</div>

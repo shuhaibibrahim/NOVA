@@ -1176,7 +1176,7 @@ function BOMDataEntry() {
                     <div className='flex flex-row space-x-2 hover:cursor'>
                         <Link to="../data-entry">
                             <div className="text-md text-gray-700">
-                                Data Entry
+                                Article Entry
                             </div>
                         </Link>
                         <div className="text-md text-gray-700"> > </div>

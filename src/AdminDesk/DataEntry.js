@@ -213,12 +213,12 @@ function DataEntry() {
                 >
                     Delete
                 </div>
-                <div>
-                <Link to="../bom-data-entry" state={{articleItem:item}}>
-                    <div className="w-fit whitespace-nowrap px-2 py-1 font-medium cursor-pointer text-xs hover:bg-gray-200 hover:text-green-500">
-                        BOM Entry
-                    </div>
-                </Link>
+                <div
+                    className="w-fit whitespace-nowrap px-2 py-1 font-medium text-xs text-gray-400 bg-gray-100 rounded cursor-not-allowed"
+                    aria-disabled="true"
+                    title="BOM Entry is temporarily unavailable"
+                >
+                    BOM Entry
                 </div>
             </div>
         )

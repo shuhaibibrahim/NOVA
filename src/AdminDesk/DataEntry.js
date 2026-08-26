@@ -55,8 +55,6 @@ function ArticleEntry() {
 
   const displayedArticles = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return articleData;
-
     return articleData.filter((article) => {
       const matchesSearch = !term || ARTICLE_FIELDS.some(({ key }) =>
         String(article[key] ?? '').toLowerCase().includes(term)

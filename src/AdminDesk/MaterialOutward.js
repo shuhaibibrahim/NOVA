@@ -43,7 +43,7 @@ function MaterialIssueEntry() {
     const [articleSelectList, setArticleSelectList] = useState([])
     const [colourSelectList, setColourSelectList] = useState([])
     const [modelSelectList, setModelSelectList] = useState([])
-    const [categorySelectList, setCategorySelectList] = useState([])
+    const [genderSelectList, setGenderSelectList] = useState([])
 
 
 

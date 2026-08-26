@@ -142,44 +142,37 @@ function ArticleEntry() {
           className="w-full max-w-md rounded border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
         />
 
-        <div className="rounded bg-gray-50 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-sm font-medium">Column filters</div>
-            <button
-              type="button"
-              onClick={() => setColumnFilters(emptyArticle())}
-              className="text-sm text-blue-600 hover:text-blue-900"
-            >
-              Clear filters
-            </button>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-            {ARTICLE_FIELDS.map((field) => (
-              <label key={field.key} className="text-xs text-gray-700">
-                {field.label}
-                <input
-                  type={field.type}
-                  min={field.type === 'number' ? '0' : undefined}
-                  step={field.step}
-                  value={columnFilters[field.key]}
-                  onChange={(event) => setColumnFilters({
-                    ...columnFilters,
-                    [field.key]: event.target.value,
-                  })}
-                  placeholder={`Filter ${field.label}`}
-                  className="mt-1 w-full rounded border border-gray-300 p-1.5 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </label>
-            ))}
-          </div>
-        </div>
-
         <div className="overflow-x-auto">
           <div className="min-w-[1500px]">
             <div className="grid grid-cols-12 gap-x-3 bg-gray-200 p-3 text-xs font-semibold">
               <div>SI NO</div>
-              {ARTICLE_FIELDS.map(({ key, label }) => <div key={key}>{label.toUpperCase()}</div>)}
-              <div>ACTIONS</div>
+              {ARTICLE_FIELDS.map((field) => (
+                <label key={field.key} className="flex min-w-0 flex-col gap-1">
+                  <span>{field.label.toUpperCase()}</span>
+                  <input
+                    type={field.type}
+                    min={field.type === 'number' ? '0' : undefined}
+                    step={field.step}
+                    value={columnFilters[field.key]}
+                    onChange={(event) => setColumnFilters({
+                      ...columnFilters,
+                      [field.key]: event.target.value,
+                    })}
+                    placeholder="Filter"
+                    className="w-full rounded border border-gray-300 bg-white p-1 text-xs font-normal focus:border-blue-500 focus:outline-none"
+                  />
+                </label>
+              ))}
+              <div className="flex flex-col gap-1">
+                <span>ACTIONS</span>
+                <button
+                  type="button"
+                  onClick={() => setColumnFilters(emptyArticle())}
+                  className="w-fit text-left text-xs font-normal text-blue-600 hover:text-blue-900"
+                >
+                  Clear filters
+                </button>
+              </div>
             </div>
 
             <form className="grid grid-cols-12 gap-x-3 bg-blue-100 p-3" onSubmit={createArticle}>

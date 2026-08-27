@@ -183,17 +183,17 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     ])
             }
 
-            <div className='px-1'>
-                <Link
-                    to="sparehistory"
-                    className={"flex flex-row space-x-2 hover:bg-gray-300 w-full py-3 " + (selectedLink==="sparehistory" ? "border-l-4 border-blue-500" : "")}
-                >
-                    <svg className="h-6 w-6" viewBox="0 0 48 48" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M25.99 6c-9.95 0-17.99 8.06-17.99 18h-6l7.79 7.79.14.29 8.07-8.08h-6c0-7.73 6.27-14 14-14s14 6.27 14 14-6.27 14-14 14c-3.87 0-7.36-1.58-9.89-4.11l-2.83 2.83c3.25 3.26 7.74 5.28 12.71 5.28 9.95 0 18.01-8.06 18.01-18s-8.06-18-18.01-18zm-1.99 10v10l8.56 5.08 1.44-2.43-7-4.15v-8.5h-3z" opacity=".9"/>
-                    </svg>
-                    <div className="font-medium text-base">History</div>
-                </Link>
-            </div>
+            {sideBarComponent("History", "history",
+                    [
+                        {
+                            to:"admin/data-entry",
+                            label:"Article Entry",
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 19.5V4.75A2.75 2.75 0 016.75 2h10.5A2.75 2.75 0 0120 4.75V19.5M4 19.5h16M8 7h8M8 11h8M8 15h5" />
+                            </svg>)
+                        }
+                    ])
+            }
         </div>
     </div>
   )

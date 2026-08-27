@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { db } from '../firebase_config';
-import { onValue, push, ref, remove, set } from 'firebase/database';
+import { auth, db } from '../firebase_config';
+import { onValue, push, ref, remove, serverTimestamp, set } from 'firebase/database';
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
 
 const ARTICLE_FIELDS = [
@@ -19,6 +19,7 @@ const ARTICLE_FIELDS = [
 ];
 
 const emptyArticle = () => Object.fromEntries(ARTICLE_FIELDS.map(({ key }) => [key, '']));
+const ARTICLE_FIELD_LABELS = Object.fromEntries(ARTICLE_FIELDS.map(({ key, label }) => [key, label]));
 
 function normalizeArticle(article) {
   const normalized = { ...article };
@@ -76,19 +77,56 @@ function ArticleEntry() {
     });
   };
 
+  const getArticleChanges = (before, after) =>
+    ARTICLE_FIELDS.reduce((changes, { key }) => {
+      const previousValue = String(before?.[key] ?? '');
+      const nextValue = String(after?.[key] ?? '');
+      if (previousValue !== nextValue) changes[key] = { from: previousValue, to: nextValue };
+      return changes;
+    }, {});
+
+  const writeArticleHistory = async ({ article, action, changes }) => {
+    const historyRef = push(ref(db, 'articleHistory/'));
+    const user = auth.currentUser;
+
+    await set(historyRef, {
+      id: historyRef.key,
+      articleId: article.id,
+      lineItem: article.id,
+      article: article.article || '',
+      action,
+      editorUid: user?.uid || 'unknown',
+      editorEmail: user?.email || 'Unknown user',
+      changes,
+      timestamp: serverTimestamp(),
+    });
+  };
+
   const createArticle = async (event) => {
     event.preventDefault();
     if (!window.confirm('Please confirm entering the article.')) return;
 
     const articleRef = push(ref(db, 'articleData/'));
-    await set(articleRef, { ...normalizeArticle(newArticle), id: articleRef.key });
+    const article = { ...normalizeArticle(newArticle), id: articleRef.key };
+    await set(articleRef, article);
+    await writeArticleHistory({
+      article,
+      action: 'created',
+      changes: getArticleChanges({}, article),
+    });
     setNewArticle(emptyArticle());
   };
 
   const importArticles = async (rows) => {
     await Promise.all(rows.map(async (row) => {
       const articleRef = push(ref(db, 'articleData/'));
-      await set(articleRef, { ...normalizeArticle(row), id: articleRef.key });
+      const article = { ...normalizeArticle(row), id: articleRef.key };
+      await set(articleRef, article);
+      await writeArticleHistory({
+        article,
+        action: 'created',
+        changes: getArticleChanges({}, article),
+      });
     }));
   };
 
@@ -98,16 +136,25 @@ function ArticleEntry() {
   };
 
   const saveArticle = async () => {
-    await set(ref(db, `articleData/${editingId}`), {
-      ...normalizeArticle(editingArticle),
-      id: editingId,
-    });
+    const previousArticle = articleData.find((article) => article.id === editingId);
+    const article = { ...normalizeArticle(editingArticle), id: editingId };
+    const changes = getArticleChanges(previousArticle, article);
+
+    await set(ref(db, `articleData/${editingId}`), article);
+    if (Object.keys(changes).length > 0) {
+      await writeArticleHistory({ article, action: 'edited', changes });
+    }
     setEditingId(null);
   };
 
   const deleteArticle = async (article) => {
     if (!window.confirm(`Please confirm deleting ${article.article}.`)) return;
     await remove(ref(db, `articleData/${article.id}`));
+    await writeArticleHistory({
+      article,
+      action: 'deleted',
+      changes: getArticleChanges(article, {}),
+    });
   };
 
   const renderFieldInput = (field, value, setter, current) => (

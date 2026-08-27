@@ -22,6 +22,8 @@ function formatTimestamp(timestamp) {
   return new Date(timestamp).toLocaleString();
 }
 
+const historyGridStyle = { gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr 0.8fr 3fr' };
+
 function ArticleEntryHistory() {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [history, setHistory] = useState([]);
@@ -86,7 +88,7 @@ function ArticleEntryHistory() {
 
         <div className="overflow-x-auto">
           <div className="min-w-[1200px]">
-            <div className="grid grid-cols-[1.2fr_1.2fr_1fr_1fr_0.8fr_3fr] gap-3 bg-gray-200 p-3 text-xs font-semibold">
+            <div className="grid gap-3 bg-gray-200 p-3 text-xs font-semibold" style={historyGridStyle}>
               <div>EDIT DATE & TIME</div>
               <div>EDITED BY</div>
               <div>LINE ITEM</div>
@@ -96,7 +98,7 @@ function ArticleEntryHistory() {
             </div>
 
             {displayedHistory.map((entry) => (
-              <div key={entry.id} className="grid grid-cols-[1.2fr_1.2fr_1fr_1fr_0.8fr_3fr] gap-3 border-b border-gray-200 p-3 text-sm">
+              <div key={entry.id} className="grid gap-3 border-b border-gray-200 p-3 text-sm" style={historyGridStyle}>
                 <div>{formatTimestamp(entry.timestamp)}</div>
                 <div>{entry.editorEmail || 'Unknown user'}</div>
                 <div className="break-words">{entry.lineItem || entry.articleId || '—'}</div>

@@ -46,6 +46,7 @@ import MaterialInwardEntry from './AdminDesk/MaterialInward';
 import ProcessPlan from './PlanningDesk/ProcessPlan';
 import UserManagement from './AdminDesk/UserManagement';
 import PackingCombination from './AdminDesk/PackingCombination';
+import ArticleEntryHistory from './History/ArticleEntryHistory';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -92,6 +93,7 @@ function App() {
               <Route path="sparein" element={<SpareIn userRole={userRole} />} />
               <Route path="spareout" element={<SpareOut userRole={userRole} />} />
               <Route path="sparehistory" element={<SpareHistory userRole={userRole} />}/>
+              <Route path="history/article-entry" element={<ArticleEntryHistory />}/>
 
               {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge') && (
                 <Route path="planning-desk">

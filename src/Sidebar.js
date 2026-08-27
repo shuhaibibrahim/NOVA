@@ -127,7 +127,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
             {isAdmin ? sideBarComponent("Admin Desk", "adminDesk", // Assuming isAdmin prop is used for Admin role
                     [
                         {
-                            to:"admin/data-entry",
+                            to:"history/article-entry",
                             label:"Article Entry",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />

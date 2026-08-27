@@ -5,6 +5,7 @@ import { onValue, push, ref, remove, set } from 'firebase/database';
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
 
 const ARTICLE_FIELDS = [
+  { key: 'allotmentDate', label: 'Allotment Date', type: 'date' },
   { key: 'article', label: 'Article', type: 'text', upper: true },
   { key: 'colour', label: 'Colour', type: 'text', upper: true },
   { key: 'brand', label: 'Brand', type: 'text', upper: true },
@@ -144,7 +145,7 @@ function ArticleEntry() {
 
         <div className="overflow-x-auto">
           <div className="min-w-[1500px]">
-            <div className="grid grid-cols-12 gap-x-3 bg-gray-200 p-3 text-xs font-semibold">
+            <div className="grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold" style={{ gridTemplateColumns: `repeat(${ARTICLE_FIELDS.length + 2}, minmax(0, 1fr))` }}>
               <div>SI NO</div>
               {ARTICLE_FIELDS.map((field) => (
                 <label key={field.key} className="flex min-w-0 flex-col gap-1">
@@ -175,7 +176,7 @@ function ArticleEntry() {
               </div>
             </div>
 
-            <form className="grid grid-cols-12 gap-x-3 bg-blue-100 p-3" onSubmit={createArticle}>
+            <form className="grid gap-x-3 bg-blue-100 p-3" style={{ gridTemplateColumns: `repeat(${ARTICLE_FIELDS.length + 2}, minmax(0, 1fr))` }} onSubmit={createArticle}>
               <div className="text-xs font-medium">NEW</div>
               {ARTICLE_FIELDS.map((field) => renderFieldInput(field, newArticle[field.key], setNewArticle, newArticle))}
               <button type="submit" className="rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white hover:bg-blue-800">
@@ -184,7 +185,7 @@ function ArticleEntry() {
             </form>
 
             {[...displayedArticles].reverse().map((article, index) => (
-              <div key={article.id} className="grid grid-cols-12 gap-x-3 border-b border-gray-200 p-3 text-sm">
+              <div key={article.id} className="grid gap-x-3 border-b border-gray-200 p-3 text-sm" style={{ gridTemplateColumns: `repeat(${ARTICLE_FIELDS.length + 2}, minmax(0, 1fr))` }}>
                 <div>{displayedArticles.length - index}</div>
                 {editingId === article.id
                   ? ARTICLE_FIELDS.map((field) => renderFieldInput(field, editingArticle[field.key], setEditingArticle, editingArticle))

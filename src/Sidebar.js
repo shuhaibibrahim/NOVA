@@ -127,7 +127,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
             {isAdmin ? sideBarComponent("Admin Desk", "adminDesk", // Assuming isAdmin prop is used for Admin role
                     [
                         {
-                            to:"history/article-entry",
+                            to:"admin/data-entry",
                             label:"Article Entry",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
@@ -186,7 +186,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
             {sideBarComponent("History", "history",
                     [
                         {
-                            to:"admin/data-entry",
+                            to:"history/article-entry",
                             label:"Article Entry",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 19.5V4.75A2.75 2.75 0 016.75 2h10.5A2.75 2.75 0 0120 4.75V19.5M4 19.5h16M8 7h8M8 11h8M8 15h5" />

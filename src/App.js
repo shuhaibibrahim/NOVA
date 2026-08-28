@@ -48,6 +48,7 @@ import UserManagement from './AdminDesk/UserManagement';
 import PackingCombination from './AdminDesk/PackingCombination';
 import ArticleEntryHistory from './History/ArticleEntryHistory';
 import FiuQc from './QCDepartment/FiuQc';
+import LoopStock from './PlanningDesk/LoopStock';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -110,6 +111,7 @@ function App() {
                   <Route path="stuckon-plan" element={<StuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
                   <Route path="previous-stuckon-plan" element={<PreviousStuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
                   <Route path="process-plan" element={<ProcessPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="loop-stock" element={<LoopStock />}/>
                 </Route>
               )}
               

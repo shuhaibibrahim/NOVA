@@ -132,8 +132,8 @@ function PackingCombination() {
   const gridStyle = { gridTemplateColumns: `repeat(${PACKING_FIELDS.length + 2}, minmax(0, 1fr))` };
 
   return (
-    <div className="h-full bg-blue-50 px-3 pb-2 pt-4">
-      <div className="flex flex-col space-y-3 rounded bg-white p-4">
+    <div className="h-full min-w-0 overflow-hidden bg-blue-50 px-3 pb-2 pt-4">
+      <div className="flex min-w-0 flex-col space-y-3 rounded bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="font-semibold text-lg">Packing Combination</div>
           <BulkExcelUploadComponent
@@ -151,7 +151,7 @@ function PackingCombination() {
           className="w-full max-w-md rounded border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
         />
 
-        <div className="overflow-x-auto">
+        <div className="min-w-0 overflow-x-auto">
           <div style={{ minWidth: 3500 }}>
             <div className="grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold" style={gridStyle}>
               <div>SI NO</div>

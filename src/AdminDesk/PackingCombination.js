@@ -37,7 +37,7 @@ function withCompatibilityFields(packing) {
     ...normalized,
     packingLabel: [normalized.gender, normalized.genderCode].filter(Boolean).join(' - '),
     packingComb: PACKING_FIELDS
-      .filter(({ key }) => key.startsWith('size'))
+      .filter(({ key }) => /^size\d+$/.test(key))
       .map(({ key }) => normalized[key] || 0)
       .join(','),
   };

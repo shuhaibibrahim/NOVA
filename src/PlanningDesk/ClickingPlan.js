@@ -133,13 +133,13 @@ function ClickingPlan() {
 
       <div className="min-w-0 overflow-x-auto">
         <div className="min-w-[1800px]">
-          <div className="grid grid-cols-[repeat(12,minmax(0,1fr))] gap-x-3 bg-gray-200 p-3 text-xs font-semibold">
+          <div className="grid grid-cols-[repeat(13,minmax(0,1fr))] gap-x-3 bg-gray-200 p-3 text-xs font-semibold">
             <div>SI NO</div>
             {REQUIREMENT_COLUMNS.map(([, label]) => <div key={label}>{label.toUpperCase()}</div>)}
             <div>QTY TO BE PLANNED</div>
           </div>
           {requirements.map((requirement, index) => (
-            <div key={requirement.id} className="grid grid-cols-[repeat(12,minmax(0,1fr))] gap-x-3 border-b border-gray-200 p-3 text-sm">
+            <div key={requirement.id} className="grid grid-cols-[repeat(13,minmax(0,1fr))] gap-x-3 border-b border-gray-200 p-3 text-sm">
               <div>{index + 1}</div>
               {REQUIREMENT_COLUMNS.map(([key]) => <div key={key} className="break-words">{requirement[key] ?? ''}</div>)}
               <input

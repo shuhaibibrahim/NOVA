@@ -216,6 +216,8 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     ])
             }
 
+            {sideBarComponent("QC Department", "qcDepartment", [])}
+
             {sideBarComponent("History", "history",
                     [
                         {

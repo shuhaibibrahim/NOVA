@@ -131,29 +131,39 @@ function ClickingPlan() {
         </label>
       </div>
 
-      <div className="min-w-0 overflow-x-auto">
-        <div className="min-w-[1800px]">
-          <div className="sticky top-0 z-10 grid grid-cols-[repeat(13,minmax(0,1fr))] gap-x-3 bg-gray-200 p-3 text-xs font-semibold shadow-sm">
-            <div>SI NO</div>
-            {REQUIREMENT_COLUMNS.map(([, label]) => <div key={label}>{label.toUpperCase()}</div>)}
-            <div>QTY TO BE PLANNED</div>
-          </div>
-          {requirements.map((requirement, index) => (
-            <div key={requirement.id} className="grid grid-cols-[repeat(13,minmax(0,1fr))] gap-x-3 border-b border-gray-200 p-3 text-sm">
-              <div>{index + 1}</div>
-              {REQUIREMENT_COLUMNS.map(([key]) => <div key={key} className="break-words">{requirement[key] ?? ''}</div>)}
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={plannedQuantities[requirement.id] || ''}
-                onChange={(event) => updatePlannedQty(requirement.id, event.target.value)}
-                className="min-w-0 rounded border border-blue-200 p-1 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-          ))}
-          {!requirements.length && <div className="p-4 text-center text-gray-500">No requirements have been entered yet.</div>}
-        </div>
+      <div className="max-h-[55vh] min-w-0 overflow-auto border border-gray-200">
+        <table className="min-w-[1800px] w-full border-collapse text-sm">
+          <thead className="sticky top-0 z-10 bg-gray-200 text-xs font-semibold shadow-sm">
+            <tr>
+              <th className="p-3 text-left">SI NO</th>
+              {REQUIREMENT_COLUMNS.map(([, label]) => <th key={label} className="p-3 text-left">{label.toUpperCase()}</th>)}
+              <th className="p-3 text-left">QTY TO BE PLANNED</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requirements.map((requirement, index) => (
+              <tr key={requirement.id} className="border-b border-gray-200 align-top">
+                <td className="p-3">{index + 1}</td>
+                {REQUIREMENT_COLUMNS.map(([key]) => <td key={key} className="p-3 break-words">{requirement[key] ?? ''}</td>)}
+                <td className="p-3">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={plannedQuantities[requirement.id] || ''}
+                    onChange={(event) => updatePlannedQty(requirement.id, event.target.value)}
+                    className="w-full min-w-0 rounded border border-blue-200 p-1 focus:border-blue-500 focus:outline-none"
+                  />
+                </td>
+              </tr>
+            ))}
+            {!requirements.length && (
+              <tr>
+                <td colSpan={13} className="p-4 text-center text-gray-500">No requirements have been entered yet.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
       <div className="flex justify-end">

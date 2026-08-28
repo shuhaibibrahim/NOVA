@@ -47,6 +47,7 @@ import ProcessPlan from './PlanningDesk/ProcessPlan';
 import UserManagement from './AdminDesk/UserManagement';
 import PackingCombination from './AdminDesk/PackingCombination';
 import ArticleEntryHistory from './History/ArticleEntryHistory';
+import FiuQc from './QCDepartment/FiuQc';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -94,6 +95,7 @@ function App() {
               <Route path="spareout" element={<SpareOut userRole={userRole} />} />
               <Route path="sparehistory" element={<SpareHistory userRole={userRole} />}/>
               <Route path="history/article-entry" element={<ArticleEntryHistory />}/>
+              <Route path="qc-department/fiu-qc" element={<FiuQc />}/>
 
               {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge') && (
                 <Route path="planning-desk">

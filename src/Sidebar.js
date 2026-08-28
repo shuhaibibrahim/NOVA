@@ -21,16 +21,40 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
 
                 <div className={"flex flex-col items-start w-full bg-blue-50"+(currentOpenedTab===mainTabValue?" dropdown-visible":" dropdown-hidden")}>
                 {
-                    subTabsArray.map((tabItem, index)=>(
-                        <Link 
-                            key={index}
-                            to={tabItem.to} 
-                            className={" flex flex-row space-x-2 px-2 pl-4 hover:bg-blue-300 w-full py-3 "+ (selectedLink===tabItem.to?" bg-gray-300 border-r-4 border-blue-500":"")}>
-                            <div>
-                                {tabItem.icon}
-                            </div>
-                            <div className="font-medium text-sm">{tabItem.label}</div>
-                        </Link>
+                    subTabsArray.map((tabItem, index) => (
+                        tabItem.children ? (
+                            <React.Fragment key={tabItem.value || index}>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentOpenedTab((tab) => tab === tabItem.value ? mainTabValue : tabItem.value)}
+                                    className={"flex w-full flex-row items-center space-x-2 px-2 pl-4 py-3 text-left hover:bg-blue-300 " + (currentOpenedTab === tabItem.value ? "bg-blue-100" : "")}
+                                >
+                                    <div>{tabItem.icon}</div>
+                                    <div className="font-medium text-sm">{tabItem.label}</div>
+                                </button>
+                                <div className={"flex w-full flex-col bg-blue-50 " + (currentOpenedTab === tabItem.value ? "dropdown-visible" : "dropdown-hidden")}>
+                                    {tabItem.children.map((child) => (
+                                        <Link
+                                            key={child.to}
+                                            to={child.to}
+                                            className={"flex w-full flex-row space-x-2 px-2 py-3 pl-8 hover:bg-blue-300 " + (selectedLink === child.to ? "bg-gray-300 border-r-4 border-blue-500" : "")}
+                                        >
+                                            <div>{child.icon}</div>
+                                            <div className="font-medium text-sm">{child.label}</div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </React.Fragment>
+                        ) : (
+                            <Link
+                                key={index}
+                                to={tabItem.to}
+                                className={" flex flex-row space-x-2 px-2 pl-4 hover:bg-blue-300 w-full py-3 "+ (selectedLink===tabItem.to?" bg-gray-300 border-r-4 border-blue-500":"")}
+                            >
+                                <div>{tabItem.icon}</div>
+                                <div className="font-medium text-sm">{tabItem.label}</div>
+                            </Link>
+                        )
                     ))
                 }
                 </div>
@@ -160,25 +184,34 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
             {sideBarComponent("MM Department", "mmDept",
                     [
                         {
-                            to:"mmdept/stock-entry",
-                            label:"Stock Entry",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
-                        },
-                        {
-                            to:"mmdept/material-outward",
-                            label:"Material Outward",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
-                        },
-                        {
-                            to:"mmdept/material-inward",
-                            label:"Material Inward",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                        </svg>)
+                            value: "rmStore",
+                            label: "RM Store",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7h18M5 7v12h14V7M9 11h6" />
+                            </svg>),
+                            children: [
+                                {
+                                    to:"mmdept/stock-entry",
+                                    label:"Stock Entry",
+                                    icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                                    </svg>)
+                                },
+                                {
+                                    to:"mmdept/material-outward",
+                                    label:"Material Outward",
+                                    icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                                    </svg>)
+                                },
+                                {
+                                    to:"mmdept/material-inward",
+                                    label:"Material Inward",
+                                    icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                                    </svg>)
+                                }
+                            ]
                         }
                     ])
             }

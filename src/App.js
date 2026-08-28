@@ -49,6 +49,7 @@ import PackingCombination from './AdminDesk/PackingCombination';
 import ArticleEntryHistory from './History/ArticleEntryHistory';
 import FiuQc from './QCDepartment/FiuQc';
 import LoopStock from './PlanningDesk/LoopStock';
+import SfgStore from './MMDepartment/SfgStore';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -136,6 +137,9 @@ function App() {
                   <Route path="stock-entry" element={<StockEntry user={userData}/>}/>
                   <Route path="material-outward" element={<MaterialIssueEntry userRole={userRole} />}/>
                  <Route path="material-inward" element={<MaterialInwardEntry userRole={userRole} />}/>
+                  <Route path="clicker-comp-store" element={<SfgStore title="Clicker Comp Store" route="mmdept/clicker-comp-store" />}/>
+                  <Route path="printing-comp-store" element={<SfgStore title="Printing Comp Store" route="mmdept/printing-comp-store" />}/>
+                  <Route path="molding-receiving-store" element={<SfgStore title="Molding Receiving Store" route="mmdept/molding-receiving-store" />}/>
                </Route>
              )}
 

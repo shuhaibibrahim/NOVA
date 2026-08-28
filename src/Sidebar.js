@@ -3,6 +3,7 @@ import {Link} from "react-router-dom";
 
 function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab, userRole, preallocatedProcesses, isAdmin}) {
     const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
+    const [expandedSubTab, setExpandedSubTab] = useState('');
 
     const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray)=>{
         return (
@@ -26,13 +27,13 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                             <React.Fragment key={tabItem.value || index}>
                                 <button
                                     type="button"
-                                    onClick={() => setCurrentOpenedTab((tab) => tab === tabItem.value ? mainTabValue : tabItem.value)}
-                                    className={"flex w-full flex-row items-center space-x-2 px-2 pl-4 py-3 text-left hover:bg-blue-300 " + (currentOpenedTab === tabItem.value ? "bg-blue-100" : "")}
+                                    onClick={() => setExpandedSubTab((tab) => tab === tabItem.value ? '' : tabItem.value)}
+                                    className={"flex w-full flex-row items-center space-x-2 px-2 pl-4 py-3 text-left hover:bg-blue-300 " + (expandedSubTab === tabItem.value ? "bg-blue-100" : "")}
                                 >
                                     <div>{tabItem.icon}</div>
                                     <div className="font-medium text-sm">{tabItem.label}</div>
                                 </button>
-                                <div className={"flex w-full flex-col bg-blue-50 " + (currentOpenedTab === tabItem.value ? "dropdown-visible" : "dropdown-hidden")}>
+                                <div className={"flex w-full flex-col bg-blue-50 " + (expandedSubTab === tabItem.value ? "dropdown-visible" : "dropdown-hidden")}>
                                     {tabItem.children.map((child) => (
                                         <Link
                                             key={child.to}

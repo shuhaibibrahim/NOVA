@@ -9,6 +9,8 @@ const REQUIREMENT_FIELDS = [
   { key: 'reqType', label: 'Req Type', type: 'text', upper: true },
   { key: 'salesOrder', label: 'Sales Order', type: 'text', upper: true },
   { key: 'lineItem', label: 'Line Item', type: 'text', upper: true },
+  { key: 'referenceNo', label: 'Reference No.', type: 'text', upper: true },
+  { key: 'materialNo', label: 'Material No.', type: 'text', upper: true },
   { key: 'article', label: 'Article', type: 'article' },
   { key: 'colour', label: 'Colour', type: 'colour' },
   { key: 'qty', label: 'Qty', type: 'number', step: '1' },
@@ -209,7 +211,7 @@ function RequirementEntry() {
         />
 
         <div className="overflow-x-auto">
-          <div className="min-w-[1450px]">
+          <div className="min-w-[1700px]">
             <div className="grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold" style={gridStyle}>
               <div>SI NO</div>
               {REQUIREMENT_FIELDS.map(({ key, label }) => <div key={key}>{label.toUpperCase()}</div>)}

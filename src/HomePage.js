@@ -24,7 +24,7 @@ function HomePage({setUser, userRole, preallocatedProcesses, isAdmin}) {
                     </div>
                 </div>
 
-                <div className={'h-full w-full'}>
+                <div className={'h-full w-full min-w-0'}>
                     <Outlet context={[setSelectedLink, setOpenedTab]}/>
                 </div>
             </div>

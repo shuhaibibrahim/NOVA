@@ -145,6 +145,13 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
                         },
+                        {
+                            to:"planning-desk/loop-stock",
+                            label:"Loop Stock",
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M6 6v12h12V6M9 10h6M9 14h6" />
+                            </svg>)
+                        },
                         // Filter out null or undefined items that might result from false conditions
                     ].filter(item => item)
             )}

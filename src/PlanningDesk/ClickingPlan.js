@@ -75,11 +75,16 @@ function ClickingPlan() {
   }, [plans, planCodeFilter, dateFilter]);
 
   const modelForRequirement = (requirement) => {
-    const matchingArticle = articles.find((article) =>
-      article.article === requirement.article && article.colour === requirement.colour
-    ) || articles.find((article) => article.article === requirement.article);
+    const normalize = (value) => String(value ?? '').trim().toUpperCase();
+    const articleName = normalize(requirement.article);
+    const colourName = normalize(requirement.colour);
 
-    return matchingArticle?.model || '';
+    const matchingArticle = articles.find((article) =>
+      normalize(article.article) === articleName &&
+      normalize(article.colour ?? article.color) === colourName
+    ) || articles.find((article) => normalize(article.article) === articleName);
+
+    return matchingArticle?.model || requirement.model || '';
   };
 
   const updatePlannedQty = (requirementId, value) => {

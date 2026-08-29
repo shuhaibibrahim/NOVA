@@ -4,6 +4,7 @@ import { onValue, push, ref, set } from 'firebase/database';
 import { db } from '../firebase_config';
 
 const REQUIREMENT_COLUMNS = [
+  ['model', 'Model'],
   ['dateOfReq', 'Date of Req'],
   ['reqType', 'Req Type'],
   ['salesOrder', 'Sales Order'],
@@ -21,6 +22,7 @@ function ClickingPlan() {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [activeSheet, setActiveSheet] = useState('plan');
   const [requirements, setRequirements] = useState([]);
+  const [articles, setArticles] = useState([]);
   const [plans, setPlans] = useState([]);
   const [planCode, setPlanCode] = useState('');
   const [planningDate, setPlanningDate] = useState('');
@@ -38,6 +40,14 @@ function ClickingPlan() {
     return onValue(requirementsRef, (snapshot) => {
       const data = snapshot.val() || {};
       setRequirements(Object.entries(data).map(([id, requirement]) => ({ ...requirement, id })));
+    });
+  }, []);
+
+  useEffect(() => {
+    const articlesRef = ref(db, 'articleData/');
+    return onValue(articlesRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      setArticles(Object.entries(data).map(([id, article]) => ({ ...article, id })));
     });
   }, []);
 
@@ -63,6 +73,14 @@ function ClickingPlan() {
         return secondTime - firstTime;
       });
   }, [plans, planCodeFilter, dateFilter]);
+
+  const modelForRequirement = (requirement) => {
+    const matchingArticle = articles.find((article) =>
+      article.article === requirement.article && article.colour === requirement.colour
+    ) || articles.find((article) => article.article === requirement.article);
+
+    return matchingArticle?.model || '';
+  };
 
   const updatePlannedQty = (requirementId, value) => {
     setPlannedQuantities((quantities) => ({ ...quantities, [requirementId]: value }));
@@ -93,6 +111,7 @@ function ClickingPlan() {
       const planRef = push(ref(db, 'clickingPlans/'));
       return set(planRef, {
         ...requirement,
+        model: modelForRequirement(requirement),
         id: planRef.key,
         requirementId: requirement.id,
         planCode: normalizedPlanCode,
@@ -132,7 +151,7 @@ function ClickingPlan() {
       </div>
 
       <div className="max-h-[55vh] min-w-0 overflow-auto border border-gray-200">
-        <table className="min-w-[1800px] w-full border-collapse text-sm">
+        <table className="min-w-[1950px] w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-gray-200 text-xs font-semibold shadow-sm">
             <tr>
               <th className="p-3 text-left">SI NO</th>
@@ -144,7 +163,7 @@ function ClickingPlan() {
             {requirements.map((requirement, index) => (
               <tr key={requirement.id} className="border-b border-gray-200 align-top">
                 <td className="p-3">{index + 1}</td>
-                {REQUIREMENT_COLUMNS.map(([key]) => <td key={key} className="p-3 break-words">{requirement[key] ?? ''}</td>)}
+                {REQUIREMENT_COLUMNS.map(([key]) => <td key={key} className="p-3 break-words">{key === 'model' ? modelForRequirement(requirement) : requirement[key] ?? ''}</td>)}
                 <td className="p-3">
                   <input
                     type="number"
@@ -159,7 +178,7 @@ function ClickingPlan() {
             ))}
             {!requirements.length && (
               <tr>
-                <td colSpan={13} className="p-4 text-center text-gray-500">No requirements have been entered yet.</td>
+                <td colSpan={14} className="p-4 text-center text-gray-500">No requirements have been entered yet.</td>
               </tr>
             )}
           </tbody>
@@ -199,7 +218,7 @@ function ClickingPlan() {
 
       <div className="min-w-0 overflow-x-auto">
         <div className="min-w-[2000px]">
-          <div className="grid grid-cols-[repeat(15,minmax(0,1fr))] gap-x-3 bg-gray-200 p-3 text-xs font-semibold">
+          <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-x-3 bg-gray-200 p-3 text-xs font-semibold">
             <div>SI NO</div>
             <div>PLAN CODE</div>
             <div>DATE OF PLANNING</div>
@@ -207,7 +226,7 @@ function ClickingPlan() {
             <div>PLANNED QTY</div>
           </div>
           {filteredPlans.map((plan, index) => (
-            <div key={plan.id} className="grid grid-cols-[repeat(15,minmax(0,1fr))] gap-x-3 border-b border-gray-200 p-3 text-sm">
+            <div key={plan.id} className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-x-3 border-b border-gray-200 p-3 text-sm">
               <div>{index + 1}</div>
               <div>{plan.planCode}</div>
               <div>{plan.planningDate}</div>

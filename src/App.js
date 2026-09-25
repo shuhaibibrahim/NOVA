@@ -73,7 +73,9 @@ function App() {
   const [ribbonPermissions, setRibbonPermissions] = useState(null);
   const [permissionsConfigured, setPermissionsConfigured] = useState(false);
   const canAccessRibbon = (path, fallback = false) =>
-    isAdmin || fallback || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey(path)]));
+    isAdmin || (permissionsConfigured
+      ? Boolean(ribbonPermissions?.[controlKey(path)])
+      : fallback);
 
   useEffect(() => {
       const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -144,11 +146,11 @@ function App() {
             <Route path="/" element={<HomePage userRole={userRole} preallocatedProcesses={preallocatedProcesses} isAdmin={isAdmin} canAccessUserSettings={canAccessUserSettings} ribbonPermissions={ribbonPermissions} permissionsConfigured={permissionsConfigured}/>}>
               <Route index element={<MainScreen />} />
               {/* Spare Routes - Assuming accessible to all logged-in users for now */}
-              <Route path="spareview" element={<SpareView userRole={userRole} />} />
-              <Route path="sparein" element={<SpareIn userRole={userRole} />} />
-              <Route path="spareout" element={<SpareOut userRole={userRole} />} />
-              <Route path="sparehistory" element={<SpareHistory userRole={userRole} />}/>
-              <Route path="history/article-entry" element={<ArticleEntryHistory />}/>
+              <Route path="spareview" element={canAccessRibbon('spareview', true) ? <SpareView userRole={userRole} /> : <Navigate to="/" replace />} />
+              <Route path="sparein" element={canAccessRibbon('sparein', true) ? <SpareIn userRole={userRole} /> : <Navigate to="/" replace />} />
+              <Route path="spareout" element={canAccessRibbon('spareout', true) ? <SpareOut userRole={userRole} /> : <Navigate to="/" replace />} />
+              <Route path="sparehistory" element={canAccessRibbon('sparehistory', true) ? <SpareHistory userRole={userRole} /> : <Navigate to="/" replace />}/>
+              <Route path="history/article-entry" element={canAccessRibbon('history/article-entry', true) ? <ArticleEntryHistory /> : <Navigate to="/" replace />}/>
               {canAccessUserSettings && (
                 <>
                   <Route path="user-settings/request" element={<UserRequest isAdmin={isAdmin} />}/>
@@ -156,7 +158,7 @@ function App() {
                   <Route path="user-settings/password" element={<UserSettings section="Password Settings" />}/>
                 </>
               )}
-              <Route path="qc-department/fiu-qc" element={<FiuQc />}/>
+              <Route path="qc-department/fiu-qc" element={canAccessRibbon('qc-department/fiu-qc', true) ? <FiuQc /> : <Navigate to="/" replace />}/>
 
               {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge' || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('planning-desk%2F')))) && (
                 <Route path="planning-desk">
@@ -191,14 +193,14 @@ function App() {
               )}
 
               {/* MM Department Routes - Accessible to MM Head and Store Incharge */}
-              {(isAdmin || userRole === 'MM Head' || userRole === 'Store Incharge' || userRole === 'Production Section Charge') && (
+              {(isAdmin || userRole === 'MM Head' || userRole === 'Store Incharge' || userRole === 'Production Section Charge' || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('mmdept%2F')))) && (
                 <Route path="mmdept">
-                  <Route path="stock-entry" element={<StockEntry user={userData}/>}/>
-                  <Route path="material-outward" element={<MaterialIssueEntry userRole={userRole} />}/>
-                 <Route path="material-inward" element={<MaterialInwardEntry userRole={userRole} />}/>
-                  <Route path="clicker-comp-store" element={<SfgStore title="Clicker Comp Store" route="mmdept/clicker-comp-store" />}/>
-                  <Route path="printing-comp-store" element={<SfgStore title="Printing Comp Store" route="mmdept/printing-comp-store" />}/>
-                  <Route path="molding-receiving-store" element={<SfgStore title="Molding Receiving Store" route="mmdept/molding-receiving-store" />}/>
+                  <Route path="stock-entry" element={canAccessRibbon('mmdept/stock-entry', true) ? <StockEntry user={userData}/> : <Navigate to="/" replace />}/>
+                  <Route path="material-outward" element={canAccessRibbon('mmdept/material-outward', true) ? <MaterialIssueEntry userRole={userRole} /> : <Navigate to="/" replace />}/>
+                 <Route path="material-inward" element={canAccessRibbon('mmdept/material-inward', true) ? <MaterialInwardEntry userRole={userRole} /> : <Navigate to="/" replace />}/>
+                  <Route path="clicker-comp-store" element={canAccessRibbon('mmdept/clicker-comp-store', true) ? <SfgStore title="Clicker Comp Store" route="mmdept/clicker-comp-store" /> : <Navigate to="/" replace />}/>
+                  <Route path="printing-comp-store" element={canAccessRibbon('mmdept/printing-comp-store', true) ? <SfgStore title="Printing Comp Store" route="mmdept/printing-comp-store" /> : <Navigate to="/" replace />}/>
+                  <Route path="molding-receiving-store" element={canAccessRibbon('mmdept/molding-receiving-store', true) ? <SfgStore title="Molding Receiving Store" route="mmdept/molding-receiving-store" /> : <Navigate to="/" replace />}/>
                </Route>
              )}
 

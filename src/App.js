@@ -57,6 +57,8 @@ import UserSettings from './UserSettings';
 import Signup from './Signup';
 import UserRequest from './UserRequest';
 import ForgotPassword from './ForgotPassword';
+import UserControl from './UserControl';
+import { controlKey } from './userControls';
 
 const DESIGNATED_ADMIN_EMAIL = 'ajimsha.albac@walkaroo.co.in';
 
@@ -68,6 +70,10 @@ function App() {
   const [preallocatedProcesses, setPreallocatedProcesses] = useState([]);
   const [accessMessage, setAccessMessage] = useState('');
   const [canAccessUserSettings, setCanAccessUserSettings] = useState(false);
+  const [ribbonPermissions, setRibbonPermissions] = useState(null);
+  const [permissionsConfigured, setPermissionsConfigured] = useState(false);
+  const canAccessRibbon = (path, fallback = false) =>
+    isAdmin || fallback || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey(path)]));
 
   useEffect(() => {
       const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -86,6 +92,16 @@ function App() {
                 setIsAdmin(Boolean(data.admin) || isDesignatedAdmin)
                 setCanAccessUserSettings(isDesignatedAdmin);
                 setUserData(data)
+                onValue(ref(db, 'userControls'), (controlsSnapshot) => {
+                  const controls = controlsSnapshot.val() || {};
+                  const userControls = controls.users?.[user.uid];
+                  const departmentControls = data.department
+                    ? controls.departments?.[encodeURIComponent(data.department)]
+                    : null;
+                  const activeControls = userControls || departmentControls;
+                  setPermissionsConfigured(Boolean(activeControls));
+                  setRibbonPermissions(activeControls?.permissions || null);
+                });
                 setAccessMessage(data.status === 'pending'
                   ? 'Your registration request is awaiting administrator approval.'
                   : data.status === 'rejected'
@@ -99,6 +115,8 @@ function App() {
               setUserData(null);
               setAccessMessage('');
               setCanAccessUserSettings(false);
+              setRibbonPermissions(null);
+              setPermissionsConfigured(false);
           }
       });
       return unsubscribe;
@@ -123,7 +141,7 @@ function App() {
               } />
             )}
             {user && !accessMessage && (
-            <Route path="/" element={<HomePage userRole={userRole} preallocatedProcesses={preallocatedProcesses} isAdmin={isAdmin} canAccessUserSettings={canAccessUserSettings}/>}>
+            <Route path="/" element={<HomePage userRole={userRole} preallocatedProcesses={preallocatedProcesses} isAdmin={isAdmin} canAccessUserSettings={canAccessUserSettings} ribbonPermissions={ribbonPermissions} permissionsConfigured={permissionsConfigured}/>}>
               <Route index element={<MainScreen />} />
               {/* Spare Routes - Assuming accessible to all logged-in users for now */}
               <Route path="spareview" element={<SpareView userRole={userRole} />} />
@@ -134,41 +152,41 @@ function App() {
               {canAccessUserSettings && (
                 <>
                   <Route path="user-settings/request" element={<UserRequest isAdmin={isAdmin} />}/>
-                  <Route path="user-settings/control" element={<UserSettings section="User Control" />}/>
+                  <Route path="user-settings/control" element={<UserControl />}/>
                   <Route path="user-settings/password" element={<UserSettings section="Password Settings" />}/>
                 </>
               )}
               <Route path="qc-department/fiu-qc" element={<FiuQc />}/>
 
-              {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge') && (
+              {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge' || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('planning-desk%2F')))) && (
                 <Route path="planning-desk">
-                  <Route path="knitting-plan" element={<KnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="previous-knitting-plan" element={<PreviousKnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="clicking-plan" element={<ClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="previous-clicking-plan" element={ <PreviousClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> }/>
-                  <Route path="printing-plan" element={<PrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="previous-printing-plan" element={<PreviousPrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="stitching-plan" element={<StitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="previous-stitching-plan" element={<PreviousStitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="stuckon-plan" element={<StuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="previous-stuckon-plan" element={<PreviousStuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
-                  <Route path="process-plan" element={<ProcessPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} />}/>
+                  <Route path="knitting-plan" element={canAccessRibbon('planning-desk/knitting-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <KnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="previous-knitting-plan" element={canAccessRibbon('planning-desk/knitting-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousKnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="clicking-plan" element={canAccessRibbon('planning-desk/clicking-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <ClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="previous-clicking-plan" element={canAccessRibbon('planning-desk/clicking-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="printing-plan" element={canAccessRibbon('planning-desk/printing-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="previous-printing-plan" element={canAccessRibbon('planning-desk/printing-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousPrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="stitching-plan" element={canAccessRibbon('planning-desk/stitching-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <StitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="previous-stitching-plan" element={canAccessRibbon('planning-desk/stitching-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousStitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="stuckon-plan" element={canAccessRibbon('planning-desk/stuckon-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <StuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="previous-stuckon-plan" element={canAccessRibbon('planning-desk/stuckon-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousStuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="process-plan" element={canAccessRibbon('planning-desk/clicking-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <ProcessPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
                   <Route path="loop-stock" element={<LoopStock />}/>
                 </Route>
               )}
               
               {/* Admin Routes - Accessible only to admins */}
-              {isAdmin && (
+              {(isAdmin || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('admin/')))) && (
                 <Route path="admin">
-                  <Route path="adminadd" element={<AdminAddExcel/>} />
-                  <Route path="admindelete" element={<AdminDelete/>} />
-                  <Route path="adminedit" element={<AdminEdit/>} />
-                  <Route path="data-entry" element={<DataEntry/>}/>
-                  <Route path="bom-data-entry" element={<BOMDataEntry />}/>
-                  <Route path="requirement-entry" element={<RequirementEntry/>}/>
-                  <Route path="stock-entry" element={<StockEntry/>}/>
-                  <Route path="packingcombination-entry" element={<PackingCombination/>}/>
-                  <Route path="user-management" element={<UserManagement/>}/>
+                  {isAdmin && <Route path="adminadd" element={<AdminAddExcel/>} />}
+                  {isAdmin && <Route path="admindelete" element={<AdminDelete/>} />}
+                  {isAdmin && <Route path="adminedit" element={<AdminEdit/>} />}
+                  <Route path="data-entry" element={canAccessRibbon('admin/data-entry') ? <DataEntry/> : <Navigate to="/" replace />} />
+                  <Route path="bom-data-entry" element={canAccessRibbon('admin/bom-data-entry') ? <BOMDataEntry /> : <Navigate to="/" replace />} />
+                  <Route path="requirement-entry" element={canAccessRibbon('admin/requirement-entry') ? <RequirementEntry/> : <Navigate to="/" replace />} />
+                  <Route path="packingcombination-entry" element={canAccessRibbon('admin/packingcombination-entry') ? <PackingCombination/> : <Navigate to="/" replace />} />
+                  {isAdmin && <Route path="stock-entry" element={<StockEntry/>} />}
+                  {isAdmin && <Route path="user-management" element={<UserManagement/>} />}
                 </Route>
               )}
 

@@ -7,6 +7,7 @@ import { auth, db } from './firebase_config';
 function UserRequest({ isAdmin }) {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [requests, setRequests] = useState([]);
+  const [registeredUsers, setRegisteredUsers] = useState([]);
   const [passwordRequests, setPasswordRequests] = useState([]);
   const [view, setView] = useState('pending');
 
@@ -21,16 +22,35 @@ function UserRequest({ isAdmin }) {
       const data = snapshot.val() || {};
       setPasswordRequests(Object.entries(data).map(([id, request]) => ({ id, ...request })));
     });
+    const usersUnsubscribe = onValue(ref(db, 'users'), (snapshot) => {
+      const data = snapshot.val() || {};
+      setRegisteredUsers(Object.entries(data).map(([id, user]) => ({ id, ...user })));
+    });
     return () => {
       requestsUnsubscribe();
       passwordUnsubscribe();
+      usersUnsubscribe();
     };
   }, [setSelectedLink, setOpenedTab]);
 
-  const visibleRequests = useMemo(
-    () => requests.filter((request) => request.status === view),
-    [requests, view]
-  );
+  const visibleRequests = useMemo(() => {
+    if (view !== 'approved') return requests.filter((request) => request.status === view);
+
+    const requestByUserId = new Map(requests.map((request) => [request.id, request]));
+    const legacyApprovedUsers = registeredUsers
+      .filter((user) => !user.status || user.status === 'approved')
+      .map((user) => ({
+        ...user,
+        id: user.id,
+        name: user.name || user.email,
+        department: user.department || '',
+        phone: user.phone || '',
+        status: 'approved',
+      }));
+
+    return [...requests.filter((request) => request.status === 'approved'), ...legacyApprovedUsers
+      .filter((user) => !requestByUserId.has(user.id))];
+  }, [requests, registeredUsers, view]);
   const visiblePasswordRequests = useMemo(
     () => passwordRequests.filter((request) => request.status === 'pending'),
     [passwordRequests]

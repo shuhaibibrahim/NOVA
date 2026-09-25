@@ -1,11 +1,26 @@
 import React, { useState } from 'react'
 import {Link} from "react-router-dom";
+import { controlKey } from './userControls';
 
-function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab, userRole, preallocatedProcesses, isAdmin, canAccessUserSettings}) {
+function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab, userRole, preallocatedProcesses, isAdmin, canAccessUserSettings, ribbonPermissions, permissionsConfigured}) {
     const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
     const [expandedSubTab, setExpandedSubTab] = useState('');
 
     const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray)=>{
+        const visibleTabs = subTabsArray
+            .map((tabItem) => {
+                if (!tabItem) return null;
+                if (!permissionsConfigured || isAdmin || !tabItem.to && !tabItem.children) return tabItem;
+                if (tabItem.children) {
+                    const children = tabItem.children.filter((child) => ribbonPermissions?.[controlKey(child.to)]);
+                    return children.length > 0 ? { ...tabItem, children } : null;
+                }
+                return ribbonPermissions?.[controlKey(tabItem.to)] ? tabItem : null;
+            })
+            .filter(Boolean);
+
+        if (permissionsConfigured && !isAdmin && visibleTabs.length === 0) return null;
+
         return (
             <div className='px-1'>
                 <div 
@@ -22,7 +37,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
 
                 <div className={"flex flex-col items-start w-full bg-blue-50"+(currentOpenedTab===mainTabValue?" dropdown-visible":" dropdown-hidden")}>
                 {
-                    subTabsArray.map((tabItem, index) => (
+                    visibleTabs.map((tabItem, index) => (
                         tabItem.children ? (
                             <React.Fragment key={tabItem.value || index}>
                                 <button
@@ -102,7 +117,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     ]
             )}
             
-            {(isAdmin || userRole === 'PP Head' || userRole === 'MM Head' || userRole === 'Store Incharge' || (userRole === 'Production Section Charge' && preallocatedProcesses && preallocatedProcesses.length > 0)) &&
+            {(isAdmin || userRole === 'PP Head' || userRole === 'MM Head' || userRole === 'Store Incharge' || (userRole === 'Production Section Charge' && preallocatedProcesses && preallocatedProcesses.length > 0) || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('planning-desk%2F')))) &&
                 sideBarComponent("Planning Desk", "planningDesk",
                 [
                         // Conditionally render Knitting Plan
@@ -149,7 +164,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     ].filter(item => item)
             )}
 
-            {isAdmin ? sideBarComponent("Admin Desk", "adminDesk", // Assuming isAdmin prop is used for Admin role
+            {(isAdmin || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('admin%2F')))) ? sideBarComponent("Admin Desk", "adminDesk", // Assuming isAdmin prop is used for Admin role
                     [
                         {
                             to:"admin/data-entry",

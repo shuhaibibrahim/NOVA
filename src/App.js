@@ -27,6 +27,7 @@ import { ref, set, onValue } from "firebase/database";
 import { db } from "./firebase_config";
 import AdminAddExcel from './AdminAddExcel';
 import UserLogin from './UserLogin';
+import ResetPassword from './ResetPassword';
 import HomePage from './HomePage';
 import MainScreen from './MainScreen';
 import KnittingPlan from './PlanningDesk/KnittingPlan';
@@ -110,6 +111,7 @@ function App() {
             {!user&&(<Route path="/" element={<UserLogin userRole={userRole}/>} />)}
             {!user&&(<Route path="/signup" element={<Signup />} />)}
             {!user&&(<Route path="/forgot-password" element={<ForgotPassword />} />)}
+            {!user&&(<Route path="/reset-password" element={<ResetPassword />} />)}
             {user && accessMessage && (
               <Route path="*" element={
                 <div className="flex min-h-screen items-center justify-center p-6 text-center">

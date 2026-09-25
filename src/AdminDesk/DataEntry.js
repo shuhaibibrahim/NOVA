@@ -41,6 +41,7 @@ function ArticleEntry() {
   const [editingArticle, setEditingArticle] = useState(emptyArticle);
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState(emptyArticle);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     setSelectedLink('admin/data-entry');
@@ -150,11 +151,43 @@ function ArticleEntry() {
   const deleteArticle = async (article) => {
     if (!window.confirm(`Please confirm deleting ${article.article}.`)) return;
     await remove(ref(db, `articleData/${article.id}`));
+    setSelectedIds((current) => current.filter((id) => id !== article.id));
     await writeArticleHistory({
       article,
       action: 'deleted',
       changes: getArticleChanges(article, {}),
     });
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((current) => current.includes(id)
+      ? current.filter((selectedId) => selectedId !== id)
+      : [...current, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === displayedArticles.length && displayedArticles.length > 0) {
+      setSelectedIds([]);
+      return;
+    }
+
+    setSelectedIds(displayedArticles.map((article) => article.id));
+  };
+
+  const deleteSelectedArticles = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Please confirm deleting ${selectedIds.length} selected article(s).`)) return;
+
+    const selectedArticles = articleData.filter((article) => selectedIds.includes(article.id));
+    await Promise.all(selectedArticles.map(async (article) => {
+      await remove(ref(db, `articleData/${article.id}`));
+      await writeArticleHistory({
+        article,
+        action: 'deleted',
+        changes: getArticleChanges(article, {}),
+      });
+    }));
+    setSelectedIds([]);
   };
 
   const renderFieldInput = (field, value, setter, current) => (
@@ -175,12 +208,22 @@ function ArticleEntry() {
       <div className="flex flex-col space-y-3 rounded bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="font-semibold text-lg">Article Entry</div>
-          <BulkExcelUploadComponent
-            headings={ARTICLE_FIELDS.map(({ key }) => key)}
-            dbPath="articleData/"
-            templateName="Article-template"
-            pushFunction={importArticles}
-          />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={deleteSelectedArticles}
+              disabled={selectedIds.length === 0}
+              className="rounded border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Delete Selected
+            </button>
+            <BulkExcelUploadComponent
+              headings={ARTICLE_FIELDS.map(({ key }) => key)}
+              dbPath="articleData/"
+              templateName="Article-template"
+              pushFunction={importArticles}
+            />
+          </div>
         </div>
 
         <input
@@ -193,7 +236,15 @@ function ArticleEntry() {
         <div className="overflow-x-auto">
           <div className="min-w-[1500px]">
             <div className="grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold" style={{ gridTemplateColumns: `repeat(${ARTICLE_FIELDS.length + 2}, minmax(0, 1fr))` }}>
-              <div>SI NO</div>
+              <div className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={displayedArticles.length > 0 && selectedIds.length === displayedArticles.length}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all articles"
+                  className="h-4 w-4"
+                />
+              </div>
               {ARTICLE_FIELDS.map((field) => (
                 <label key={field.key} className="flex min-w-0 flex-col gap-1">
                   <span>{field.label.toUpperCase()}</span>
@@ -224,16 +275,26 @@ function ArticleEntry() {
             </div>
 
             <form className="grid gap-x-3 bg-blue-100 p-3" style={{ gridTemplateColumns: `repeat(${ARTICLE_FIELDS.length + 2}, minmax(0, 1fr))` }} onSubmit={createArticle}>
-              <div className="text-xs font-medium">NEW</div>
+              <div className="flex items-center justify-center">
+                <span className="text-xs font-medium">NEW</span>
+              </div>
               {ARTICLE_FIELDS.map((field) => renderFieldInput(field, newArticle[field.key], setNewArticle, newArticle))}
               <button type="submit" className="rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white hover:bg-blue-800">
                 Add
               </button>
             </form>
 
-            {[...displayedArticles].reverse().map((article, index) => (
+            {[...displayedArticles].reverse().map((article) => (
               <div key={article.id} className="grid gap-x-3 border-b border-gray-200 p-3 text-sm" style={{ gridTemplateColumns: `repeat(${ARTICLE_FIELDS.length + 2}, minmax(0, 1fr))` }}>
-                <div>{displayedArticles.length - index}</div>
+                <div className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(article.id)}
+                    onChange={() => toggleSelect(article.id)}
+                    aria-label={`Select article ${article.article || article.id}`}
+                    className="h-4 w-4"
+                  />
+                </div>
                 {editingId === article.id
                   ? ARTICLE_FIELDS.map((field) => renderFieldInput(field, editingArticle[field.key], setEditingArticle, editingArticle))
                   : ARTICLE_FIELDS.map(({ key }) => <div key={key} className="break-words">{article[key]}</div>)}

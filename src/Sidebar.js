@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {Link} from "react-router-dom";
 
-function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab, userRole, preallocatedProcesses, isAdmin}) {
+function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab, userRole, preallocatedProcesses, isAdmin, canAccessUserSettings}) {
     const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
     const [expandedSubTab, setExpandedSubTab] = useState('');
 
@@ -145,13 +145,6 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
                         },
-                        {
-                            to:"planning-desk/loop-stock",
-                            label:"Loop Stock",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M6 6v12h12V6M9 10h6M9 14h6" />
-                            </svg>)
-                        },
                         // Filter out null or undefined items that might result from false conditions
                     ].filter(item => item)
             )}
@@ -277,6 +270,31 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         }
                     ])
             }
+
+            {canAccessUserSettings && sideBarComponent("User Settings", "userSettings",
+                    [
+                        {
+                            to:"user-settings/request",
+                            label:"User Request",
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.5 6h3m-1.5 0v12m-5.25-9h9.5M6 18h12" />
+                            </svg>)
+                        },
+                        {
+                            to:"user-settings/control",
+                            label:"User Control",
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM19.4 15a1.7 1.7 0 00.34 1.88l.06.06-1.8 1.8-.06-.06a1.7 1.7 0 00-1.88-.34 1.7 1.7 0 00-1.06 1.56V20h-2.5v-.1a1.7 1.7 0 00-1.06-1.56 1.7 1.7 0 00-1.88.34l-.06.06-1.8-1.8.06-.06A1.7 1.7 0 008.1 15a1.7 1.7 0 00-1.56-1.06H6v-2.5h.1A1.7 1.7 0 007.66 10a1.7 1.7 0 00-.34-1.88l-.06-.06 1.8-1.8.06.06A1.7 1.7 0 0011 6.66 1.7 1.7 0 0012.06 5.1H12.5v2.5" />
+                            </svg>)
+                        },
+                        {
+                            to:"user-settings/password",
+                            label:"Password Settings",
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a4 4 0 11-7.75 1.25L3 12.5V16h3v-2h2v-2h2.25A4 4 0 0015 7z" />
+                            </svg>)
+                        }
+                    ])}
         </div>
     </div>
   )

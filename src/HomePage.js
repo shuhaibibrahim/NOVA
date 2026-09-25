@@ -4,7 +4,7 @@ import spareData from './DummyData';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
-function HomePage({setUser, userRole, preallocatedProcesses, isAdmin, canAccessUserSettings}) {
+function HomePage({setUser, userRole, preallocatedProcesses, isAdmin, canAccessUserSettings, ribbonPermissions, permissionsConfigured}) {
 
     const [selectedLink, setSelectedLink] = useState("")
     const [openedTab, setOpenedTab] = useState("")
@@ -20,7 +20,7 @@ function HomePage({setUser, userRole, preallocatedProcesses, isAdmin, canAccessU
                 </div> */}
                 <div className={'flex flex-col items-start '+(hideSideBar?' sidebar-hidden ':' sidebar-visible ')}>
                     <div className={'w-96'}>
-                        <Sidebar spareData={spareData} selectedLink={selectedLink} openedTab={openedTab} setOpenedTab={setOpenedTab} userRole={userRole} preallocatedProcesses={preallocatedProcesses} isAdmin={isAdmin} canAccessUserSettings={canAccessUserSettings} className={hideSideBar?'sidebar-content-hidden':''}/>
+                        <Sidebar spareData={spareData} selectedLink={selectedLink} openedTab={openedTab} setOpenedTab={setOpenedTab} userRole={userRole} preallocatedProcesses={preallocatedProcesses} isAdmin={isAdmin} canAccessUserSettings={canAccessUserSettings} ribbonPermissions={ribbonPermissions} permissionsConfigured={permissionsConfigured} className={hideSideBar?'sidebar-content-hidden':''}/>
                     </div>
                 </div>
 

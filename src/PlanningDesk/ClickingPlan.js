@@ -77,14 +77,16 @@ function ClickingPlan() {
   const modelForRequirement = (requirement) => {
     const normalize = (value) => String(value ?? '').trim().toUpperCase();
     const articleName = normalize(requirement.article);
-    const colourName = normalize(requirement.colour);
+    const colourName = normalize(requirement.colour ?? requirement.color);
+    const genderName = normalize(requirement.gender);
 
     const matchingArticle = articles.find((article) =>
       normalize(article.article) === articleName &&
-      normalize(article.colour ?? article.color) === colourName
-    ) || articles.find((article) => normalize(article.article) === articleName);
+      normalize(article.colour ?? article.color) === colourName &&
+      normalize(article.gender) === genderName
+    );
 
-    return matchingArticle?.model || requirement.model || '';
+    return matchingArticle?.model || '';
   };
 
   const updatePlannedQty = (requirementId, value) => {
@@ -176,7 +178,7 @@ function ClickingPlan() {
                     step="1"
                     value={plannedQuantities[requirement.id] || ''}
                     onChange={(event) => updatePlannedQty(requirement.id, event.target.value)}
-                    className="w-full min-w-0 rounded border border-blue-200 p-1 focus:border-blue-500 focus:outline-none"
+                    className="no-number-spinner w-full min-w-0 rounded border border-blue-200 p-1 focus:border-blue-500 focus:outline-none"
                   />
                 </td>
               </tr>

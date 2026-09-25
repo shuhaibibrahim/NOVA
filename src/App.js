@@ -8,6 +8,7 @@ import SpareIn from './SpareIn';
 // } from "react-router-dom";
 import {
   BrowserRouter,
+  Navigate,
   Route,
   Routes,
 } from "react-router-dom";
@@ -27,6 +28,7 @@ import { db } from "./firebase_config";
 import AdminAddExcel from './AdminAddExcel';
 import UserLogin from './UserLogin';
 import HomePage from './HomePage';
+import MainScreen from './MainScreen';
 import KnittingPlan from './PlanningDesk/KnittingPlan';
 import PreviousKnittingPlan from './PlanningDesk/PreviousKnittingPlan';
 import ClickingPlan from './PlanningDesk/ClickingPlan';
@@ -50,6 +52,12 @@ import ArticleEntryHistory from './History/ArticleEntryHistory';
 import FiuQc from './QCDepartment/FiuQc';
 import LoopStock from './PlanningDesk/LoopStock';
 import SfgStore from './MMDepartment/SfgStore';
+import UserSettings from './UserSettings';
+import Signup from './Signup';
+import UserRequest from './UserRequest';
+import ForgotPassword from './ForgotPassword';
+
+const DESIGNATED_ADMIN_EMAIL = 'ajimsha.albac@walkaroo.co.in';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -57,9 +65,11 @@ function App() {
   const [userRole, setUserRole] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [preallocatedProcesses, setPreallocatedProcesses] = useState([]);
+  const [accessMessage, setAccessMessage] = useState('');
+  const [canAccessUserSettings, setCanAccessUserSettings] = useState(false);
 
   useEffect(() => {
-      auth.onAuthStateChanged((user) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
           if (user) {
               setUser(user);
 
@@ -67,20 +77,30 @@ function App() {
               const userRef = ref(db, `users/${user.uid}`);
 
               onValue(userRef, (snapshot) => {
-                const data = snapshot.val();
-                ;
+                const data = snapshot.val() || {};
                   
                 setUserRole(data.role); // Fetch and store user role
                 setPreallocatedProcesses(data.preallocatedProcesses || []); // Fetch and store preallocated processes
-                setIsAdmin(data.admin)
+                const isDesignatedAdmin = user.email.toLowerCase() === DESIGNATED_ADMIN_EMAIL;
+                setIsAdmin(Boolean(data.admin) || isDesignatedAdmin)
+                setCanAccessUserSettings(isDesignatedAdmin);
                 setUserData(data)
-                console.log(data)
-                // console.log(data.admin)
+                setAccessMessage(data.status === 'pending'
+                  ? 'Your registration request is awaiting administrator approval.'
+                  : data.status === 'rejected'
+                    ? 'Your registration request was not approved.'
+                    : data.status === 'removed'
+                      ? 'Your account access has been removed.'
+                    : '');
               });
           } else {
               setUser(null);
+              setUserData(null);
+              setAccessMessage('');
+              setCanAccessUserSettings(false);
           }
       });
+      return unsubscribe;
   }, []);
 
   return (
@@ -88,15 +108,34 @@ function App() {
       <BrowserRouter >
         <Routes >
             {!user&&(<Route path="/" element={<UserLogin userRole={userRole}/>} />)}
-            {user&&(
-            <Route path="/" element={<HomePage userRole={userRole} preallocatedProcesses={preallocatedProcesses} isAdmin={isAdmin}/>}>
-              <Route index element={<SpareView/>} />
+            {!user&&(<Route path="/signup" element={<Signup />} />)}
+            {!user&&(<Route path="/forgot-password" element={<ForgotPassword />} />)}
+            {user && accessMessage && (
+              <Route path="*" element={
+                <div className="flex min-h-screen items-center justify-center p-6 text-center">
+                  <div className="rounded bg-white p-8 shadow-md">
+                    <h1 className="text-xl font-semibold">Account access unavailable</h1>
+                    <p className="mt-3 text-gray-600">{accessMessage}</p>
+                  </div>
+                </div>
+              } />
+            )}
+            {user && !accessMessage && (
+            <Route path="/" element={<HomePage userRole={userRole} preallocatedProcesses={preallocatedProcesses} isAdmin={isAdmin} canAccessUserSettings={canAccessUserSettings}/>}>
+              <Route index element={<MainScreen />} />
               {/* Spare Routes - Assuming accessible to all logged-in users for now */}
               <Route path="spareview" element={<SpareView userRole={userRole} />} />
               <Route path="sparein" element={<SpareIn userRole={userRole} />} />
               <Route path="spareout" element={<SpareOut userRole={userRole} />} />
               <Route path="sparehistory" element={<SpareHistory userRole={userRole} />}/>
               <Route path="history/article-entry" element={<ArticleEntryHistory />}/>
+              {canAccessUserSettings && (
+                <>
+                  <Route path="user-settings/request" element={<UserRequest isAdmin={isAdmin} />}/>
+                  <Route path="user-settings/control" element={<UserSettings section="User Control" />}/>
+                  <Route path="user-settings/password" element={<UserSettings section="Password Settings" />}/>
+                </>
+              )}
               <Route path="qc-department/fiu-qc" element={<FiuQc />}/>
 
               {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge') && (
@@ -145,6 +184,8 @@ function App() {
 
             </Route>
             )}
+
+            <Route path="*" element={<Navigate to="/" replace />} />
 
             {/* <Route path="/" exact>
               <UserMain setUser={setUser} user={user}/>

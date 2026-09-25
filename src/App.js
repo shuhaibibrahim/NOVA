@@ -178,7 +178,7 @@ function App() {
               )}
               
               {/* Admin Routes - Accessible only to admins */}
-              {(isAdmin || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('admin/')))) && (
+              {(isAdmin || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('admin%2F')))) && (
                 <Route path="admin">
                   {isAdmin && <Route path="adminadd" element={<AdminAddExcel/>} />}
                   {isAdmin && <Route path="admindelete" element={<AdminDelete/>} />}

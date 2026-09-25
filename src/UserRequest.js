@@ -64,10 +64,16 @@ function UserRequest({ isAdmin }) {
   };
 
   const approvePasswordRequest = async (request) => {
-    await sendPasswordResetEmail(auth, request.email);
+    const actionCodeSettings = {
+      url: `${window.location.origin}/reset-password`,
+      handleCodeInApp: true,
+    };
+
+    await sendPasswordResetEmail(auth, request.email, actionCodeSettings);
     await update(ref(db), {
       [`passwordRequests/${request.id}/status`]: 'approved',
       [`passwordRequests/${request.id}/approvedAt`]: Date.now(),
+      [`passwordRequests/${request.id}/resetEmailStatus`]: 'sent',
     });
   };
 

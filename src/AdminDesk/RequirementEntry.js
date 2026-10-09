@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { db } from '../firebase_config';
 import { onValue, push, ref, remove, set } from 'firebase/database';
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
+import { genderForMaterialNumber, requirementMatchesArticle } from '../requirementMatching';
 
 const REQUIREMENT_FIELDS = [
   { key: 'dateOfReq', label: 'Date of Req', type: 'date' },
@@ -40,6 +41,8 @@ function RequirementEntry() {
   const [editingRequirement, setEditingRequirement] = useState(emptyRequirement);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [articles, setArticles] = useState([]);
+  const [showUnmatchedOnly, setShowUnmatchedOnly] = useState(false);
 
   useEffect(() => {
     setSelectedLink('admin/requirement-entry');
@@ -54,16 +57,25 @@ function RequirementEntry() {
     });
   }, []);
 
+  useEffect(() => {
+    return onValue(ref(db, 'articleData/'), (snapshot) => {
+      const data = snapshot.val() || {};
+      setArticles(Object.values(data));
+    });
+  }, []);
+
+  const isUnmatched = (requirement) => !requirementMatchesArticle(requirement, articles);
+
   const displayedRequirements = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return requirements;
-
     return requirements.filter((requirement) =>
-      REQUIREMENT_FIELDS.some(({ key }) =>
+      (!term || REQUIREMENT_FIELDS.some(({ key }) =>
         String(requirement[key] ?? '').toLowerCase().includes(term)
-      )
+      )) && (!showUnmatchedOnly || isUnmatched(requirement))
     );
-  }, [requirements, search]);
+  }, [requirements, search, showUnmatchedOnly, articles]);
+
+  const unmatchedCount = requirements.filter(isUnmatched).length;
 
   const updateField = (setter, current, field, value) => {
     const next = {
@@ -170,13 +182,23 @@ function RequirementEntry() {
     setSelectedIds([]);
   };
 
-  const gridStyle = { gridTemplateColumns: `repeat(${REQUIREMENT_FIELDS.length + 2}, minmax(0, 1fr))` };
+  const gridStyle = { gridTemplateColumns: `repeat(${REQUIREMENT_FIELDS.length + 3}, minmax(0, 1fr))` };
 
   return (
     <div className="h-full bg-blue-50 px-3 pb-2 pt-4">
       <div className="flex flex-col space-y-3 rounded bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="font-semibold text-lg">Requirement Entry</div>
+          <div className="flex items-center gap-3 text-sm">
+            <span className="font-medium text-red-700">Unmatched: {unmatchedCount}</span>
+            <button
+              type="button"
+              onClick={() => setShowUnmatchedOnly((current) => !current)}
+              className={`rounded border px-2 py-1 ${showUnmatchedOnly ? 'border-red-400 bg-red-100 text-red-800' : 'border-gray-300 bg-white text-gray-700'}`}
+            >
+              {showUnmatchedOnly ? 'Show All' : 'Show Unmatched'}
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -214,6 +236,7 @@ function RequirementEntry() {
                   className="h-4 w-4"
                 />
               </div>
+              <div>GENDER</div>
               {REQUIREMENT_FIELDS.map(({ key, label }) => <div key={key}>{label.toUpperCase()}</div>)}
               <div>ACTIONS</div>
             </div>
@@ -222,6 +245,7 @@ function RequirementEntry() {
               <div className="flex items-center justify-center">
                 <span className="text-xs font-medium">NEW</span>
               </div>
+              <div className="break-words">{genderForMaterialNumber(newRequirement.materialNo)}</div>
               {REQUIREMENT_FIELDS.map((field) => renderFieldInput(field, newRequirement[field.key], setNewRequirement, newRequirement))}
               <button type="submit" className="rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white hover:bg-blue-800">
                 Add
@@ -229,7 +253,7 @@ function RequirementEntry() {
             </form>
 
             {[...displayedRequirements].reverse().map((requirement) => (
-              <div key={requirement.id} className="grid gap-x-3 border-b border-gray-200 p-3 text-sm" style={gridStyle}>
+              <div key={requirement.id} className={`grid gap-x-3 border-b border-gray-200 p-3 text-sm ${isUnmatched(requirement) ? 'bg-red-100' : ''}`} style={gridStyle}>
                 <div className="flex items-center justify-center">
                   <input
                     type="checkbox"
@@ -238,6 +262,9 @@ function RequirementEntry() {
                     aria-label={`Select requirement ${requirement.article || requirement.id}`}
                     className="h-4 w-4"
                   />
+                </div>
+                <div className="break-words">
+                  {genderForMaterialNumber((editingId === requirement.id ? editingRequirement : requirement).materialNo)}
                 </div>
                 {editingId === requirement.id
                   ? REQUIREMENT_FIELDS.map((field) => renderFieldInput(field, editingRequirement[field.key], setEditingRequirement, editingRequirement))

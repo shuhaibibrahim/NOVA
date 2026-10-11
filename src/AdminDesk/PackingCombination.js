@@ -146,6 +146,14 @@ function PackingCombination() {
     setSelectedIds((current) => [...new Set([...current, ...displayedPacking.map(({ id }) => id)])]);
   };
 
+  const deleteSelectedPacking = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Please confirm deleting ${selectedIds.length} selected packing combination(s).`)) return;
+
+    await Promise.all(selectedIds.map((id) => remove(ref(db, `packingCombination/${id}`))));
+    setSelectedIds([]);
+  };
+
   const gridStyle = { gridTemplateColumns: `repeat(${PACKING_FIELDS.length + 2}, minmax(0, 1fr))` };
 
   return (
@@ -153,12 +161,22 @@ function PackingCombination() {
       <div className="flex min-w-0 flex-col space-y-3 rounded bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="font-semibold text-lg">Packing Combination</div>
-          <BulkExcelUploadComponent
-            headings={PACKING_FIELDS.map(({ key }) => key)}
-            dbPath="packingCombination/"
-            templateName="Packing-combination-template"
-            pushFunction={importPacking}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={deleteSelectedPacking}
+              disabled={selectedIds.length === 0}
+              className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Delete Selected{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+            </button>
+            <BulkExcelUploadComponent
+              headings={PACKING_FIELDS.map(({ key }) => key)}
+              dbPath="packingCombination/"
+              templateName="Packing-combination-template"
+              pushFunction={importPacking}
+            />
+          </div>
         </div>
 
         <input

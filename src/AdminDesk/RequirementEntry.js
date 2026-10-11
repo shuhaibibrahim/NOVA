@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { db } from '../firebase_config';
 import { onValue, push, ref, remove, set } from 'firebase/database';
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
-import { genderForMaterialNumber, requirementMatchesArticle } from '../requirementMatching';
+import { genderForMaterialNumber, requirementMatchesArticle, requirementMismatchReason, sizeForRequirement } from '../requirementMatching';
 
 const REQUIREMENT_FIELDS = [
   { key: 'dateOfReq', label: 'Date of Req', type: 'date' },
@@ -16,7 +16,6 @@ const REQUIREMENT_FIELDS = [
   { key: 'colour', label: 'Colour', type: 'text', upper: true },
   { key: 'qty', label: 'Qty', type: 'number', step: '1' },
   { key: 'unit', label: 'Unit', type: 'text', upper: true },
-  { key: 'completionDate', label: 'Completion Date', type: 'date' },
 ];
 
 const emptyRequirement = () => Object.fromEntries(REQUIREMENT_FIELDS.map(({ key }) => [key, '']));
@@ -42,6 +41,7 @@ function RequirementEntry() {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [articles, setArticles] = useState([]);
+  const [packingCombinations, setPackingCombinations] = useState([]);
   const [showUnmatchedOnly, setShowUnmatchedOnly] = useState(false);
 
   useEffect(() => {
@@ -64,16 +64,38 @@ function RequirementEntry() {
     });
   }, []);
 
+  useEffect(() => {
+    return onValue(ref(db, 'packingCombination/'), (snapshot) => {
+      const data = snapshot.val() || {};
+      setPackingCombinations(Object.values(data));
+    });
+  }, []);
+
   const isUnmatched = (requirement) => !requirementMatchesArticle(requirement, articles);
+  const isSizeMissingFromPacking = (requirement) => {
+    if (String(requirement.reqType ?? '').trim().toUpperCase() === 'PAIR MTO') return false;
+    const size = sizeForRequirement(requirement).trim().toUpperCase();
+    return !size || !packingCombinations.some(
+      (packing) => String(packing.sizeGrid ?? '').trim().toUpperCase() === size
+    );
+  };
+
+  const sizeMismatchReason = (requirement) => {
+    const size = sizeForRequirement(requirement);
+    return size
+      ? `Size ${size} is not listed in any Packing Combination size grid.`
+      : 'Size could not be extracted from the Material No.';
+  };
 
   const displayedRequirements = useMemo(() => {
     const term = search.trim().toLowerCase();
     return requirements.filter((requirement) =>
       (!term || REQUIREMENT_FIELDS.some(({ key }) =>
         String(requirement[key] ?? '').toLowerCase().includes(term)
-      )) && (!showUnmatchedOnly || isUnmatched(requirement))
+      )) &&
+      (!showUnmatchedOnly || isUnmatched(requirement) || isSizeMissingFromPacking(requirement))
     );
-  }, [requirements, search, showUnmatchedOnly, articles]);
+  }, [requirements, search, showUnmatchedOnly, articles, packingCombinations]);
 
   const unmatchedCount = requirements.filter(isUnmatched).length;
 
@@ -100,6 +122,12 @@ function RequirementEntry() {
       />
     );
   };
+
+  const renderSizeCell = (requirement) => (
+    <div key="derived-size" className="break-words">
+      {sizeForRequirement(requirement)}
+    </div>
+  );
 
   const createRequirement = async (event) => {
     event.preventDefault();
@@ -182,7 +210,7 @@ function RequirementEntry() {
     setSelectedIds([]);
   };
 
-  const gridStyle = { gridTemplateColumns: `repeat(${REQUIREMENT_FIELDS.length + 3}, minmax(0, 1fr))` };
+  const gridStyle = { gridTemplateColumns: `repeat(${REQUIREMENT_FIELDS.length + 4}, minmax(0, 1fr))` };
 
   return (
     <div className="h-full bg-blue-50 px-3 pb-2 pt-4">
@@ -196,7 +224,7 @@ function RequirementEntry() {
               onClick={() => setShowUnmatchedOnly((current) => !current)}
               className={`rounded border px-2 py-1 ${showUnmatchedOnly ? 'border-red-400 bg-red-100 text-red-800' : 'border-gray-300 bg-white text-gray-700'}`}
             >
-              {showUnmatchedOnly ? 'Show All' : 'Show Unmatched'}
+              {showUnmatchedOnly ? 'Show All' : 'Show Highlighted'}
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -237,7 +265,12 @@ function RequirementEntry() {
                 />
               </div>
               <div>GENDER</div>
-              {REQUIREMENT_FIELDS.map(({ key, label }) => <div key={key}>{label.toUpperCase()}</div>)}
+              {REQUIREMENT_FIELDS.map(({ key, label }) => (
+                <React.Fragment key={key}>
+                  {key === 'qty' && <div>SIZE</div>}
+                  <div>{label.toUpperCase()}</div>
+                </React.Fragment>
+              ))}
               <div>ACTIONS</div>
             </div>
 
@@ -246,14 +279,33 @@ function RequirementEntry() {
                 <span className="text-xs font-medium">NEW</span>
               </div>
               <div className="break-words">{genderForMaterialNumber(newRequirement.materialNo)}</div>
-              {REQUIREMENT_FIELDS.map((field) => renderFieldInput(field, newRequirement[field.key], setNewRequirement, newRequirement))}
+              {REQUIREMENT_FIELDS.map((field) => (
+                <React.Fragment key={field.key}>
+                  {field.key === 'qty' && renderSizeCell(newRequirement)}
+                  {renderFieldInput(field, newRequirement[field.key], setNewRequirement, newRequirement)}
+                </React.Fragment>
+              ))}
               <button type="submit" className="rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white hover:bg-blue-800">
                 Add
               </button>
             </form>
 
-            {[...displayedRequirements].reverse().map((requirement) => (
-              <div key={requirement.id} className={`grid gap-x-3 border-b border-gray-200 p-3 text-sm ${isUnmatched(requirement) ? 'bg-red-100' : ''}`} style={gridStyle}>
+            {[...displayedRequirements].reverse().map((requirement) => {
+              const unmatched = isUnmatched(requirement);
+              const sizeMissing = isSizeMissingFromPacking(requirement);
+              const mismatchTitle = [
+                unmatched ? requirementMismatchReason(requirement, articles) : '',
+                sizeMissing ? sizeMismatchReason(requirement) : '',
+              ].filter(Boolean).join(' ');
+
+              return (
+              <div
+                key={requirement.id}
+                title={mismatchTitle || undefined}
+                aria-label={mismatchTitle ? `Requirement validation: ${mismatchTitle}` : undefined}
+                className={`grid gap-x-3 border-b border-gray-200 p-3 text-sm ${unmatched ? 'cursor-help bg-red-100' : sizeMissing ? 'cursor-help bg-yellow-100' : ''}`}
+                style={gridStyle}
+              >
                 <div className="flex items-center justify-center">
                   <input
                     type="checkbox"
@@ -267,8 +319,18 @@ function RequirementEntry() {
                   {genderForMaterialNumber((editingId === requirement.id ? editingRequirement : requirement).materialNo)}
                 </div>
                 {editingId === requirement.id
-                  ? REQUIREMENT_FIELDS.map((field) => renderFieldInput(field, editingRequirement[field.key], setEditingRequirement, editingRequirement))
-                  : REQUIREMENT_FIELDS.map(({ key }) => <div key={key} className="break-words">{requirement[key]}</div>)}
+                  ? REQUIREMENT_FIELDS.map((field) => (
+                    <React.Fragment key={field.key}>
+                      {field.key === 'qty' && renderSizeCell(editingRequirement)}
+                      {renderFieldInput(field, editingRequirement[field.key], setEditingRequirement, editingRequirement)}
+                    </React.Fragment>
+                  ))
+                  : REQUIREMENT_FIELDS.map(({ key }) => (
+                    <React.Fragment key={key}>
+                      {key === 'qty' && renderSizeCell(requirement)}
+                      <div className="break-words">{requirement[key]}</div>
+                    </React.Fragment>
+                  ))}
                 <div className="flex gap-2">
                   {editingId === requirement.id ? (
                     <>
@@ -283,7 +345,8 @@ function RequirementEntry() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

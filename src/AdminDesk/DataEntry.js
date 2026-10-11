@@ -16,6 +16,7 @@ const ARTICLE_FIELDS = [
   { key: 'priceCategory', label: 'Price Category', type: 'text', upper: true },
   { key: 'm1Quantity', label: 'M1 Quantity', type: 'number', step: '1' },
   { key: 'm2Quantity', label: 'M2 Quantity', type: 'number', step: '1' },
+  { key: 'pairMtoPrQty', label: 'Pair MTO PR Qty', type: 'number', step: '1' },
 ];
 
 const emptyArticle = () => Object.fromEntries(ARTICLE_FIELDS.map(({ key }) => [key, '']));

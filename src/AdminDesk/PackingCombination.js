@@ -50,6 +50,7 @@ function PackingCombination() {
   const [editingId, setEditingId] = useState(null);
   const [editingPacking, setEditingPacking] = useState(emptyPacking);
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     setSelectedLink('admin/packingcombination-entry');
@@ -127,6 +128,22 @@ function PackingCombination() {
   const deletePacking = async (packing) => {
     if (!window.confirm(`Please confirm deleting the packing combination for ${packing.gender || 'this record'}.`)) return;
     await remove(ref(db, `packingCombination/${packing.id}`));
+    setSelectedIds((current) => current.filter((id) => id !== packing.id));
+  };
+
+  const togglePackingSelection = (id) => {
+    setSelectedIds((current) => current.includes(id)
+      ? current.filter((selectedId) => selectedId !== id)
+      : [...current, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (displayedPacking.length > 0 && displayedPacking.every(({ id }) => selectedIds.includes(id))) {
+      setSelectedIds((current) => current.filter((id) => !displayedPacking.some((packing) => packing.id === id)));
+      return;
+    }
+
+    setSelectedIds((current) => [...new Set([...current, ...displayedPacking.map(({ id }) => id)])]);
   };
 
   const gridStyle = { gridTemplateColumns: `repeat(${PACKING_FIELDS.length + 2}, minmax(0, 1fr))` };
@@ -151,28 +168,40 @@ function PackingCombination() {
           className="w-full max-w-md rounded border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
         />
 
-        <div className="min-w-0 overflow-x-auto">
+        <div
+          className="min-w-0"
+          style={{
+            height: '65vh',
+            minHeight: 0,
+            overflowX: 'auto',
+            overflowY: 'scroll',
+          }}
+        >
           <div style={{ minWidth: 3500 }}>
-            <div className="grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold" style={gridStyle}>
-              <div>SI NO</div>
-              {PACKING_FIELDS.map(({ key, label }) => <div key={key}>{label.toUpperCase()}</div>)}
+            <div className="sticky top-0 z-10 grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold shadow-sm" style={gridStyle}>
               <div>ACTIONS</div>
+              <div className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={displayedPacking.length > 0 && displayedPacking.every(({ id }) => selectedIds.includes(id))}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all packing combinations"
+                  className="h-4 w-4"
+                />
+              </div>
+              {PACKING_FIELDS.map(({ key, label }) => <div key={key}>{label.toUpperCase()}</div>)}
             </div>
 
             <form className="grid gap-x-3 bg-blue-100 p-3" style={gridStyle} onSubmit={createPacking}>
-              <div className="text-xs font-medium">NEW</div>
-              {PACKING_FIELDS.map((field) => renderFieldInput(field, newPacking[field.key], setNewPacking, newPacking))}
               <button type="submit" className="rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white hover:bg-blue-800">
                 Add
               </button>
+              <div />
+              {PACKING_FIELDS.map((field) => renderFieldInput(field, newPacking[field.key], setNewPacking, newPacking))}
             </form>
 
-            {[...displayedPacking].reverse().map((packing, index) => (
+            {[...displayedPacking].reverse().map((packing) => (
               <div key={packing.id} className="grid gap-x-3 border-b border-gray-200 p-3 text-sm" style={gridStyle}>
-                <div>{displayedPacking.length - index}</div>
-                {editingId === packing.id
-                  ? PACKING_FIELDS.map((field) => renderFieldInput(field, editingPacking[field.key], setEditingPacking, editingPacking))
-                  : PACKING_FIELDS.map(({ key }) => <div key={key} className="break-words">{packing[key]}</div>)}
                 <div className="flex gap-2">
                   {editingId === packing.id ? (
                     <>
@@ -186,6 +215,18 @@ function PackingCombination() {
                     </>
                   )}
                 </div>
+                <div className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(packing.id)}
+                    onChange={() => togglePackingSelection(packing.id)}
+                    aria-label={`Select packing combination ${packing.gender || packing.id}`}
+                    className="h-4 w-4"
+                  />
+                </div>
+                {editingId === packing.id
+                  ? PACKING_FIELDS.map((field) => renderFieldInput(field, editingPacking[field.key], setEditingPacking, editingPacking))
+                  : PACKING_FIELDS.map(({ key }) => <div key={key} className="break-words">{packing[key]}</div>)}
               </div>
             ))}
           </div>

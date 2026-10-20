@@ -12,9 +12,9 @@ function HomePage({setUser, userRole, preallocatedProcesses, isAdmin, canAccessU
     const [hideSideBar, setHideSideBar] = useState(false)
 
     return (
-        <div className='home-page h-full flex flex-col'>
+        <div className='home-page flex h-full min-h-0 flex-col'>
             <Header heading="N O V A" setUser={setUser} setHideSideBar={setHideSideBar}/>
-            <div className='flex h-full w-full flex-row'>
+            <div className='flex min-h-0 w-full flex-1 flex-row'>
                 {/* <div className="p-12 flex flex-row items-center bg-blue-200 filter drop-shadow-lg w-full">
                     <div className="font-bold text-5xl w-full text-center text-gray-900">SPARE MANAGEMENT CONSOLE</div>
                 </div> */}
@@ -24,7 +24,7 @@ function HomePage({setUser, userRole, preallocatedProcesses, isAdmin, canAccessU
                     </div>
                 </div>
 
-                <div className={'h-full w-full min-w-0'}>
+                <div className={'h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden'}>
                     <Outlet context={[setSelectedLink, setOpenedTab]}/>
                 </div>
             </div>

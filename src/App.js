@@ -49,6 +49,8 @@ import MaterialInwardEntry from './AdminDesk/MaterialInward';
 import ProcessPlan from './PlanningDesk/ProcessPlan';
 import UserManagement from './AdminDesk/UserManagement';
 import PackingCombination from './AdminDesk/PackingCombination';
+import VendorDetails from './AdminDesk/VendorDetails';
+import CooisData from './ProductionPlanningInputs/CooisData';
 import ArticleEntryHistory from './History/ArticleEntryHistory';
 import FiuQc from './QCDepartment/FiuQc';
 import LoopStock from './PlanningDesk/LoopStock';
@@ -160,6 +162,19 @@ function App() {
               )}
               <Route path="qc-department/fiu-qc" element={canAccessRibbon('qc-department/fiu-qc', true) ? <FiuQc /> : <Navigate to="/" replace />}/>
 
+              {(isAdmin || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey('production-planning-inputs/requirement-entry')]))) && (
+                <Route
+                  path="production-planning-inputs/requirement-entry"
+                  element={canAccessRibbon('production-planning-inputs/requirement-entry') ? <RequirementEntry /> : <Navigate to="/" replace />}
+                />
+              )}
+              {(isAdmin || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey('production-planning-inputs/coois-data')]))) && (
+                <Route
+                  path="production-planning-inputs/coois-data"
+                  element={canAccessRibbon('production-planning-inputs/coois-data') ? <CooisData /> : <Navigate to="/" replace />}
+                />
+              )}
+
               {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge' || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('planning-desk%2F')))) && (
                 <Route path="planning-desk">
                   <Route path="knitting-plan" element={canAccessRibbon('planning-desk/knitting-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <KnittingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
@@ -185,8 +200,8 @@ function App() {
                   {isAdmin && <Route path="adminedit" element={<AdminEdit/>} />}
                   <Route path="data-entry" element={canAccessRibbon('admin/data-entry') ? <DataEntry/> : <Navigate to="/" replace />} />
                   <Route path="bom-data-entry" element={canAccessRibbon('admin/bom-data-entry') ? <BOMDataEntry /> : <Navigate to="/" replace />} />
-                  <Route path="requirement-entry" element={canAccessRibbon('admin/requirement-entry') ? <RequirementEntry/> : <Navigate to="/" replace />} />
                   <Route path="packingcombination-entry" element={canAccessRibbon('admin/packingcombination-entry') ? <PackingCombination/> : <Navigate to="/" replace />} />
+                  <Route path="vendor-details" element={canAccessRibbon('admin/vendor-details') ? <VendorDetails/> : <Navigate to="/" replace />} />
                   {isAdmin && <Route path="stock-entry" element={<StockEntry/>} />}
                   {isAdmin && <Route path="user-management" element={<UserManagement/>} />}
                 </Route>

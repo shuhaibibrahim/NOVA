@@ -45,8 +45,8 @@ function RequirementEntry() {
   const [showUnmatchedOnly, setShowUnmatchedOnly] = useState(false);
 
   useEffect(() => {
-    setSelectedLink('admin/requirement-entry');
-    setOpenedTab('adminDesk');
+    setSelectedLink('production-planning-inputs/requirement-entry');
+    setOpenedTab('productionPlanningInputs');
   }, [setSelectedLink, setOpenedTab]);
 
   useEffect(() => {
@@ -79,6 +79,47 @@ function RequirementEntry() {
       (packing) => String(packing.sizeGrid ?? '').trim().toUpperCase() === size
     );
   };
+  const pairMtoRemainderReasons = useMemo(() => {
+    const pairMtoGroups = requirements.reduce((groups, requirement) => {
+      if (String(requirement.reqType ?? '').trim().toUpperCase() !== 'PAIR MTO') return groups;
+
+      const referenceNo = String(requirement.referenceNo ?? '').trim().toUpperCase();
+      if (!referenceNo) return groups;
+
+      groups.set(referenceNo, [...(groups.get(referenceNo) || []), requirement]);
+      return groups;
+    }, new Map());
+
+    const reasonsById = new Map();
+    pairMtoGroups.forEach((group) => {
+      const totalQty = group.reduce((sum, requirement) => sum + (Number(requirement.qty) || 0), 0);
+      const mismatches = group.map((requirement) => {
+        const matchingArticle = articles.find(
+          (article) => String(article.article ?? '').trim().toUpperCase() === String(requirement.article ?? '').trim().toUpperCase()
+        );
+        const pairMtoPrQty = Number(matchingArticle?.pairMtoPrQty);
+
+        if (!Number.isFinite(pairMtoPrQty) || pairMtoPrQty <= 0) return null;
+        const remainder = totalQty % pairMtoPrQty;
+        return remainder === 0
+          ? null
+          : {
+            requirement,
+            reason: `PAIR MTO reference ${requirement.referenceNo}: total Qty ${totalQty} divided by Pair MTO PR Qty ${pairMtoPrQty} leaves remainder ${remainder}.`,
+          };
+      });
+
+      const groupMismatches = mismatches.filter(Boolean);
+      if (groupMismatches.length > 0) {
+        const groupReason = [...new Set(groupMismatches.map(({ reason }) => reason))].join(' ');
+        group.forEach((requirement) => reasonsById.set(requirement.id, groupReason));
+      }
+    });
+
+    return reasonsById;
+  }, [requirements, articles]);
+  const pairMtoRemainderReason = (requirement) => pairMtoRemainderReasons.get(requirement.id) || '';
+  const hasPairMtoRemainder = (requirement) => Boolean(pairMtoRemainderReason(requirement));
 
   const sizeMismatchReason = (requirement) => {
     const size = sizeForRequirement(requirement);
@@ -93,9 +134,9 @@ function RequirementEntry() {
       (!term || REQUIREMENT_FIELDS.some(({ key }) =>
         String(requirement[key] ?? '').toLowerCase().includes(term)
       )) &&
-      (!showUnmatchedOnly || isUnmatched(requirement) || isSizeMissingFromPacking(requirement))
+      (!showUnmatchedOnly || isUnmatched(requirement) || isSizeMissingFromPacking(requirement) || hasPairMtoRemainder(requirement))
     );
-  }, [requirements, search, showUnmatchedOnly, articles, packingCombinations]);
+  }, [requirements, search, showUnmatchedOnly, articles, packingCombinations, pairMtoRemainderReasons]);
 
   const unmatchedCount = requirements.filter(isUnmatched).length;
 
@@ -293,18 +334,27 @@ function RequirementEntry() {
             {[...displayedRequirements].reverse().map((requirement) => {
               const unmatched = isUnmatched(requirement);
               const sizeMissing = isSizeMissingFromPacking(requirement);
+              const pairMtoRemainder = hasPairMtoRemainder(requirement);
               const mismatchTitle = [
                 unmatched ? requirementMismatchReason(requirement, articles) : '',
                 sizeMissing ? sizeMismatchReason(requirement) : '',
+                pairMtoRemainder ? pairMtoRemainderReason(requirement) : '',
               ].filter(Boolean).join(' ');
+              const rowBackground = unmatched
+                ? '#fee2e2'
+                : sizeMissing
+                  ? '#fef9c3'
+                  : pairMtoRemainder
+                    ? '#ffedd5'
+                    : undefined;
 
               return (
               <div
                 key={requirement.id}
                 title={mismatchTitle || undefined}
                 aria-label={mismatchTitle ? `Requirement validation: ${mismatchTitle}` : undefined}
-                className={`grid gap-x-3 border-b border-gray-200 p-3 text-sm ${unmatched ? 'cursor-help bg-red-100' : sizeMissing ? 'cursor-help bg-yellow-100' : ''}`}
-                style={gridStyle}
+                className={`grid gap-x-3 border-b border-gray-200 p-3 text-sm ${mismatchTitle ? 'cursor-help' : ''}`}
+                style={{ ...gridStyle, backgroundColor: rowBackground }}
               >
                 <div className="flex items-center justify-center">
                   <input

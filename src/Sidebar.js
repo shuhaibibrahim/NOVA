@@ -6,7 +6,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
     const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
     const [expandedSubTab, setExpandedSubTab] = useState('');
 
-    const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray)=>{
+    const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray, showWhenEmpty = false)=>{
         const visibleTabs = subTabsArray
             .map((tabItem) => {
                 if (!tabItem) return null;
@@ -19,7 +19,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
             })
             .filter(Boolean);
 
-        if (permissionsConfigured && !isAdmin && visibleTabs.length === 0) return null;
+        if (!showWhenEmpty && permissionsConfigured && !isAdmin && visibleTabs.length === 0) return null;
 
         return (
             <div className='px-1'>
@@ -164,6 +164,24 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     ].filter(item => item)
             )}
 
+            {sideBarComponent("Production Planning Inputs", "productionPlanningInputs",
+                    [
+                        {
+                            to: "production-planning-inputs/requirement-entry",
+                            label: "Requirement Entry",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                            </svg>)
+                        },
+                        {
+                            to: "production-planning-inputs/coois-data",
+                            label: "Coois Data",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h5" />
+                            </svg>)
+                        }
+                    ])}
+
             {(isAdmin || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('admin%2F')))) ? sideBarComponent("Admin Desk", "adminDesk", // Assuming isAdmin prop is used for Admin role
                     [
                         {
@@ -181,18 +199,18 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                                 </svg>)
                         },
                         {
-                            to:"admin/requirement-entry",
-                            label:"Requirement Entry",
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                                </svg>)
-                        },
-                        {
                             to:"admin/packingcombination-entry",
                             label:"Packing Combination",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
+                        },
+                        {
+                            to:"admin/vendor-details",
+                            label:"Vendor Details",
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>)
                         }
                     ]) : [] // Render empty array if not Admin
             }

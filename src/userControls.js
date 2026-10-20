@@ -21,13 +21,21 @@ export const CONTROL_TREE = [
     ],
   },
   {
+    id: 'productionPlanningInputs',
+    label: 'Production Planning Inputs',
+    children: [
+      ['production-planning-inputs/requirement-entry', 'Requirement Entry'],
+      ['production-planning-inputs/coois-data', 'Coois Data'],
+    ],
+  },
+  {
     id: 'adminDesk',
     label: 'Admin Desk',
     children: [
       ['admin/data-entry', 'Article Entry'],
       ['admin/bom-data-entry', 'BOM Entry'],
-      ['admin/requirement-entry', 'Requirement Entry'],
       ['admin/packingcombination-entry', 'Packing Combination'],
+      ['admin/vendor-details', 'Vendor Details'],
     ],
   },
   {

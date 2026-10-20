@@ -18,7 +18,8 @@ function Header({heading, setUser, setHideSideBar}) {
                 <div className="font-bold text-xl">
                     {heading}   
                 </div>
-                <div className='text-brandnote'>WALK</div>
+                <div className='text-brandnote'>4 WALKAROO</div>
+                {/* <div className='text-brandnote'>WALKAROO</div> */}
 
                 <div onClick={()=>{setHideSideBar(t=>!t)}} className='cursor-pointer pt-2 hover:text-blue-500'>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">

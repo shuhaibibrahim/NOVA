@@ -42,7 +42,7 @@ import StuckonPlan from './PlanningDesk/StuckonPlan';
 import PreviousStuckonPlan from './PlanningDesk/PreviousStuckonPlan';
 import DataEntry from './AdminDesk/DataEntry';
 import RequirementEntry from './AdminDesk/RequirementEntry';
-import BOMDataEntry from './AdminDesk/BomDataEntry';
+import BomEntry from './AdminDesk/BomEntry';
 import StockEntry from './AdminDesk/StockEntry';
 import MaterialIssueEntry from './AdminDesk/MaterialOutward';
 import MaterialInwardEntry from './AdminDesk/MaterialInward';
@@ -54,6 +54,8 @@ import CooisData from './ProductionPlanningInputs/CooisData';
 import ArticleEntryHistory from './History/ArticleEntryHistory';
 import FiuQc from './QCDepartment/FiuQc';
 import LoopStock from './PlanningDesk/LoopStock';
+import ClickerShortage from './Analysis/ClickerShortage';
+import PlanningPlanPlaceholder from './PlanningDesk/PlanningPlanPlaceholder';
 import SfgStore from './MMDepartment/SfgStore';
 import UserSettings from './UserSettings';
 import Signup from './Signup';
@@ -66,6 +68,7 @@ const DESIGNATED_ADMIN_EMAIL = 'ajimsha.albac@walkaroo.co.in';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [appReady, setAppReady] = useState(false);
   const [userData, setUserData] = useState(null)
   const [userRole, setUserRole] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -82,6 +85,7 @@ function App() {
   useEffect(() => {
       const unsubscribe = auth.onAuthStateChanged((user) => {
           if (user) {
+              setAppReady(false);
               setUser(user);
 
               // 
@@ -105,6 +109,7 @@ function App() {
                   const activeControls = userControls || departmentControls;
                   setPermissionsConfigured(Boolean(activeControls));
                   setRibbonPermissions(activeControls?.permissions || null);
+                  setAppReady(true);
                 });
                 setAccessMessage(data.status === 'pending'
                   ? 'Your registration request is awaiting administrator approval.'
@@ -117,10 +122,13 @@ function App() {
           } else {
               setUser(null);
               setUserData(null);
+              setUserRole(null);
+              setPreallocatedProcesses([]);
               setAccessMessage('');
               setCanAccessUserSettings(false);
               setRibbonPermissions(null);
               setPermissionsConfigured(false);
+              setAppReady(true);
           }
       });
       return unsubscribe;
@@ -129,6 +137,11 @@ function App() {
   return (
     <div className="App bg-slate-100 h-screen">
       <BrowserRouter >
+        {!appReady ? (
+          <div className="flex h-full items-center justify-center text-gray-600" role="status">
+            Loading your workspace...
+          </div>
+        ) : (
         <Routes >
             {!user&&(<Route path="/" element={<UserLogin userRole={userRole}/>} />)}
             {!user&&(<Route path="/signup" element={<Signup />} />)}
@@ -162,6 +175,18 @@ function App() {
               )}
               <Route path="qc-department/fiu-qc" element={canAccessRibbon('qc-department/fiu-qc', true) ? <FiuQc /> : <Navigate to="/" replace />}/>
 
+              <Route
+                path="analysis/loop-stocks"
+                element={canAccessRibbon('analysis/loop-stocks', true) ? <LoopStock /> : <Navigate to="/" replace />}
+              />
+              <Route
+                path="analysis/shortage-details/clicker-shortage"
+                element={canAccessRibbon('analysis/shortage-details/clicker-shortage') ? <ClickerShortage /> : <Navigate to="/" replace />}
+              />
+              <Route
+                path="execution/clicker-plan"
+                element={canAccessRibbon('execution/clicker-plan', true) ? <ClickingPlan viewOnly isAdmin={isAdmin} /> : <Navigate to="/" replace />}
+              />
               {(isAdmin || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey('production-planning-inputs/requirement-entry')]))) && (
                 <Route
                   path="production-planning-inputs/requirement-entry"
@@ -185,10 +210,12 @@ function App() {
                   <Route path="previous-printing-plan" element={canAccessRibbon('planning-desk/printing-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousPrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
                   <Route path="stitching-plan" element={canAccessRibbon('planning-desk/stitching-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <StitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
                   <Route path="previous-stitching-plan" element={canAccessRibbon('planning-desk/stitching-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousStitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="molding-plan" element={canAccessRibbon('planning-desk/molding-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PlanningPlanPlaceholder title="Molding Plan" route="planning-desk/molding-plan" /> : <Navigate to="/" replace />}/>
+                  <Route path="grinding-plan" element={canAccessRibbon('planning-desk/grinding-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PlanningPlanPlaceholder title="Grinding Plan" route="planning-desk/grinding-plan" /> : <Navigate to="/" replace />}/>
                   <Route path="stuckon-plan" element={canAccessRibbon('planning-desk/stuckon-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <StuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
                   <Route path="previous-stuckon-plan" element={canAccessRibbon('planning-desk/stuckon-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousStuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="packing-plan" element={canAccessRibbon('planning-desk/packing-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PlanningPlanPlaceholder title="Packing Plan" route="planning-desk/packing-plan" /> : <Navigate to="/" replace />}/>
                   <Route path="process-plan" element={canAccessRibbon('planning-desk/clicking-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <ProcessPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
-                  <Route path="loop-stock" element={<LoopStock />}/>
                 </Route>
               )}
               
@@ -199,7 +226,8 @@ function App() {
                   {isAdmin && <Route path="admindelete" element={<AdminDelete/>} />}
                   {isAdmin && <Route path="adminedit" element={<AdminEdit/>} />}
                   <Route path="data-entry" element={canAccessRibbon('admin/data-entry') ? <DataEntry/> : <Navigate to="/" replace />} />
-                  <Route path="bom-data-entry" element={canAccessRibbon('admin/bom-data-entry') ? <BOMDataEntry /> : <Navigate to="/" replace />} />
+                  <Route path="bom-entry" element={canAccessRibbon('admin/bom-entry') ? <BomEntry/> : <Navigate to="/" replace />} />
+                  <Route path="bom-entry/:articleId" element={canAccessRibbon('admin/bom-entry') ? <BomEntry/> : <Navigate to="/" replace />} />
                   <Route path="packingcombination-entry" element={canAccessRibbon('admin/packingcombination-entry') ? <PackingCombination/> : <Navigate to="/" replace />} />
                   <Route path="vendor-details" element={canAccessRibbon('admin/vendor-details') ? <VendorDetails/> : <Navigate to="/" replace />} />
                   {isAdmin && <Route path="stock-entry" element={<StockEntry/>} />}
@@ -260,6 +288,7 @@ function App() {
               {user&&isAdmin?<AdminEdit/>:<Redirect to="/"/>}
             </Route> */}
         </Routes>
+        )}
       </BrowserRouter>
     </div>
   );

@@ -17,7 +17,25 @@ export const CONTROL_TREE = [
       ['planning-desk/clicking-plan', 'Clicking Plan'],
       ['planning-desk/printing-plan', 'Printing Plan'],
       ['planning-desk/stitching-plan', 'Stitching Plan'],
+      ['planning-desk/molding-plan', 'Molding Plan'],
+      ['planning-desk/grinding-plan', 'Grinding Plan'],
       ['planning-desk/stuckon-plan', 'Stuckon Production Plan'],
+      ['planning-desk/packing-plan', 'Packing Plan'],
+    ],
+  },
+  {
+    id: 'analysis',
+    label: 'Analysis',
+    children: [
+      ['analysis/loop-stocks', 'Loop Stocks'],
+      ['analysis/shortage-details/clicker-shortage', 'Clicker Shortage'],
+    ],
+  },
+  {
+    id: 'execution',
+    label: 'Execution',
+    children: [
+      ['execution/clicker-plan', 'Clicker Plan'],
     ],
   },
   {
@@ -33,7 +51,7 @@ export const CONTROL_TREE = [
     label: 'Admin Desk',
     children: [
       ['admin/data-entry', 'Article Entry'],
-      ['admin/bom-data-entry', 'BOM Entry'],
+      ['admin/bom-entry', 'BOM Entry'],
       ['admin/packingcombination-entry', 'Packing Combination'],
       ['admin/vendor-details', 'Vendor Details'],
     ],

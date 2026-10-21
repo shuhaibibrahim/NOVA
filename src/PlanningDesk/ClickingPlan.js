@@ -1,21 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { onValue, push, ref, remove, set } from 'firebase/database';
+import { onValue, push, ref, remove, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
-import { genderForMaterialNumber, normalizeMatchValue, requirementMatchesArticle, sizeForRequirement as deriveSizeForRequirement } from '../requirementMatching';
+import { genderForMaterialNumber, normalizeMatchValue, requirementMatchesArticle, sizeForRequirement as deriveSizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const PLAN_DELETE_EMAIL = 'ajimsha.albac@walkaroo.co.in';
 const LOOSE_COMPONENT_TYPES = ['Upper Only', 'Insole and Eva only', 'Full Components'];
-const LOOSE_SIZES_BY_GENDER = {
-  GENTS: ['05', '06', '07', '08', '09', '10', '11', '12'],
-  LADIES: ['04', '05', '06', '07', '08', '09'],
-  GIANTS: ['10', '11', '12'],
-  BOYS: ['01', '02', '03', '04', '05'],
-  GIRLS: ['01', '02', '03', '04'],
-  KIDS: ['08', '09', '10', '11', '12', '13'],
+const normalizeSizeKey = (value) => {
+  const normalized = String(value || '').trim();
+  return /^\d+$/.test(normalized) ? String(Number(normalized)) : normalized;
 };
-
 const normalizeNumericIdentifier = (value) => {
   const normalized = normalizeMatchValue(value);
   return /^\d+$/.test(normalized) ? normalized.replace(/^0+(?=\d)/, '') : normalized;
@@ -106,7 +101,7 @@ const incrementPlanCode = (planCode) => {
   return `${match[1]}${nextNumber}`;
 };
 
-function ClickingPlan() {
+function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [activeSheet, setActiveSheet] = useState('plan');
   const [requirements, setRequirements] = useState([]);
@@ -115,6 +110,8 @@ function ClickingPlan() {
   const [vendors, setVendors] = useState([]);
   const [packingCombinations, setPackingCombinations] = useState([]);
   const [plans, setPlans] = useState([]);
+  const [receiptRecords, setReceiptRecords] = useState([]);
+  const [receiptRecordsLoaded, setReceiptRecordsLoaded] = useState(false);
   const [planCode, setPlanCode] = useState('');
   const [planCodeMode, setPlanCodeMode] = useState('new');
   const [previousPlanCode, setPreviousPlanCode] = useState('');
@@ -136,11 +133,18 @@ function ClickingPlan() {
   const [looseComponentType, setLooseComponentType] = useState('');
   const [customLooseComponentType, setCustomLooseComponentType] = useState('');
   const [looseSizeRows, setLooseSizeRows] = useState([]);
+  const [bomRecords, setBomRecords] = useState([]);
+  const [receivingItem, setReceivingItem] = useState(null);
+  const [receivedDate, setReceivedDate] = useState('');
+  const [receivedSizeRows, setReceivedSizeRows] = useState([]);
+  const [shortageRows, setShortageRows] = useState([]);
+  const [savingReceipt, setSavingReceipt] = useState(false);
+  const canManagePlans = canDeletePlans && !viewOnly;
 
   useEffect(() => {
-    setSelectedLink('planning-desk/clicking-plan');
-    setOpenedTab('planningDesk');
-  }, [setSelectedLink, setOpenedTab]);
+    setSelectedLink(viewOnly ? 'execution/clicker-plan' : 'planning-desk/clicking-plan');
+    setOpenedTab(viewOnly ? 'execution' : 'planningDesk');
+  }, [viewOnly, setSelectedLink, setOpenedTab]);
 
   useEffect(() => onAuthStateChanged(auth, (user) => {
     setCanDeletePlans(user?.email?.toLowerCase() === PLAN_DELETE_EMAIL);
@@ -178,6 +182,12 @@ function ClickingPlan() {
     });
   }, []);
 
+  useEffect(() => onValue(ref(db, 'clickerCompStoreReceipts/'), (snapshot) => {
+    const data = snapshot.val() || {};
+    setReceiptRecords(Object.entries(data).map(([id, receipt]) => ({ ...receipt, id })));
+    setReceiptRecordsLoaded(true);
+  }), []);
+
   useEffect(() => onValue(ref(db, 'cooisData/'), (snapshot) => {
     const data = snapshot.val() || {};
     setCooisRows(Object.values(data));
@@ -187,6 +197,14 @@ function ClickingPlan() {
     const data = snapshot.val() || {};
     setVendors(Object.entries(data).map(([id, vendor]) => ({ ...vendor, id })));
   }), []);
+
+  useEffect(() => {
+    if (!viewOnly) return undefined;
+    return onValue(ref(db, 'bomData/'), (snapshot) => {
+      const data = snapshot.val() || {};
+      setBomRecords(Object.entries(data).map(([id, record]) => ({ ...record, id })));
+    });
+  }, [viewOnly]);
 
   const filteredPlans = useMemo(() => {
     const code = planCodeFilter.trim().toLowerCase();
@@ -233,7 +251,9 @@ function ClickingPlan() {
       const articleData = articles.find((article) =>
         normalizeMatchValue(article.article) === normalizeMatchValue(articleName) &&
         normalizeMatchValue(article.colour ?? article.color) === normalizeMatchValue(colour) &&
-        normalizeMatchValue(article.gender) === normalizeMatchValue(gender)
+        normalizeMatchValue(article.gender) === normalizeMatchValue(gender) &&
+        (!plan.priceCategory ||
+          normalizeMatchValue(article.priceCategory) === normalizeMatchValue(plan.priceCategory))
       );
       const remarks = String(plan.remarks ?? plan.looseComponentType ?? '');
       const vendorName = String(plan.vendorName || defaultClickerVendor?.vendorName || '');
@@ -245,6 +265,7 @@ function ClickingPlan() {
         normalizeMatchValue(colour),
         String(plan.priceCategory || articleData?.priceCategory || '').slice(0, 2),
         normalizeMatchValue(remarks),
+        normalizeMatchValue(plan.lotNumber),
       ].join('|');
 
       if (!planGroup.items.has(itemKey)) {
@@ -256,10 +277,12 @@ function ClickingPlan() {
           vendorName,
           model: normalizedModel.includes('SINGLE DENSITY') ? 'SD' : fullModel,
           article: articleName,
+          articleDataId: articleData?.id || plan.articleDataId || '',
           gender,
           colour,
           category: String(plan.priceCategory || articleData?.priceCategory || '').slice(0, 2),
           remarks,
+          lotNumber: String(plan.lotNumber || ''),
           caseQty: 0,
           sizes: new Map(),
         });
@@ -269,7 +292,12 @@ function ClickingPlan() {
       itemGroup.plans.push(plan);
       const size = String(plan.size || '').trim();
       const plannedQty = Number(plan.plannedQty) || 0;
-      const caseQty = plan.isLoosePlan ? 0 : Number(plan.caseQty ?? plannedQty) || 0;
+      const loosePairMtoPrQty = Number(articleData?.pairMtoPrQty) || 0;
+      const caseQty = plan.isLoosePlan
+        ? loosePairMtoPrQty > 0
+          ? ((Number(plan.leftQty) || 0) + (Number(plan.rightQty) || 0)) / (2 * loosePairMtoPrQty)
+          : 0
+        : Number(plan.caseQty ?? plannedQty) || 0;
       itemGroup.caseQty += caseQty;
 
       const packing = plan.isLoosePlan ? null : packingForPlan(plan);
@@ -310,10 +338,13 @@ function ClickingPlan() {
       }));
       const totals = items.reduce((summary, item) => {
         const isPuCork = normalizeMatchValue(item.model).includes('PU CORK');
+        const modelTotals = isPuCork
+          ? { pairs: 'puCorkPairs', cases: 'puCorkCases' }
+          : { pairs: 'singleDensityPairs', cases: 'singleDensityCases' };
         item.sizes.forEach((size) => {
-          summary[isPuCork ? 'puCorkPairs' : 'singleDensityPairs'] += size.leftQty;
-          summary[isPuCork ? 'puCorkCases' : 'singleDensityCases'] += size.caseQty;
+          summary[modelTotals.pairs] += (size.leftQty + size.rightQty) / 2;
         });
+        summary[modelTotals.cases] += item.caseQty;
         return summary;
       }, { puCorkPairs: 0, puCorkCases: 0, singleDensityPairs: 0, singleDensityCases: 0 });
       return { ...planGroup, items, totals };
@@ -337,7 +368,7 @@ function ClickingPlan() {
   };
 
   const deleteSelectedPlans = async () => {
-    if (!canDeletePlans || !selectedPlanIds.length) return;
+    if (!canManagePlans || !selectedPlanIds.length) return;
 
     if (!window.confirm(`Delete ${selectedPlanIds.length} selected Clicking Plan item(s)? This cannot be undone.`)) return;
 
@@ -454,7 +485,8 @@ function ClickingPlan() {
         gender: looseGender,
         article: looseArticle,
         colour: looseColour,
-        gender: matchingArticle?.gender || '',
+        gender: matchingArticle?.gender || looseGender,
+        priceCategory: matchingArticle?.priceCategory || '',
         size: row.size.trim(),
         qty,
         leftQty,
@@ -854,7 +886,7 @@ function ClickingPlan() {
                 onChange={(event) => {
                   const gender = event.target.value;
                   setLooseGender(gender);
-                  setLooseSizeRows((LOOSE_SIZES_BY_GENDER[normalizeMatchValue(gender)] || [])
+                  setLooseSizeRows(sizesForGender(gender)
                     .map((size) => ({ size, leftQty: '', rightQty: '' })));
                 }}
                 className="rounded border border-gray-300 bg-white p-2.5 focus:border-blue-500 focus:outline-none"
@@ -1159,8 +1191,406 @@ function ClickingPlan() {
         set(ref(db, `clickingPlans/${plan.id}/${field}`), value)
       ));
     } catch (error) {
-      window.alert(`Unable to update ${field === 'vendorName' ? 'vendor' : 'remarks'}: ${error.message}`);
+      const fieldLabel = { vendorName: 'vendor', remarks: 'remarks', lotNumber: 'lot number' }[field] || field;
+      window.alert(`Unable to update ${fieldLabel}: ${error.message}`);
     }
+  };
+
+  const articleForReceivingItem = (item) => articles.find((article) =>
+    (item.articleDataId && article.id === item.articleDataId) ||
+    (
+      normalizeMatchValue(article.article) === normalizeMatchValue(item.article) &&
+      normalizeMatchValue(article.colour ?? article.color) === normalizeMatchValue(item.colour) &&
+      normalizeMatchValue(article.gender) === normalizeMatchValue(item.gender) &&
+      normalizeMatchValue(article.priceCategory).slice(0, 2) === normalizeMatchValue(item.category)
+    )
+  );
+
+  const bomComponentsForArticle = (article) => {
+    const linkedBomIds = String(article?.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean);
+    return bomRecords.filter((record) => linkedBomIds.includes(record.id));
+  };
+
+  const openReceivingForm = (item) => {
+    const today = new Date();
+    const receiptIds = [...new Set(item.plans.flatMap((plan) =>
+      String(plan.receiptIds || '').split(',').map((id) => id.trim()).filter(Boolean)
+    ))];
+    const existingReceipts = receiptRecords.filter((receipt) => receiptIds.includes(receipt.id));
+    const priorQuantities = new Map();
+    const priorShortages = new Map();
+    existingReceipts.forEach((receipt) => {
+      (receipt.receivedSizes || []).forEach((row) => {
+        const key = normalizeSizeKey(row.size);
+        const current = priorQuantities.get(key) || { leftQty: 0, rightQty: 0 };
+        current.leftQty += Number(row.leftQty) || 0;
+        current.rightQty += Number(row.rightQty) || 0;
+        priorQuantities.set(key, current);
+      });
+      (receipt.shortages || []).forEach((shortage) => {
+        const key = `${shortage.componentId}|${shortage.size}|${shortage.side}`;
+        const current = priorShortages.get(key) || {
+          componentId: shortage.componentId || '',
+          size: shortage.size || '',
+          side: shortage.side || '',
+          qty: 0,
+          shortageReceivedQuantity: Number(shortage.shortageReceivedQuantity) || 0,
+          shortageReceivedDate: shortage.shortageReceivedDate || '',
+          shortageStatus: shortage.shortageStatus || '',
+        };
+        current.qty += Number(shortage.quantity) || 0;
+        current.shortageReceivedQuantity = Number(shortage.shortageReceivedQuantity) || current.shortageReceivedQuantity;
+        current.shortageReceivedDate = shortage.shortageReceivedDate || current.shortageReceivedDate;
+        current.shortageStatus = shortage.shortageStatus || current.shortageStatus;
+        priorShortages.set(key, current);
+      });
+    });
+    setReceivingItem(item);
+    setReceivedDate(
+      existingReceipts[existingReceipts.length - 1]?.receivedDate ||
+      `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    );
+    setReceivedSizeRows(item.sizes.map((size) => ({
+      size: size.size,
+      leftQty: String(priorQuantities.get(normalizeSizeKey(size.size))?.leftQty ?? size.leftQty ?? 0),
+      rightQty: String(priorQuantities.get(normalizeSizeKey(size.size))?.rightQty ?? size.rightQty ?? 0),
+    })));
+    setShortageRows([...priorShortages.values()].map((row) => ({ ...row, qty: String(row.qty) })));
+  };
+
+  const updateReceivedSize = (index, field, value) => {
+    setReceivedSizeRows((current) => current.map((row, rowIndex) => (
+      rowIndex === index ? { ...row, [field]: value } : row
+    )));
+  };
+
+  const submitReceivingStatus = async (event) => {
+    event.preventDefault();
+    if (!receiptRecordsLoaded) {
+      window.alert('Receiving records are still loading. Please try again in a moment.');
+      return;
+    }
+    if (!receivingItem || !receivedDate) {
+      window.alert('Enter the received date before submitting.');
+      return;
+    }
+    const receivedSizes = receivedSizeRows.map((row) => ({
+      size: row.size,
+      leftQty: Number(row.leftQty || 0),
+      rightQty: Number(row.rightQty || 0),
+    }));
+    if (receivedSizes.some((row) =>
+      !Number.isInteger(row.leftQty) || row.leftQty < 0 ||
+      !Number.isInteger(row.rightQty) || row.rightQty < 0
+    )) {
+      window.alert('Enter non-negative whole numbers for received Left and Right quantities.');
+      return;
+    }
+    const linkedReceiptIds = [...new Set(receivingItem.plans.flatMap((plan) =>
+      String(plan.receiptIds || '').split(',').map((id) => id.trim()).filter(Boolean)
+    ))];
+    const existingReceipts = receiptRecords.filter((receipt) => linkedReceiptIds.includes(receipt.id));
+    const existingQuantities = new Map();
+    existingReceipts.forEach((receipt) => {
+      (receipt.receivedSizes || []).forEach((row) => {
+        const key = normalizeSizeKey(row.size);
+        const current = existingQuantities.get(key) || { leftQty: 0, rightQty: 0 };
+        current.leftQty += Number(row.leftQty) || 0;
+        current.rightQty += Number(row.rightQty) || 0;
+        existingQuantities.set(key, current);
+      });
+    });
+    for (const row of receivedSizes) {
+      const plannedSize = receivingItem.sizes.find((size) => String(size.size) === String(row.size));
+      if (!plannedSize || row.leftQty > Number(plannedSize.leftQty || 0) ||
+        row.rightQty > Number(plannedSize.rightQty || 0)) {
+        window.alert(`Received quantities for size ${row.size} cannot exceed the plan quantities.`);
+        return;
+      }
+      const previous = existingQuantities.get(normalizeSizeKey(row.size)) || { leftQty: 0, rightQty: 0 };
+      const reductionBaseline = existingReceipts.length
+        ? previous
+        : { leftQty: Number(plannedSize.leftQty || 0), rightQty: Number(plannedSize.rightQty || 0) };
+      if (!isAdmin && (
+        row.leftQty < reductionBaseline.leftQty || row.rightQty < reductionBaseline.rightQty
+      )) {
+        window.alert('Only an admin user can reduce a previously received quantity.');
+        return;
+      }
+    }
+    if (!receivedSizes.some((row) => row.leftQty > 0 || row.rightQty > 0) && !existingReceipts.length) {
+      window.alert('Enter at least one received Left or Right quantity.');
+      return;
+    }
+
+    const article = articleForReceivingItem(receivingItem);
+    if (!article) {
+      window.alert('Could not match this plan item to an Article Entry line item.');
+      return;
+    }
+
+    const availableComponents = bomComponentsForArticle(article);
+    const enteredShortages = shortageRows.filter((row) =>
+      row.componentId || row.size || row.side || row.qty !== ''
+    );
+    const shortages = [];
+    for (const shortage of enteredShortages) {
+      const component = availableComponents.find((record) => record.id === shortage.componentId);
+      const quantity = Number(shortage.qty);
+      if (!component || !shortage.size || !['LEFT', 'RIGHT'].includes(shortage.side) ||
+        !Number.isInteger(quantity) || quantity <= 0) {
+        window.alert('For each shortage row, select a BOM component, size, and side, then enter a positive whole-number quantity.');
+        return;
+      }
+      if (shortages.some((row) =>
+        row.componentId === component.id && row.size === shortage.size && row.side === shortage.side
+      )) {
+        window.alert('A component, size, and side combination can be listed only once in the shortage details.');
+        return;
+      }
+      shortages.push({
+        componentId: component.id,
+        functionName: component.functionName || component.process || '',
+        componentDetails: component.componentDetails || component.materialDesc || component.materialNumber || '',
+        size: shortage.size,
+        side: shortage.side,
+        quantity,
+        shortageReceivedQuantity: Number(shortage.shortageReceivedQuantity) || 0,
+        shortageReceivedDate: shortage.shortageReceivedDate || '',
+        shortageStatus: shortage.shortageStatus || '',
+      });
+    }
+
+    const receiptId = existingReceipts[0]?.id || push(ref(db, 'clickerCompStoreReceipts/')).key;
+    const reductionByStockKey = new Map();
+    receivedSizes.forEach((row) => {
+      const previous = existingQuantities.get(normalizeSizeKey(row.size)) || { leftQty: 0, rightQty: 0 };
+      ['leftQty', 'rightQty'].forEach((field) => {
+        const reduction = previous[field] - row[field];
+        if (reduction > 0) {
+          const key = `${article.id}|${normalizeSizeKey(row.size)}|${field}`;
+          reductionByStockKey.set(key, (reductionByStockKey.get(key) || 0) + reduction);
+        }
+      });
+    });
+    if (reductionByStockKey.size) {
+      const stockByKey = new Map();
+      receiptRecords.forEach((receipt) => {
+        (receipt.receivedSizes || []).forEach((row) => {
+          ['leftQty', 'rightQty'].forEach((field) => {
+            const key = `${receipt.articleId}|${normalizeSizeKey(row.size)}|${field}`;
+            stockByKey.set(key, (stockByKey.get(key) || 0) + (Number(row[field]) || 0));
+          });
+        });
+      });
+      const insufficient = [...reductionByStockKey].some(([key, reduction]) =>
+        (stockByKey.get(key) || 0) < reduction
+      );
+      if (insufficient && !window.confirm('Stock is not available for this reduction. Do you want to continue? Continuing will make the stock quantity negative.')) {
+        return;
+      }
+    }
+    const receipt = {
+      id: receiptId,
+      articleId: article.id,
+      article: receivingItem.article,
+      model: receivingItem.model,
+      gender: receivingItem.gender,
+      colour: receivingItem.colour,
+      priceCategory: receivingItem.category,
+      planCode: receivingItem.plans[0]?.planCode || '',
+      planningDate: receivingItem.plans[0]?.planningDate || '',
+      receivedDate,
+      receivedSizes: receivedSizes.filter((row) => row.leftQty > 0 || row.rightQty > 0),
+      shortages,
+      submittedAt: Date.now(),
+    };
+    const updates = { [`clickerCompStoreReceipts/${receiptId}`]: receipt };
+    existingReceipts.slice(1).forEach((oldReceipt) => {
+      updates[`clickerCompStoreReceipts/${oldReceipt.id}`] = null;
+    });
+    const hasReceivedQuantity = receipt.receivedSizes.length > 0;
+    const uniquePlans = [...new Map(receivingItem.plans.map((plan) => [plan.id, plan])).values()];
+    uniquePlans.forEach((plan) => {
+      updates[`clickingPlans/${plan.id}/receivingStatus`] = hasReceivedQuantity ? 'RECEIVED' : 'NOT RECEIVED';
+      updates[`clickingPlans/${plan.id}/receivedDate`] = receivedDate;
+      updates[`clickingPlans/${plan.id}/receiptIds`] = receiptId;
+    });
+
+    setSavingReceipt(true);
+    try {
+      await update(ref(db), updates);
+      setReceivingItem(null);
+      setReceivedDate('');
+      setReceivedSizeRows([]);
+      setShortageRows([]);
+    } catch (error) {
+      window.alert(`Unable to save the receiving status: ${error.message}`);
+    } finally {
+      setSavingReceipt(false);
+    }
+  };
+
+  const renderReceivingForm = () => {
+    if (!receivingItem) return null;
+    const article = articleForReceivingItem(receivingItem);
+    const components = bomComponentsForArticle(article);
+    const receiptIds = [...new Set(receivingItem.plans.flatMap((plan) =>
+      String(plan.receiptIds || '').split(',').map((id) => id.trim()).filter(Boolean)
+    ))];
+    const existingReceipts = receiptRecords.filter((receipt) => receiptIds.includes(receipt.id));
+    const existingQuantities = new Map();
+    existingReceipts.forEach((receipt) => {
+      (receipt.receivedSizes || []).forEach((row) => {
+        const key = normalizeSizeKey(row.size);
+        const current = existingQuantities.get(key) || { leftQty: 0, rightQty: 0 };
+        current.leftQty += Number(row.leftQty) || 0;
+        current.rightQty += Number(row.rightQty) || 0;
+        existingQuantities.set(key, current);
+      });
+    });
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <form onSubmit={submitReceivingStatus} className="max-h-full w-full max-w-4xl space-y-4 overflow-auto rounded bg-white p-5 shadow-xl">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">UPDATE RECEIVING STATUS — {receivingItem.article}</h2>
+            <button type="button" onClick={() => setReceivingItem(null)} className="text-gray-600 hover:text-gray-900">CLOSE</button>
+          </div>
+          <label className="flex max-w-xs flex-col gap-1 text-sm font-medium">
+            Received Date
+            <input
+              type="date"
+              required
+              value={receivedDate}
+              onChange={(event) => setReceivedDate(event.target.value)}
+              className="rounded border border-gray-300 p-2"
+            />
+          </label>
+          <section className="space-y-2">
+            <h3 className="font-semibold">Received Quantities by Size</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px] border-collapse text-sm">
+                <thead className="bg-gray-100 text-left">
+                  <tr>
+                    {['SIZE', 'RECEIVED LEFT QTY', 'RECEIVED RIGHT QTY'].map((heading) => (
+                      <th key={heading} className="border border-gray-300 p-2">{heading}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {receivedSizeRows.map((row, index) => (
+                    <tr key={row.size}>
+                      <td className="border border-gray-300 p-2">{row.size}</td>
+                      {['leftQty', 'rightQty'].map((field) => (
+                        <td key={field} className="border border-gray-300 p-2">
+                          <input
+                            type="number"
+                            min={isAdmin
+                              ? 0
+                              : existingReceipts.length
+                                ? existingQuantities.get(normalizeSizeKey(row.size))?.[field] ?? 0
+                                : receivingItem.sizes.find((size) => String(size.size) === String(row.size))?.[field] ?? 0}
+                            max={receivingItem.sizes.find((size) => String(size.size) === String(row.size))?.[field] ?? 0}
+                            step="1"
+                            value={row[field]}
+                            onChange={(event) => updateReceivedSize(index, field, event.target.value)}
+                            aria-label={`Received ${field === 'leftQty' ? 'left' : 'right'} quantity for size ${row.size}`}
+                            className="w-full rounded border border-gray-300 p-2"
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-semibold">Shortage Details by BOM Component (Optional)</h3>
+              <button
+                type="button"
+                onClick={() => setShortageRows((current) => [...current, { componentId: '', size: '', side: '', qty: '' }])}
+                className="rounded border border-blue-300 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-50"
+              >
+                ADD SHORTAGE
+              </button>
+            </div>
+            {!components.length && <p className="text-sm text-gray-500">No BOM components are linked to this article.</p>}
+            {shortageRows.map((row, index) => (
+              <div key={index} className="grid gap-2 sm:grid-cols-[minmax(0,1.5fr)_7rem_7rem_10rem_auto]">
+                <select
+                  value={row.componentId}
+                  onChange={(event) => setShortageRows((current) => current.map((item, rowIndex) => (
+                    rowIndex === index ? { ...item, componentId: event.target.value } : item
+                  )))}
+                  className="rounded border border-gray-300 p-2"
+                >
+                  <option value="">Select BOM component</option>
+                  {components.map((component) => (
+                    <option key={component.id} value={component.id}>
+                      {[component.functionName || component.process, component.componentDetails || component.materialDesc || component.materialNumber].filter(Boolean).join(' — ')}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={row.size}
+                  onChange={(event) => setShortageRows((current) => current.map((item, rowIndex) => (
+                    rowIndex === index ? { ...item, size: event.target.value } : item
+                  )))}
+                  aria-label={`Shortage size for component ${index + 1}`}
+                  className="rounded border border-gray-300 p-2"
+                >
+                  <option value="">Size</option>
+                  {receivingItem.sizes.map(({ size }) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <select
+                  value={row.side}
+                  onChange={(event) => setShortageRows((current) => current.map((item, rowIndex) => (
+                    rowIndex === index ? { ...item, side: event.target.value } : item
+                  )))}
+                  aria-label={`Shortage side for component ${index + 1}`}
+                  className="rounded border border-gray-300 p-2"
+                >
+                  <option value="">Side</option>
+                  <option value="LEFT">Left</option>
+                  <option value="RIGHT">Right</option>
+                </select>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={row.qty}
+                  onChange={(event) => setShortageRows((current) => current.map((item, rowIndex) => (
+                    rowIndex === index ? { ...item, qty: event.target.value } : item
+                  )))}
+                  placeholder="Shortage Qty"
+                  aria-label={`Shortage quantity for component ${index + 1}`}
+                  className="rounded border border-gray-300 p-2"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShortageRows((current) => current.filter((_, rowIndex) => rowIndex !== index))}
+                  className="rounded border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+                >
+                  REMOVE
+                </button>
+              </div>
+            ))}
+          </section>
+          <div className="flex justify-end gap-2 border-t border-gray-200 pt-3">
+            <button type="button" onClick={() => setReceivingItem(null)} className="rounded border border-gray-300 px-4 py-2">
+              CANCEL
+            </button>
+            <button type="submit" disabled={savingReceipt} className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+              {savingReceipt ? 'SUBMITTING...' : 'SUBMIT RECEIPT'}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
   };
 
   const copyFormattedPlan = async () => {
@@ -1264,6 +1694,11 @@ function ClickingPlan() {
 
   const renderPlanSheet = () => (
     <>
+      {viewOnly && (
+        <div className="text-sm text-gray-600">
+          Select plan lines as needed. Use the last column to record received quantities and optional BOM component shortages.
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm font-medium">
           Filter by Plan Code
@@ -1286,20 +1721,24 @@ function ClickingPlan() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {canDeletePlans ? (
+        {viewOnly || canManagePlans ? (
           <span className="text-sm text-gray-600">{selectedPlanIds.length} plan item(s) selected</span>
         ) : <span />}
         <div className="flex items-center gap-3">
-          {copyMessage && <span role="status" className="text-sm text-green-700">{copyMessage}</span>}
-          <button
-            type="button"
-            onClick={copyFormattedPlan}
-            disabled={!formattedPlanGroups.length}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Copy Plan
-          </button>
-          {canDeletePlans && (
+          {!viewOnly && (
+            <>
+              {copyMessage && <span role="status" className="text-sm text-green-700">{copyMessage}</span>}
+              <button
+                type="button"
+                onClick={copyFormattedPlan}
+                disabled={!formattedPlanGroups.length}
+                className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Copy Plan
+              </button>
+            </>
+          )}
+          {canManagePlans && (
             <button
               type="button"
               onClick={deleteSelectedPlans}
@@ -1316,6 +1755,8 @@ function ClickingPlan() {
         {formattedPlanGroups.map((planGroup) => {
           const totalPairs = planGroup.totals.puCorkPairs + planGroup.totals.singleDensityPairs;
           const totalCases = planGroup.totals.puCorkCases + planGroup.totals.singleDensityCases;
+          const showPlanSelection = canManagePlans || viewOnly;
+          const totalColumnCount = 13 + (showPlanSelection ? 1 : 0) + (viewOnly ? 1 : 0);
           let serialNumber = 0;
 
           return (
@@ -1323,7 +1764,7 @@ function ClickingPlan() {
               <table className="w-full min-w-[1100px] border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th colSpan={canDeletePlans ? 13 : 12} className="border border-gray-400 bg-teal-700 p-2 text-center text-base font-bold text-white">
+                    <th colSpan={totalColumnCount} className="border border-gray-400 bg-teal-700 p-2 text-center text-base font-bold text-white">
                       VEEKESY ELASTOMERS - CALICUT - CLICKER PLAN
                     </th>
                   </tr>
@@ -1332,13 +1773,14 @@ function ClickingPlan() {
                     <td colSpan="3" className="border border-gray-400 p-2">{uppercasePlanText(planGroup.planCode)}</td>
                     <td colSpan="2" className="border border-gray-400 p-2">PU CORK: {planGroup.totals.puCorkPairs} PR, {planGroup.totals.puCorkCases} CS</td>
                     <td colSpan="2" className="border border-gray-400 p-2">SD: {planGroup.totals.singleDensityPairs} PR, {planGroup.totals.singleDensityCases} CS</td>
-                    <td colSpan={canDeletePlans ? 3 : 2} className="border border-gray-400 p-2">TOTAL: {totalPairs} PR, {totalCases} CS</td>
+                    <td colSpan={3 + (showPlanSelection ? 1 : 0) + (viewOnly ? 1 : 0)} className="border border-gray-400 p-2">TOTAL: {totalPairs} PR, {totalCases} CS</td>
                   </tr>
                   <tr className="bg-teal-100 text-center text-xs font-bold">
-                    {canDeletePlans && <th className="border border-gray-400 p-2"><input type="checkbox" aria-label="Select all filtered plans" checked={allFilteredPlansSelected} onChange={toggleFilteredPlanSelection} /></th>}
-                    {['SL NO', 'VENDOR', 'MODEL', 'ARTICLE', 'GENDER', 'COLOUR', 'SIZE', 'LEFT', 'RIGHT', 'CASE', 'CATEGORY', 'REMARKS'].map((heading) => (
+                    {showPlanSelection && <th className="border border-gray-400 p-2"><input type="checkbox" aria-label="Select all filtered plans" checked={allFilteredPlansSelected} onChange={toggleFilteredPlanSelection} /></th>}
+                    {['SL NO', 'VENDOR', 'MODEL', 'ARTICLE', 'GENDER', 'COLOUR', 'SIZE', 'LEFT', 'RIGHT', 'CASE', 'CATEGORY', 'REMARKS', 'LOT NUMBER'].map((heading) => (
                       <th key={heading} className="whitespace-nowrap border border-gray-400 p-2">{heading}</th>
                     ))}
+                    {viewOnly && <th className="whitespace-nowrap border border-gray-400 p-2">RECEIVING STATUS</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -1347,7 +1789,7 @@ function ClickingPlan() {
                     const itemSizes = item.sizes.length ? item.sizes : [{ size: '', leftQty: 0, rightQty: 0, plans: item.plans }];
                     return itemSizes.map((size, sizeIndex) => (
                       <tr key={`${item.key}-${size.size}-${sizeIndex}`} className="text-center">
-                        {canDeletePlans && (
+                        {showPlanSelection && (
                           <td className="border border-gray-400 p-2">
                             <div className="flex flex-col gap-1">
                               {(size.plans || item.plans).map((plan) => (
@@ -1366,7 +1808,9 @@ function ClickingPlan() {
                           <>
                             <td rowSpan={itemSizes.length} className="border border-gray-400 p-2 align-middle">{serialNumber}</td>
                             <td rowSpan={itemSizes.length} className="border border-gray-400 p-2 align-middle">
-                              {clickerVendors.length > 0 ? (
+                              {viewOnly ? (
+                                uppercasePlanText(item.vendorName || '-')
+                              ) : clickerVendors.length > 0 ? (
                                 <select
                                   aria-label={`Vendor for ${item.article}`}
                                   value={item.vendorName}
@@ -1391,21 +1835,94 @@ function ClickingPlan() {
                             <td rowSpan={itemSizes.length} className="border border-gray-400 p-2 align-middle">{item.caseQty}</td>
                             <td rowSpan={itemSizes.length} className="border border-gray-400 p-2 align-middle">{uppercasePlanText(item.category)}</td>
                             <td rowSpan={itemSizes.length} className="border border-gray-400 p-2 align-middle">
-                              <input
-                                type="text"
-                                aria-label={`Remarks for ${item.article}`}
-                                defaultValue={item.remarks}
-                                onBlur={(event) => updatePlanItemField(item, 'remarks', event.target.value)}
-                                className="w-32 rounded border border-gray-300 p-1 text-center uppercase"
-                              />
+                              {viewOnly ? uppercasePlanText(item.remarks) : (
+                                <input
+                                  type="text"
+                                  aria-label={`Remarks for ${item.article}`}
+                                  defaultValue={item.remarks}
+                                  onBlur={(event) => updatePlanItemField(item, 'remarks', event.target.value)}
+                                  className="w-32 rounded border border-gray-300 p-1 text-center uppercase"
+                                />
+                              )}
                             </td>
+                            <td rowSpan={itemSizes.length} className="border border-gray-400 p-2 align-middle">
+                              {viewOnly ? item.lotNumber : (
+                                <input
+                                  type="text"
+                                  aria-label={`Lot number for ${item.article}`}
+                                  defaultValue={item.lotNumber}
+                                  onBlur={(event) => updatePlanItemField(item, 'lotNumber', event.target.value)}
+                                  className="w-32 rounded border border-gray-300 p-1 text-center"
+                                />
+                              )}
+                            </td>
+                            {viewOnly && (
+                              <td rowSpan={itemSizes.length} className="min-w-40 border border-gray-400 p-2 align-middle">
+                                {(() => {
+                                  const planHasReceivedQuantity = (plan) => {
+                                    const linkedReceiptIds = String(plan.receiptIds || '')
+                                      .split(',')
+                                      .map((id) => id.trim())
+                                      .filter(Boolean);
+                                    const linkedReceipts = receiptRecords.filter((receipt) =>
+                                      linkedReceiptIds.includes(receipt.id)
+                                    );
+                                    if (!linkedReceipts.length) return plan.receivingStatus === 'RECEIVED';
+                                    return linkedReceipts.some((receipt) =>
+                                      (receipt.receivedSizes || []).some((size) =>
+                                        Number(size.leftQty) > 0 || Number(size.rightQty) > 0
+                                      )
+                                    );
+                                  };
+                                  const receivedPlans = item.plans.filter(planHasReceivedQuantity);
+                                  const status = receivedPlans.length === 0
+                                    ? 'NOT RECEIVED'
+                                    : receivedPlans.length === item.plans.length ? 'RECEIVED' : 'PARTIALLY RECEIVED';
+                                  const latestReceivedDate = receivedPlans
+                                    .map((plan) => {
+                                      const linkedReceiptIds = String(plan.receiptIds || '')
+                                        .split(',')
+                                        .map((id) => id.trim())
+                                        .filter(Boolean);
+                                      const linkedReceipts = receiptRecords.filter((receipt) =>
+                                        linkedReceiptIds.includes(receipt.id) &&
+                                        (receipt.receivedSizes || []).some((size) =>
+                                          Number(size.leftQty) > 0 || Number(size.rightQty) > 0
+                                        )
+                                      );
+                                      return linkedReceipts.map((receipt) => receipt.receivedDate)
+                                        .filter(Boolean)
+                                        .sort()
+                                        .pop() || plan.receivedDate;
+                                    })
+                                    .filter(Boolean)
+                                    .sort()
+                                    .pop();
+                                  return (
+                                    <div className="flex flex-col items-center gap-2">
+                                      <span className={`text-xs font-semibold ${status === 'RECEIVED' ? 'text-green-700' : status === 'PARTIALLY RECEIVED' ? 'text-yellow-700' : 'text-gray-600'}`}>
+                                        {status}{latestReceivedDate ? ` — ${formatPlanDate(latestReceivedDate)}` : ''}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => openReceivingForm(item)}
+                                        disabled={!receiptRecordsLoaded}
+                                        className="whitespace-nowrap rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-50"
+                                      >
+                                        {receiptRecordsLoaded ? 'UPDATE RECEIVING' : 'LOADING...'}
+                                      </button>
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                            )}
                           </>
                         )}
                       </tr>
                     ));
                   })}
                   {!planGroup.items.length && (
-                    <tr><td colSpan={canDeletePlans ? 13 : 12} className="p-4 text-center text-gray-500">No plan items found.</td></tr>
+                    <tr><td colSpan={totalColumnCount} className="p-4 text-center text-gray-500">No plan items found.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1418,6 +1935,18 @@ function ClickingPlan() {
       </div>
     </>
   );
+
+  if (viewOnly) {
+    return (
+      <div className="h-full min-w-0 overflow-auto bg-blue-50 px-3 pb-2 pt-4">
+        <div className="flex min-w-0 flex-col gap-4 rounded bg-white p-4">
+          <h1 className="text-lg font-semibold">Clicker Plan</h1>
+          {renderPlanSheet()}
+          {renderReceivingForm()}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full min-w-0 overflow-auto bg-blue-50 px-3 pb-2 pt-4">

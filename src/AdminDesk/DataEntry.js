@@ -205,8 +205,8 @@ function ArticleEntry() {
   );
 
   return (
-    <div className="h-full bg-blue-50 px-3 pb-2 pt-4">
-      <div className="flex flex-col space-y-3 rounded bg-white p-4">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-blue-50 px-3 pb-2 pt-4">
+      <div className="flex min-h-0 flex-1 flex-col space-y-3 rounded bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="font-semibold text-lg">Article Entry</div>
           <div className="flex items-center gap-3">
@@ -234,7 +234,7 @@ function ArticleEntry() {
           className="w-full max-w-md rounded border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
         />
 
-        <div className="overflow-x-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           <div className="min-w-[1500px]">
             <div className="grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold" style={{ gridTemplateColumns: `repeat(${ARTICLE_FIELDS.length + 2}, minmax(0, 1fr))` }}>
               <div className="flex items-center justify-center">

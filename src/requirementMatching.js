@@ -2,6 +2,47 @@ export function normalizeMatchValue(value) {
   return String(value ?? '').trim().toUpperCase();
 }
 
+export const SIZES_BY_GENDER = {
+  GENTS: ['05', '06', '07', '08', '09', '10', '11'],
+  LADIES: ['04', '05', '06', '07', '08', '09'],
+  GIANTS: ['10', '11', '12'],
+  GENTS_GIANTS: ['11', '12'],
+  LADIES_GIANTS: ['09', '10', '11'],
+  BOYS: ['01', '02', '03', '04', '05'],
+  GIRLS: ['01', '02', '03', '04', '05'],
+  KIDS: ['08', '09', '10', '11', '12', '13'],
+};
+
+const GENDER_SIZE_KEYS = {
+  GENTS: 'GENTS',
+  GENT: 'GENTS',
+  MEN: 'GENTS',
+  MALE: 'GENTS',
+  LADIES: 'LADIES',
+  LADY: 'LADIES',
+  WOMEN: 'LADIES',
+  FEMALE: 'LADIES',
+  GIANTS: 'GIANTS',
+  GIANT: 'GIANTS',
+  BOY: 'BOYS',
+  BOYS: 'BOYS',
+  GIRLS: 'GIRLS',
+  GIRL: 'GIRLS',
+  KID: 'KIDS',
+  KIDS: 'KIDS',
+};
+
+export function sizesForGender(gender) {
+  const normalizedGender = normalizeMatchValue(gender).replace(/[^A-Z]/g, '');
+  if ((normalizedGender.includes('LADY') || normalizedGender.includes('WOMEN') || normalizedGender.includes('FEMALE')) && normalizedGender.includes('GIANT')) {
+    return SIZES_BY_GENDER.LADIES_GIANTS;
+  }
+  if ((normalizedGender.includes('GENT') || normalizedGender.includes('MEN') || normalizedGender.includes('MALE')) && normalizedGender.includes('GIANT')) {
+    return SIZES_BY_GENDER.GENTS_GIANTS;
+  }
+  return SIZES_BY_GENDER[GENDER_SIZE_KEYS[normalizedGender]] || [];
+}
+
 export function genderForMaterialNumber(materialNo) {
   const articleSegment = normalizeMatchValue(materialNo).split('-')[0];
   const codeMatch = articleSegment.match(/(?:\d)(GG|G|L|B|K)$/);

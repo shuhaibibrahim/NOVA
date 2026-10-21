@@ -44,6 +44,7 @@ function UserRequest({ isAdmin }) {
         id: user.id,
         name: user.name || user.email,
         department: user.department || '',
+        productionPlant: user.productionPlant || '',
         phone: user.phone || '',
         status: 'approved',
       }));
@@ -140,7 +141,9 @@ function UserRequest({ isAdmin }) {
             {visibleRequests.map((request) => (
               <div key={request.id} className="rounded border border-gray-200 p-3">
                 <div className="font-medium">{request.name}</div>
-                <div className="text-sm text-gray-600">{request.email} · {request.department} · {request.phone}</div>
+                <div className="text-sm text-gray-600">
+                  {request.email} · {request.department} · {request.productionPlant || 'Plant not specified'} · {request.phone}
+                </div>
                 {view === 'pending' && (
                   <div className="mt-3 flex gap-2">
                     <button type="button" className="rounded bg-green-600 px-3 py-1 text-white" onClick={() => updateRequest(request, 'approved')}>Approve</button>

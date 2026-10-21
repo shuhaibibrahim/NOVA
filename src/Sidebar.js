@@ -6,20 +6,60 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
     const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
     const [expandedSubTab, setExpandedSubTab] = useState('');
 
+    const filterTabPermissions = (tabItem) => {
+        if (!tabItem) return null;
+        if (!permissionsConfigured || isAdmin || (!tabItem.to && !tabItem.children)) return tabItem;
+        if (tabItem.children) {
+            const children = tabItem.children.map(filterTabPermissions).filter(Boolean);
+            return children.length > 0 ? { ...tabItem, children } : null;
+        }
+        return ribbonPermissions?.[controlKey(tabItem.to)] ? tabItem : null;
+    };
+
     const sideBarComponent=(mainTabLabel, mainTabValue, subTabsArray, showWhenEmpty = false)=>{
         const visibleTabs = subTabsArray
-            .map((tabItem) => {
-                if (!tabItem) return null;
-                if (!permissionsConfigured || isAdmin || !tabItem.to && !tabItem.children) return tabItem;
-                if (tabItem.children) {
-                    const children = tabItem.children.filter((child) => ribbonPermissions?.[controlKey(child.to)]);
-                    return children.length > 0 ? { ...tabItem, children } : null;
-                }
-                return ribbonPermissions?.[controlKey(tabItem.to)] ? tabItem : null;
-            })
+            .map(filterTabPermissions)
             .filter(Boolean);
 
         if (!showWhenEmpty && permissionsConfigured && !isAdmin && visibleTabs.length === 0) return null;
+
+        const renderNavigationItem = (tabItem, index, parentKey = '', level = 0) => {
+            const tabKey = `${parentKey}${tabItem.value || tabItem.to || tabItem.label || index}`;
+            const isExpanded = expandedSubTab === tabKey;
+            const paddingClass = level > 0 ? 'pl-8' : 'pl-4';
+
+            if (tabItem.children) {
+                return (
+                    <React.Fragment key={tabKey}>
+                        <button
+                            type="button"
+                            onClick={() => setExpandedSubTab((tab) => tab === tabKey ? '' : tabKey)}
+                            aria-expanded={isExpanded}
+                            className={`flex w-full flex-row items-center space-x-2 py-3 pr-2 text-left hover:bg-blue-300 ${paddingClass} ${isExpanded ? 'bg-blue-100' : ''}`}
+                        >
+                            <div>{tabItem.icon}</div>
+                            <div className="font-medium text-sm">{tabItem.label}</div>
+                        </button>
+                        <div className={`flex w-full flex-col bg-blue-50 ${isExpanded ? 'dropdown-visible' : 'dropdown-hidden'}`}>
+                            {tabItem.children.map((child, childIndex) =>
+                                renderNavigationItem(child, childIndex, `${tabKey}/`, level + 1)
+                            )}
+                        </div>
+                    </React.Fragment>
+                );
+            }
+
+            return (
+                <Link
+                    key={tabKey}
+                    to={tabItem.to}
+                    className={`flex w-full flex-row space-x-2 py-3 pr-2 hover:bg-blue-300 ${paddingClass} ${selectedLink === tabItem.to ? 'bg-gray-300 border-r-4 border-blue-500' : ''}`}
+                >
+                    <div>{tabItem.icon}</div>
+                    <div className="font-medium text-sm">{tabItem.label}</div>
+                </Link>
+            );
+        };
 
         return (
             <div className='px-1'>
@@ -37,41 +77,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
 
                 <div className={"flex flex-col items-start w-full bg-blue-50"+(currentOpenedTab===mainTabValue?" dropdown-visible":" dropdown-hidden")}>
                 {
-                    visibleTabs.map((tabItem, index) => (
-                        tabItem.children ? (
-                            <React.Fragment key={tabItem.value || index}>
-                                <button
-                                    type="button"
-                                    onClick={() => setExpandedSubTab((tab) => tab === tabItem.value ? '' : tabItem.value)}
-                                    className={"flex w-full flex-row items-center space-x-2 px-2 pl-4 py-3 text-left hover:bg-blue-300 " + (expandedSubTab === tabItem.value ? "bg-blue-100" : "")}
-                                >
-                                    <div>{tabItem.icon}</div>
-                                    <div className="font-medium text-sm">{tabItem.label}</div>
-                                </button>
-                                <div className={"flex w-full flex-col bg-blue-50 " + (expandedSubTab === tabItem.value ? "dropdown-visible" : "dropdown-hidden")}>
-                                    {tabItem.children.map((child) => (
-                                        <Link
-                                            key={child.to}
-                                            to={child.to}
-                                            className={"flex w-full flex-row space-x-2 px-2 py-3 pl-8 hover:bg-blue-300 " + (selectedLink === child.to ? "bg-gray-300 border-r-4 border-blue-500" : "")}
-                                        >
-                                            <div>{child.icon}</div>
-                                            <div className="font-medium text-sm">{child.label}</div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </React.Fragment>
-                        ) : (
-                            <Link
-                                key={index}
-                                to={tabItem.to}
-                                className={" flex flex-row space-x-2 px-2 pl-4 hover:bg-blue-300 w-full py-3 "+ (selectedLink===tabItem.to?" bg-gray-300 border-r-4 border-blue-500":"")}
-                            >
-                                <div>{tabItem.icon}</div>
-                                <div className="font-medium text-sm">{tabItem.label}</div>
-                            </Link>
-                        )
-                    ))
+                    visibleTabs.map((tabItem, index) => renderNavigationItem(tabItem, index))
                 }
                 </div>
 
@@ -147,7 +153,21 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         // Conditionally render Stitching Plan
                         (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stitching'))) && {
                             to: "planning-desk/stitching-plan",
-                            label: "Stiching Plan",
+                            label: "Stitching Plan",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                            </svg>)
+                        },
+                        (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stitching'))) && {
+                            to: "planning-desk/molding-plan",
+                            label: "Molding Plan",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                            </svg>)
+                        },
+                        (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stitching'))) && {
+                            to: "planning-desk/grinding-plan",
+                            label: "Grinding Plan",
                             icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                             </svg>)
@@ -155,7 +175,14 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         // Conditionally render Stuckon Plan
                         (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stuckon'))) && {
                             to:"planning-desk/stuckon-plan",
-                            label:"Stuckon Prodn Plan",
+                            label: "Stuckon Prodn Plan",
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                        </svg>)
+                        },
+                        (userRole !== 'Production Section Charge' || (preallocatedProcesses && preallocatedProcesses.includes('Stuckon'))) && {
+                            to: "planning-desk/packing-plan",
+                            label: "Packing Plan",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
                         </svg>)
@@ -163,6 +190,40 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         // Filter out null or undefined items that might result from false conditions
                     ].filter(item => item)
             )}
+
+            {sideBarComponent("Execution", "execution",
+                    [
+                        {
+                            to: "execution/clicker-plan",
+                            label: "Clicker Plan",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h5" />
+                            </svg>)
+                        }
+                    ], true)}
+
+            {sideBarComponent("Analysis", "analysis",
+                    [
+                        {
+                            to: "analysis/loop-stocks",
+                            label: "Loop Stocks",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3v18h18M7 14l4-4 4 4 6-7" />
+                            </svg>)
+                        },
+                        {
+                            label: "Shortage Details",
+                            children: [
+                                {
+                                    to: "analysis/shortage-details/clicker-shortage",
+                                    label: "Clicker Shortage",
+                                    icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v4m0 4h.01M10.3 3.86L1.82 18a2 2 0 001.7 3h16.96a2 2 0 001.7-3L13.7 3.86a2 2 0 00-3.4 0z" />
+                                    </svg>)
+                                }
+                            ]
+                        }
+                    ])}
 
             {sideBarComponent("Production Planning Inputs", "productionPlanningInputs",
                     [
@@ -192,11 +253,11 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                                 </svg>)
                         },
                         {
-                            to:"admin/bom-data-entry",
+                            to:"admin/bom-entry",
                             label:"BOM Entry",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                                </svg>)
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h5" />
+                            </svg>)
                         },
                         {
                             to:"admin/packingcombination-entry",

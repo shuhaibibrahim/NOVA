@@ -11,9 +11,22 @@ const DEPARTMENTS = [
   'HR-Office', 'Finance-Admin', 'Finance-Office',
 ];
 
+const PRODUCTION_PLANTS = [
+  'ELS Calicut (0801)',
+  'ELS Malappuram (0802)',
+  'Walkaroo Malappuram (1032)',
+];
+
 function Signup() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', department: '', password: '', phone: '' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    department: '',
+    productionPlant: '',
+    password: '',
+    phone: '',
+  });
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
@@ -29,6 +42,7 @@ function Signup() {
         name: form.name.trim(),
         email: form.email.trim(),
         department: form.department,
+        productionPlant: form.productionPlant,
         phone: form.phone.trim(),
         status: 'pending',
         requestedAt: Date.now(),
@@ -38,6 +52,7 @@ function Signup() {
         name: request.name,
         email: request.email,
         department: request.department,
+        productionPlant: request.productionPlant,
         phone: request.phone,
         admin: false,
         status: 'pending',
@@ -80,6 +95,18 @@ function Signup() {
         <select id="department" name="department" required className="block w-full mb-3 p-3 ring-2 ring-blue-200 rounded-xl" value={form.department} onChange={updateField}>
           <option value="">Select department</option>
           {DEPARTMENTS.map((department) => <option key={department} value={department}>{department}</option>)}
+        </select>
+        <label className="text-left block text-sm text-gray-600 mb-1" htmlFor="productionPlant">Production Plant</label>
+        <select
+          id="productionPlant"
+          name="productionPlant"
+          required
+          className="block w-full mb-3 p-3 ring-2 ring-blue-200 rounded-xl"
+          value={form.productionPlant}
+          onChange={updateField}
+        >
+          <option value="">Select production plant</option>
+          {PRODUCTION_PLANTS.map((plant) => <option key={plant} value={plant}>{plant}</option>)}
         </select>
         {error && <div className="mb-3 text-red-600 text-sm">{error}</div>}
         <button className="btn w-full" type="submit">Submit request</button>

@@ -51,6 +51,7 @@ import UserManagement from './AdminDesk/UserManagement';
 import PackingCombination from './AdminDesk/PackingCombination';
 import VendorDetails from './AdminDesk/VendorDetails';
 import CooisData from './ProductionPlanningInputs/CooisData';
+import Bor from './ProductionPlanningInputs/Bor';
 import ArticleEntryHistory from './History/ArticleEntryHistory';
 import FiuQc from './QCDepartment/FiuQc';
 import LoopStock from './PlanningDesk/LoopStock';
@@ -187,6 +188,10 @@ function App() {
                 path="execution/clicker-plan"
                 element={canAccessRibbon('execution/clicker-plan', true) ? <ClickingPlan viewOnly isAdmin={isAdmin} /> : <Navigate to="/" replace />}
               />
+              <Route
+                path="execution/printing-plan"
+                element={canAccessRibbon('execution/printing-plan', true) ? <PrintingPlan viewOnly /> : <Navigate to="/" replace />}
+              />
               {(isAdmin || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey('production-planning-inputs/requirement-entry')]))) && (
                 <Route
                   path="production-planning-inputs/requirement-entry"
@@ -199,6 +204,12 @@ function App() {
                   element={canAccessRibbon('production-planning-inputs/coois-data') ? <CooisData /> : <Navigate to="/" replace />}
                 />
               )}
+                                {(isAdmin || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey('production-planning-inputs/bor')]))) && (
+                                  <Route
+                                    path="production-planning-inputs/bor"
+                                    element={canAccessRibbon('production-planning-inputs/bor') ? <Bor /> : <Navigate to="/" replace />}
+                                  />
+                                )}
 
               {(isAdmin || userRole === 'PP Head' || userRole === 'Production Section Charge' || (permissionsConfigured && Object.keys(ribbonPermissions || {}).some((key) => key.startsWith('planning-desk%2F')))) && (
                 <Route path="planning-desk">
@@ -241,7 +252,7 @@ function App() {
                   <Route path="stock-entry" element={canAccessRibbon('mmdept/stock-entry', true) ? <StockEntry user={userData}/> : <Navigate to="/" replace />}/>
                   <Route path="material-outward" element={canAccessRibbon('mmdept/material-outward', true) ? <MaterialIssueEntry userRole={userRole} /> : <Navigate to="/" replace />}/>
                  <Route path="material-inward" element={canAccessRibbon('mmdept/material-inward', true) ? <MaterialInwardEntry userRole={userRole} /> : <Navigate to="/" replace />}/>
-                  <Route path="clicker-comp-store" element={canAccessRibbon('mmdept/clicker-comp-store', true) ? <SfgStore title="Clicker Comp Store" route="mmdept/clicker-comp-store" /> : <Navigate to="/" replace />}/>
+                  <Route path="clicker-comp-store" element={canAccessRibbon('mmdept/clicker-comp-store', true) ? <SfgStore title="Clicker Comp Store" route="mmdept/clicker-comp-store" isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
                   <Route path="printing-comp-store" element={canAccessRibbon('mmdept/printing-comp-store', true) ? <SfgStore title="Printing Comp Store" route="mmdept/printing-comp-store" /> : <Navigate to="/" replace />}/>
                   <Route path="molding-receiving-store" element={canAccessRibbon('mmdept/molding-receiving-store', true) ? <SfgStore title="Molding Receiving Store" route="mmdept/molding-receiving-store" /> : <Navigate to="/" replace />}/>
                </Route>

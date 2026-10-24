@@ -199,6 +199,13 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                             icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h5" />
                             </svg>)
+                        },
+                        {
+                            to: "execution/printing-plan",
+                            label: "Printing Plan",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 18H4v-7h16v7h-2M6 14h12v7H6z" />
+                            </svg>)
                         }
                     ], true)}
 
@@ -239,6 +246,13 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                             label: "Coois Data",
                             icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h5" />
+                            </svg>)
+                        },
+                        {
+                            to: "production-planning-inputs/bor",
+                            label: "BOR",
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5h6M9 9h6M9 13h6M5 3h14v18H5z" />
                             </svg>)
                         }
                     ])}

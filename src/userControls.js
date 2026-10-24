@@ -36,6 +36,7 @@ export const CONTROL_TREE = [
     label: 'Execution',
     children: [
       ['execution/clicker-plan', 'Clicker Plan'],
+      ['execution/printing-plan', 'Printing Plan'],
     ],
   },
   {
@@ -44,7 +45,8 @@ export const CONTROL_TREE = [
     children: [
       ['production-planning-inputs/requirement-entry', 'Requirement Entry'],
       ['production-planning-inputs/coois-data', 'Coois Data'],
-    ],
+            ['production-planning-inputs/bor', 'BOR'],
+          ],
   },
   {
     id: 'adminDesk',

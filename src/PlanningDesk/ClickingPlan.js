@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { onValue, push, ref, remove, set, update } from 'firebase/database';
@@ -6,7 +6,6 @@ import { auth, db } from '../firebase_config';
 import { genderForMaterialNumber, normalizeMatchValue, requirementMatchesArticle, sizeForRequirement as deriveSizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const PLAN_DELETE_EMAIL = 'ajimsha.albac@walkaroo.co.in';
-const LOOSE_COMPONENT_TYPES = ['Upper Only', 'Insole and Eva only', 'Full Components'];
 const normalizeSizeKey = (value) => {
   const normalized = String(value || '').trim();
   return /^\d+$/.test(normalized) ? String(Number(normalized)) : normalized;
@@ -104,7 +103,8 @@ const incrementPlanCode = (planCode) => {
 function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [activeSheet, setActiveSheet] = useState('plan');
-  const [requirements, setRequirements] = useState([]);
+  const [storedRequirements, setRequirements] = useState([]);
+  const [borData, setBorData] = useState(null);
   const [cooisRows, setCooisRows] = useState([]);
   const [articles, setArticles] = useState([]);
   const [vendors, setVendors] = useState([]);
@@ -127,13 +127,16 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   const [showOptionalRequirementColumns, setShowOptionalRequirementColumns] = useState(true);
   const [copyMessage, setCopyMessage] = useState('');
   const [showLoosePlanSheet, setShowLoosePlanSheet] = useState(false);
+  const [looseModel, setLooseModel] = useState('');
   const [looseArticle, setLooseArticle] = useState('');
   const [looseColour, setLooseColour] = useState('');
   const [looseGender, setLooseGender] = useState('');
-  const [looseComponentType, setLooseComponentType] = useState('');
-  const [customLooseComponentType, setCustomLooseComponentType] = useState('');
+  const [selectedLooseComponents, setSelectedLooseComponents] = useState([]);
+  const [looseFunctionDropdownOpen, setLooseFunctionDropdownOpen] = useState(false);
+  const looseFunctionDropdownRef = useRef(null);
   const [looseSizeRows, setLooseSizeRows] = useState([]);
   const [bomRecords, setBomRecords] = useState([]);
+  const [bomRecordsLoaded, setBomRecordsLoaded] = useState(false);
   const [receivingItem, setReceivingItem] = useState(null);
   const [receivedDate, setReceivedDate] = useState('');
   const [receivedSizeRows, setReceivedSizeRows] = useState([]);
@@ -157,6 +160,8 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
       setRequirements(Object.entries(data).map(([id, requirement]) => ({ ...requirement, id })));
     });
   }, []);
+
+  useEffect(() => onValue(ref(db, 'borData/'), (snapshot) => setBorData(snapshot.val())), []);
 
   useEffect(() => {
     const articlesRef = ref(db, 'articleData/');
@@ -199,12 +204,30 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   }), []);
 
   useEffect(() => {
-    if (!viewOnly) return undefined;
     return onValue(ref(db, 'bomData/'), (snapshot) => {
       const data = snapshot.val() || {};
       setBomRecords(Object.entries(data).map(([id, record]) => ({ ...record, id })));
+      setBomRecordsLoaded(true);
     });
-  }, [viewOnly]);
+  }, []);
+
+  useEffect(() => {
+    if (!looseFunctionDropdownOpen) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!looseFunctionDropdownRef.current?.contains(event.target)) {
+        setLooseFunctionDropdownOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setLooseFunctionDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [looseFunctionDropdownOpen]);
 
   const filteredPlans = useMemo(() => {
     const code = planCodeFilter.trim().toLowerCase();
@@ -351,20 +374,18 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
     });
   }, [filteredPlans, articles, vendors, packingCombinations]);
 
-  const allFilteredPlansSelected = filteredPlans.length > 0 &&
-    filteredPlans.every((plan) => selectedPlanIds.includes(plan.id));
-
   const togglePlanSelection = (planId) => {
     setSelectedPlanIds((selected) => selected.includes(planId)
       ? selected.filter((id) => id !== planId)
       : [...selected, planId]);
   };
 
-  const toggleFilteredPlanSelection = () => {
-    const filteredIds = filteredPlans.map((plan) => plan.id);
-    setSelectedPlanIds((selected) => allFilteredPlansSelected
-      ? selected.filter((id) => !filteredIds.includes(id))
-      : [...new Set([...selected, ...filteredIds])]);
+  const togglePlanGroupSelection = (planGroup) => {
+    const planIds = [...new Set(planGroup.items.flatMap((item) => item.plans.map((plan) => plan.id)))];
+    const allSelected = planIds.length > 0 && planIds.every((id) => selectedPlanIds.includes(id));
+    setSelectedPlanIds((selected) => allSelected
+      ? selected.filter((id) => !planIds.includes(id))
+      : [...new Set([...selected, ...planIds])]);
   };
 
   const deleteSelectedPlans = async () => {
@@ -398,7 +419,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   const nextPlanCode = incrementPlanCode(existingPlanCodes[0]);
 
   const modelForRequirement = (requirement) => {
-    if (requirement.isLoosePlan) return requirement.model || '';
+    if (requirement.isLoosePlan || requirement.isBor) return requirement.model || '';
     const articleName = normalizeMatchValue(requirement.article);
     const colourName = normalizeMatchValue(requirement.colour ?? requirement.color);
     const genderName = normalizeMatchValue(genderForRequirement(requirement));
@@ -413,33 +434,77 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   };
 
   const genderForRequirement = (requirement) => {
-    return requirement.isLoosePlan ? requirement.gender : genderForMaterialNumber(requirement.materialNo);
+    return requirement.isLoosePlan || requirement.isBor ? requirement.gender : genderForMaterialNumber(requirement.materialNo);
   };
 
   const sizeForRequirement = (requirement) => (
     requirement.size || deriveSizeForRequirement(requirement)
   );
 
-  const looseArticles = useMemo(
-    () => [...new Set(articles.map((article) => String(article.article || '').trim()).filter(Boolean))]
+  const looseModels = useMemo(
+    () => [...new Set(articles.map((article) => String(article.model || '').trim()).filter(Boolean))]
       .sort((first, second) => first.localeCompare(second)),
     [articles]
+  );
+
+  const looseArticles = useMemo(
+    () => [...new Set(articles
+      .filter((article) => normalizeMatchValue(article.model) === normalizeMatchValue(looseModel))
+      .map((article) => String(article.article || '').trim())
+      .filter(Boolean))]
+      .sort((first, second) => first.localeCompare(second)),
+    [articles, looseModel]
+  );
+
+  const looseGenders = useMemo(
+    () => [...new Set(articles
+      .filter((article) =>
+        normalizeMatchValue(article.model) === normalizeMatchValue(looseModel) &&
+        normalizeMatchValue(article.article) === normalizeMatchValue(looseArticle)
+      )
+      .map((article) => String(article.gender || '').trim())
+      .filter(Boolean))]
+      .sort((first, second) => first.localeCompare(second)),
+    [articles, looseModel, looseArticle]
   );
 
   const looseColours = useMemo(
     () => [...new Set(articles
-      .filter((article) => normalizeMatchValue(article.article) === normalizeMatchValue(looseArticle))
+      .filter((article) =>
+        normalizeMatchValue(article.model) === normalizeMatchValue(looseModel) &&
+        normalizeMatchValue(article.article) === normalizeMatchValue(looseArticle) &&
+        normalizeMatchValue(article.gender) === normalizeMatchValue(looseGender)
+      )
       .map((article) => String(article.colour ?? article.color ?? '').trim())
       .filter(Boolean))]
       .sort((first, second) => first.localeCompare(second)),
-    [articles, looseArticle]
+    [articles, looseModel, looseArticle, looseGender]
   );
 
-  const looseGenders = useMemo(
-    () => [...new Set(articles.map((article) => String(article.gender || '').trim()).filter(Boolean))]
-      .sort((first, second) => first.localeCompare(second)),
-    [articles]
-  );
+  const looseComponentOptions = useMemo(() => {
+    const matchingArticleIds = new Set(articles
+      .filter((article) =>
+        normalizeMatchValue(article.model) === normalizeMatchValue(looseModel) &&
+        normalizeMatchValue(article.article) === normalizeMatchValue(looseArticle) &&
+        normalizeMatchValue(article.gender) === normalizeMatchValue(looseGender) &&
+        normalizeMatchValue(article.colour ?? article.color) === normalizeMatchValue(looseColour)
+      )
+      .map((article) => article.id));
+    const linkedBomIds = new Set(articles
+      .filter((article) => matchingArticleIds.has(article.id))
+      .flatMap((article) => String(article.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean)));
+    return bomRecords
+      .filter((record) =>
+        linkedBomIds.has(record.id) &&
+        normalizeMatchValue(record.functionName || record.process) === 'CLICKING'
+      )
+      .map((record) => ({
+        id: record.id,
+        details: String(record.componentDetails || record.materialDesc || record.materialNumber || '').trim(),
+      }))
+      .filter((record) => record.details)
+      .sort((first, second) => first.details.localeCompare(second.details));
+  }, [articles, bomRecords, looseModel, looseArticle, looseGender, looseColour]);
 
   const updateLooseSizeRow = (index, field, value) => {
     setLooseSizeRows((rows) => rows.map((row, rowIndex) => (
@@ -448,13 +513,14 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   };
 
   const addLoosePlanItems = () => {
-    const componentType = looseComponentType === 'Other'
-      ? customLooseComponentType.trim()
-      : looseComponentType;
+    const componentType = looseComponentOptions
+      .filter((component) => selectedLooseComponents.includes(component.id))
+      .map((component) => component.details)
+      .join(', ');
     const enteredRows = looseSizeRows.filter((row) => row.leftQty !== '' || row.rightQty !== '');
 
     if (!looseArticle || !looseColour || !looseGender || !componentType || !enteredRows.length) {
-      window.alert('Select an article, colour, gender, and component type, then enter at least one Left or Right quantity.');
+      window.alert('Select an article, colour, gender, and at least one Clicking BOM component, then enter at least one Left or Right quantity.');
       return;
     }
 
@@ -468,6 +534,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
     }
 
     const matchingArticle = articles.find((article) =>
+      normalizeMatchValue(article.model) === normalizeMatchValue(looseModel) &&
       normalizeMatchValue(article.article) === normalizeMatchValue(looseArticle) &&
       normalizeMatchValue(article.colour ?? article.color) === normalizeMatchValue(looseColour) &&
       normalizeMatchValue(article.gender) === normalizeMatchValue(looseGender)
@@ -493,6 +560,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
         rightQty,
         unit: 'CS',
         looseComponentType: componentType,
+        looseComponentIds: [...selectedLooseComponents],
       };
       return { requirement, plannedQty: qty };
     });
@@ -502,13 +570,98 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
       ...looseItems,
     ]);
     setShowLoosePlanSheet(false);
+    setLooseModel('');
     setLooseArticle('');
     setLooseColour('');
     setLooseGender('');
-    setLooseComponentType('');
-    setCustomLooseComponentType('');
+    setSelectedLooseComponents([]);
+    setLooseFunctionDropdownOpen(false);
     setLooseSizeRows([]);
   };
+
+  const borColumnIndexes = useMemo(() => {
+    const headers = (borData?.headers || []).map((heading) => String(heading).toLowerCase().replace(/[^a-z0-9]/g, ''));
+    const find = (candidates) => headers.findIndex((heading) => candidates.some((candidate) => heading.includes(candidate)));
+    return {
+      sku: find(['skucode', 'sku']),
+      article: find(['article']),
+      colour: find(['colour', 'color']),
+      size: find(['size']),
+      gender: find(['gender']),
+      qty: find(['cumtog']),
+    };
+  }, [borData]);
+
+  const borColumnError = useMemo(() => {
+    if (!borData?.headers?.length) return '';
+    const labels = { sku: 'SKU Code', article: 'Article', colour: 'Color', size: 'Size', gender: 'Gender', qty: 'Cum Tog' };
+    const missing = Object.entries(borColumnIndexes).filter(([, index]) => index < 0).map(([key]) => labels[key]);
+    return missing.length ? `BOR rows were not loaded. Missing BOR column(s): ${missing.join(', ')}.` : '';
+  }, [borData, borColumnIndexes]);
+
+  const requirements = useMemo(() => {
+    if (!borData?.rows || Object.values(borColumnIndexes).some((index) => index < 0)) return storedRequirements;
+
+    const dateOfReq = new Date(borData.uploadedAt || Date.now());
+    const dateText = `${String(dateOfReq.getDate()).padStart(2, '0')}/${String(dateOfReq.getMonth() + 1).padStart(2, '0')}/${dateOfReq.getFullYear()}`;
+    const borRowsByKey = new Map();
+    Object.values(borData.rows).forEach((row) => {
+      const skuCode = String(row[borColumnIndexes.sku] ?? '').trim();
+      const article = String(row[borColumnIndexes.article] ?? '').trim();
+      const qty = Number(String(row[borColumnIndexes.qty] ?? '').replace(/,/g, ''));
+      if (!skuCode || !article || !Number.isFinite(qty) || qty <= 0) return;
+
+      const matchingArticles = articles.filter((item) =>
+        normalizeMatchValue(item.article) === normalizeMatchValue(article)
+      );
+      if (!matchingArticles.length) return;
+
+      const colour = String(row[borColumnIndexes.colour] ?? '').trim();
+      const gender = String(row[borColumnIndexes.gender] ?? '').trim();
+      const size = String(row[borColumnIndexes.size] ?? '').trim();
+      const articleData = matchingArticles.find((item) =>
+        normalizeMatchValue(item.colour ?? item.color) === normalizeMatchValue(colour) &&
+        normalizeMatchValue(item.gender) === normalizeMatchValue(gender)
+      ) || matchingArticles[0];
+      const id = `bor-${skuCode}`;
+      const existing = borRowsByKey.get(id);
+      if (existing) {
+        existing.qty += qty;
+        return;
+      }
+      borRowsByKey.set(id, {
+        id,
+        isBor: true,
+        materialNo: skuCode.slice(0, -2),
+        model: articleData.model || '',
+        dateOfReq: dateText,
+        reqType: 'BOR',
+        salesOrder: '',
+        lineItem: '',
+        referenceNo: '',
+        gender,
+        article,
+        colour,
+        size,
+        qty,
+        unit: 'CS',
+      });
+    });
+    return [...storedRequirements, ...borRowsByKey.values()];
+  }, [storedRequirements, borData, borColumnIndexes, articles]);
+
+  const borPlannedQtyForRequirement = (requirement) => (requirement.isBor || String(requirement.id).startsWith('bor-')
+    ? plans.reduce((total, plan) => (
+      (plan.requirementId === requirement.id || (plan.sourceRequirementIds || []).includes(requirement.id))
+        ? total + (Number(plan.plannedQty) || 0)
+        : total
+    ), 0)
+    : 0);
+
+  const consumedQtyForRequirement = (requirement) => Math.max(
+    Number(requirement.csPlannedQty) || 0,
+    borPlannedQtyForRequirement(requirement)
+  );
 
   const cooisPlannedQtyForRequirement = (requirement) => cooisRows.reduce((total, row) => {
     const matchesLineItem =
@@ -518,7 +671,9 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
     if (!matchesLineItem) return total;
 
     const status = normalizeMatchValue(row.systemStatus);
-    const quantity = status.includes('CLSD') || status.includes('TECO')
+    const isClosed = status.includes('CLSD') || status.includes('TECO');
+    if (requirement.isBor && isClosed) return total;
+    const quantity = isClosed
       ? row.confirmedYieldQuantity
       : row.orderQuantity;
     const numericQuantity = Number(quantity);
@@ -532,7 +687,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   const balanceToPlanForRequirement = (requirement) => Math.max(
     0,
     (Number(requirement.qty) || 0) -
-      (Number(requirement.csPlannedQty) || 0) -
+      consumedQtyForRequirement(requirement) -
       cartPlannedQtyForRequirement(requirement)
   );
 
@@ -540,12 +695,15 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
     const sourceIds = planRequirement.sourceRequirementIds || [planRequirement.id];
     const sourceRequirements = requirements.filter((requirement) => sourceIds.includes(requirement.id));
     if (!sourceRequirements.length) {
-      return Math.max(0, (Number(planRequirement.qty) || 0) - cooisPlannedQtyForRequirement(planRequirement));
+      return Math.max(0, (Number(planRequirement.qty) || 0) - consumedQtyForRequirement({
+        ...planRequirement,
+        csPlannedQty: cooisPlannedQtyForRequirement(planRequirement),
+      }));
     }
 
     const orderQty = sourceRequirements.reduce((total, requirement) => total + (Number(requirement.qty) || 0), 0);
     const plannedQty = sourceRequirements.reduce((total, requirement) => (
-      total + cooisPlannedQtyForRequirement(requirement)
+      total + consumedQtyForRequirement({ ...requirement, csPlannedQty: cooisPlannedQtyForRequirement(requirement) })
     ), 0);
     const planOrderQty = planRequirement.isPairMtoSummary
       ? orderQty / Number(articles.find(
@@ -558,7 +716,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
 
   const requirementsForPlanning = useMemo(() => {
     const matchedRequirements = requirements
-      .filter((requirement) => requirementMatchesArticle(requirement, articles))
+      .filter((requirement) => requirement.isBor || requirementMatchesArticle(requirement, articles))
       .map((requirement) => ({
         ...requirement,
         csPlannedQty: cooisPlannedQtyForRequirement(requirement),
@@ -615,7 +773,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
     return planningRows
       .filter((requirement) => {
         const orderQty = Number(requirement.qty);
-        return !(orderQty > 0 && requirement.csPlannedQty >= orderQty);
+        return !(orderQty > 0 && consumedQtyForRequirement(requirement) >= orderQty);
       })
       .filter((requirement) =>
         [...REQUIREMENT_COLUMNS, ['materialNo', 'Material No.']].every(([key]) => {
@@ -673,7 +831,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
     const plannedQty = Number(plannedQuantities[requirement.id] || 0);
     const requiredQty = Math.max(
       0,
-      (Number(requirement.qty) || 0) - (Number(requirement.csPlannedQty) || 0)
+      (Number(requirement.qty) || 0) - consumedQtyForRequirement(requirement)
     );
     if (!Number.isFinite(plannedQty) || plannedQty <= 0) {
       window.alert('Enter a quantity greater than zero before adding this item to the plan.');
@@ -854,29 +1012,39 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+              Model
+              <select
+                value={looseModel}
+                onChange={(event) => {
+                  setLooseModel(event.target.value);
+                  setLooseArticle('');
+                  setLooseGender('');
+                  setLooseColour('');
+                  setSelectedLooseComponents([]);
+                  setLooseSizeRows([]);
+                }}
+                className="rounded border border-gray-300 bg-white p-2.5 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Select model</option>
+                {looseModels.map((model) => <option key={model} value={model}>{model}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
               Article
               <select
                 value={looseArticle}
                 onChange={(event) => {
                   setLooseArticle(event.target.value);
+                  setLooseGender('');
                   setLooseColour('');
+                  setSelectedLooseComponents([]);
+                  setLooseSizeRows([]);
                 }}
+                disabled={!looseModel}
                 className="rounded border border-gray-300 bg-white p-2.5 focus:border-blue-500 focus:outline-none"
               >
                 <option value="">Select article</option>
                 {looseArticles.map((article) => <option key={article} value={article}>{article}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-              Colour
-              <select
-                value={looseColour}
-                onChange={(event) => setLooseColour(event.target.value)}
-                disabled={!looseArticle}
-                className="rounded border border-gray-300 bg-white p-2.5 focus:border-blue-500 focus:outline-none disabled:bg-gray-100"
-              >
-                <option value="">Select colour</option>
-                {looseColours.map((colour) => <option key={colour} value={colour}>{colour}</option>)}
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
@@ -886,9 +1054,12 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
                 onChange={(event) => {
                   const gender = event.target.value;
                   setLooseGender(gender);
+                  setLooseColour('');
+                  setSelectedLooseComponents([]);
                   setLooseSizeRows(sizesForGender(gender)
                     .map((size) => ({ size, leftQty: '', rightQty: '' })));
                 }}
+                disabled={!looseArticle}
                 className="rounded border border-gray-300 bg-white p-2.5 focus:border-blue-500 focus:outline-none"
               >
                 <option value="">Select gender</option>
@@ -896,29 +1067,63 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-              Component Type
+              Colour
               <select
-                value={looseComponentType}
-                onChange={(event) => setLooseComponentType(event.target.value)}
-                className="rounded border border-gray-300 bg-white p-2.5 focus:border-blue-500 focus:outline-none"
+                value={looseColour}
+                onChange={(event) => {
+                  setLooseColour(event.target.value);
+                  setSelectedLooseComponents([]);
+                }}
+                disabled={!looseGender}
+                className="rounded border border-gray-300 bg-white p-2.5 focus:border-blue-500 focus:outline-none disabled:bg-gray-100"
               >
-                <option value="">Select component type</option>
-                {LOOSE_COMPONENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-                <option value="Other">Other (enter manually)</option>
+                <option value="">Select colour</option>
+                {looseColours.map((colour) => <option key={colour} value={colour}>{colour}</option>)}
               </select>
             </label>
-            {looseComponentType === 'Other' && (
-              <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 md:col-span-2 xl:col-span-1">
-                Custom Component Type
-                <input
-                  type="text"
-                  value={customLooseComponentType}
-                  onChange={(event) => setCustomLooseComponentType(event.target.value)}
-                  placeholder="Enter component type"
-                  className="rounded border border-gray-300 bg-white p-2.5 focus:border-blue-500 focus:outline-none"
-                />
-              </label>
-            )}
+            <div ref={looseFunctionDropdownRef} className="relative flex flex-col gap-1 text-sm font-medium text-gray-700">
+              <span>Components</span>
+              <button
+                type="button"
+                aria-haspopup="true"
+                aria-expanded={looseFunctionDropdownOpen}
+                disabled={!looseModel || !looseArticle || !looseGender || !looseColour}
+                onClick={() => setLooseFunctionDropdownOpen((open) => !open)}
+                className="flex min-h-[42px] items-center justify-between rounded border border-gray-300 bg-white px-3 py-2.5 text-left font-normal focus:border-blue-500 focus:outline-none disabled:bg-gray-100"
+              >
+                <span className="truncate">
+                  {selectedLooseComponents.length
+                    ? looseComponentOptions
+                      .filter((component) => selectedLooseComponents.includes(component.id))
+                      .map((component) => component.details)
+                      .join(', ')
+                    : looseModel && looseArticle && looseGender && looseColour ? 'Select Clicking components' : 'Select model, article, gender, and colour first'}
+                </span>
+                <span aria-hidden="true">▾</span>
+              </button>
+              {looseFunctionDropdownOpen && (
+                <div className="absolute left-0 top-full z-30 mt-1 max-h-64 w-full min-w-56 overflow-auto rounded border border-gray-300 bg-white p-2 shadow-lg">
+                  {!bomRecordsLoaded ? (
+                    <p className="px-2 py-2 font-normal text-gray-500">Loading BOM components...</p>
+                  ) : looseComponentOptions.length ? looseComponentOptions.map((component) => (
+                    <label key={component.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 font-normal hover:bg-blue-50">
+                      <input
+                        type="checkbox"
+                        checked={selectedLooseComponents.includes(component.id)}
+                        onChange={() => setSelectedLooseComponents((current) => (
+                          current.includes(component.id)
+                            ? current.filter((selected) => selected !== component.id)
+                            : [...current, component.id]
+                        ))}
+                      />
+                      {component.details}
+                    </label>
+                  )) : (
+                    <p className="px-2 py-2 font-normal text-gray-500">No Clicking components are linked to this article, colour, and gender.</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="overflow-hidden rounded border border-gray-200">
@@ -1016,6 +1221,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
           </button>
         </div>
       </div>
+      {borColumnError && <p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-700">{borColumnError}</p>}
       <div className="max-h-[55vh] min-w-0 overflow-auto border border-gray-200">
         <table className="min-w-[2050px] w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-gray-200 text-xs font-semibold shadow-sm">
@@ -1064,7 +1270,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
               (() => {
                 const availableToPlan = Math.max(
                   0,
-                  (Number(requirement.qty) || 0) - (Number(requirement.csPlannedQty) || 0)
+                  (Number(requirement.qty) || 0) - consumedQtyForRequirement(requirement)
                 );
                 const exceedsRequirement = Number(plannedQuantities[requirement.id] || 0) > availableToPlan;
                 return (
@@ -1390,6 +1596,44 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
         return;
       }
     }
+    const clickingComponents = bomComponentsForArticle(article).filter((component) =>
+      normalizeMatchValue(component.functionName || component.process) === 'CLICKING'
+    );
+    const componentQuantities = receivedSizes.flatMap((row) => {
+      const sizeEntry = receivingItem.sizes.find((size) =>
+        normalizeSizeKey(size.size) === normalizeSizeKey(row.size)
+      );
+      const sizePlans = sizeEntry?.plans?.length ? sizeEntry.plans : receivingItem.plans;
+      const componentIds = new Set();
+      sizePlans.forEach((plan) => {
+        if (!plan.isLoosePlan) {
+          clickingComponents.forEach((component) => componentIds.add(component.id));
+          return;
+        }
+        const selectedIds = Array.isArray(plan.looseComponentIds) ? plan.looseComponentIds : [];
+        selectedIds.forEach((id) => componentIds.add(id));
+        if (!selectedIds.length) {
+          const selectedNames = String(plan.looseComponentType || plan.remarks || '')
+            .split(',')
+            .map((name) => normalizeMatchValue(name))
+            .filter(Boolean);
+          clickingComponents
+            .filter((component) => selectedNames.includes(normalizeMatchValue(
+              component.componentDetails || component.materialDesc || component.materialNumber
+            )))
+            .forEach((component) => componentIds.add(component.id));
+        }
+      });
+      return [...componentIds].flatMap((componentId) => {
+        if (!clickingComponents.some((component) => component.id === componentId)) return [];
+        return [{
+          componentId,
+          size: row.size,
+          leftQty: row.leftQty,
+          rightQty: row.rightQty,
+        }];
+      });
+    });
     const receipt = {
       id: receiptId,
       articleId: article.id,
@@ -1402,6 +1646,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
       planningDate: receivingItem.plans[0]?.planningDate || '',
       receivedDate,
       receivedSizes: receivedSizes.filter((row) => row.leftQty > 0 || row.rightQty > 0),
+      componentQuantities: componentQuantities.filter((row) => row.leftQty > 0 || row.rightQty > 0),
       shortages,
       submittedAt: Date.now(),
     };
@@ -1776,7 +2021,21 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
                     <td colSpan={3 + (showPlanSelection ? 1 : 0) + (viewOnly ? 1 : 0)} className="border border-gray-400 p-2">TOTAL: {totalPairs} PR, {totalCases} CS</td>
                   </tr>
                   <tr className="bg-teal-100 text-center text-xs font-bold">
-                    {showPlanSelection && <th className="border border-gray-400 p-2"><input type="checkbox" aria-label="Select all filtered plans" checked={allFilteredPlansSelected} onChange={toggleFilteredPlanSelection} /></th>}
+                    {showPlanSelection && (
+                      <th className="border border-gray-400 p-2">
+                        <label className="flex items-center justify-center gap-1">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select full plan ${planGroup.planCode}`}
+                            checked={planGroup.items.length > 0 && planGroup.items
+                              .flatMap((item) => item.plans)
+                              .every((plan) => selectedPlanIds.includes(plan.id))}
+                            onChange={() => togglePlanGroupSelection(planGroup)}
+                          />
+                          <span>SELECT PLAN</span>
+                        </label>
+                      </th>
+                    )}
                     {['SL NO', 'VENDOR', 'MODEL', 'ARTICLE', 'GENDER', 'COLOUR', 'SIZE', 'LEFT', 'RIGHT', 'CASE', 'CATEGORY', 'REMARKS', 'LOT NUMBER'].map((heading) => (
                       <th key={heading} className="whitespace-nowrap border border-gray-400 p-2">{heading}</th>
                     ))}

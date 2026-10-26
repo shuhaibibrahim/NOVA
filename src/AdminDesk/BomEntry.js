@@ -30,10 +30,17 @@ const componentDetailsForRecord = (record) => (
   String(record.componentDetails || record.materialDesc || record.materialNumber || '').trim()
 );
 
-const childComponentNames = (childIds, records) => childIds
-  .map((childId) => childId === NO_CHILD_MATERIAL
-    ? NO_CHILD_MATERIAL_LABEL
-    : componentDetailsForRecord(records.find((record) => record.id === childId) || {}))
+const STOCK_CHILD_PREFIX = 'stock:';
+
+const childComponentNames = (childIds, records, stockOptions = []) => childIds
+  .map((childId) => {
+    if (childId === NO_CHILD_MATERIAL) return NO_CHILD_MATERIAL_LABEL;
+    if (String(childId).startsWith(STOCK_CHILD_PREFIX)) {
+      return stockOptions.find((item) => item.childId === childId)?.description
+        || String(childId).slice(STOCK_CHILD_PREFIX.length);
+    }
+    return componentDetailsForRecord(records.find((record) => record.id === childId) || {});
+  })
   .filter(Boolean);
 
 const bomIdsForArticle = (article) => String(article.bomIds || '')
@@ -207,6 +214,7 @@ function BomEntry() {
       .map((item) => ({
         description: String(item.materialDesc || '').trim(),
         materialNumber: String(item.materialNumber || '').trim(),
+        childId: `${STOCK_CHILD_PREFIX}${String(item.materialNumber || item.materialDesc || '').trim()}`,
       }))
       .filter((item) => item.description && !seen.has(item.description.toLowerCase()) && seen.add(item.description.toLowerCase()))
       .sort((first, second) => first.description.localeCompare(second.description));
@@ -643,9 +651,11 @@ function BomEntry() {
                                 record.id !== row.recordId &&
                                 (row.recordId || componentDetailsForRecord(record).toLowerCase() !== currentDetails)
                               ));
-                              const selectedNames = childOptions
-                                .filter((record) => (row.childComponentIds || []).includes(record.id))
-                                .map(componentDetailsForRecord);
+                              const selectedNames = childComponentNames(
+                                (row.childComponentIds || []).filter((id) => id !== NO_CHILD_MATERIAL),
+                                childOptions,
+                                stockMaterials
+                              );
                               if ((row.childComponentIds || []).includes(NO_CHILD_MATERIAL)) {
                                 selectedNames.unshift(NO_CHILD_MATERIAL_LABEL);
                               }
@@ -723,9 +733,28 @@ function BomEntry() {
                                           {componentDetailsForRecord(record)}
                                         </label>
                                       ))}
-                                      {!childOptions.length && (
+                                      {childOptions.length === 0 && stockMaterials.length === 0 && (
                                         <p className="px-2 py-2 text-gray-500">No other component details are available.</p>
                                       )}
+                                      {stockMaterials.length > 0 && (
+                                        <p className="mt-1 border-t border-gray-200 px-2 pt-2 text-xs font-semibold text-gray-500">STOCK MATERIALS</p>
+                                      )}
+                                      {stockMaterials.map((item) => (
+                                        <label key={item.childId} className="flex cursor-pointer items-center gap-2 whitespace-nowrap px-2 py-1.5 hover:bg-blue-50">
+                                          <input
+                                            type="checkbox"
+                                            checked={(row.childComponentIds || []).includes(item.childId)}
+                                            onChange={() => updateComponentRow(
+                                              index,
+                                              'childComponentIds',
+                                              (row.childComponentIds || []).includes(item.childId)
+                                                ? row.childComponentIds.filter((id) => id !== item.childId)
+                                                : [...(row.childComponentIds || []).filter((id) => id !== NO_CHILD_MATERIAL), item.childId]
+                                            )}
+                                          />
+                                          {item.description}
+                                        </label>
+                                      ))}
                                     </div>,
                                     document.body
                                   )}
@@ -888,7 +917,7 @@ function BomEntry() {
                                   }}
                                   className="w-full rounded border border-gray-300 bg-white p-2 text-left"
                                 >
-                                    {childComponentNames(componentEditDraft.childComponentIds, articleBomRecords)
+                                    {childComponentNames(componentEditDraft.childComponentIds, articleBomRecords, stockMaterials)
                                     .join(', ') || 'Select child components'}
                                 </button>
                                 {editChildDropdownOpen && editChildDropdownPosition && createPortal(
@@ -947,6 +976,26 @@ function BomEntry() {
                                             {componentDetailsForRecord(child)}
                                           </label>
                                         ))}
+                                      {stockMaterials
+                                        .filter((item) => item.description.toLowerCase().includes(editChildFilter.trim().toLowerCase()))
+                                        .map((item) => (
+                                          <label
+                                            key={item.childId}
+                                            className="flex cursor-pointer items-center gap-2 whitespace-nowrap px-2 py-1.5 hover:bg-blue-50"
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={componentEditDraft.childComponentIds.includes(item.childId)}
+                                              onChange={() => setComponentEditDraft((draft) => ({
+                                                ...draft,
+                                                childComponentIds: draft.childComponentIds.includes(item.childId)
+                                                  ? draft.childComponentIds.filter((id) => id !== item.childId)
+                                                  : [...draft.childComponentIds.filter((id) => id !== NO_CHILD_MATERIAL), item.childId],
+                                              }))}
+                                            />
+                                            {item.description}
+                                          </label>
+                                        ))}
                                       {!articleBomRecords.some((child) => (
                                         child.id !== record.id &&
                                         componentDetailsForRecord(child).toLowerCase()
@@ -961,7 +1010,7 @@ function BomEntry() {
                               </>
                             ) : (
                               <span className="whitespace-pre-wrap p-1">
-                                {childComponentNames(record.childComponentIds || [], articleBomRecords).join(', ') || '-'}
+                                {childComponentNames(record.childComponentIds || [], articleBomRecords, stockMaterials).join(', ') || '-'}
                               </span>
                             )}
                           </td>

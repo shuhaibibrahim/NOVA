@@ -192,6 +192,21 @@ function App() {
                 path="execution/printing-plan"
                 element={canAccessRibbon('execution/printing-plan', true) ? <PrintingPlan viewOnly /> : <Navigate to="/" replace />}
               />
+              {[
+                ['stitching', 'Stitching'],
+                ['molding', 'Molding'],
+                ['grinding', 'Grinding'],
+                ['stuckon', 'Stuckon'],
+                ['packing', 'Packing'],
+              ].map(([process, title]) => (
+                <Route
+                  key={process}
+                  path={`execution/${process}-plan`}
+                  element={canAccessRibbon(`execution/${process}-plan`, true)
+                    ? <PlanningPlanPlaceholder title={`${title} Plan`} route={`execution/${process}-plan`} />
+                    : <Navigate to="/" replace />}
+                />
+              ))}
               {(isAdmin || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey('production-planning-inputs/requirement-entry')]))) && (
                 <Route
                   path="production-planning-inputs/requirement-entry"

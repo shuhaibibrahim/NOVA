@@ -206,7 +206,20 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                             icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 18H4v-7h16v7h-2M6 14h12v7H6z" />
                             </svg>)
-                        }
+                        },
+                        ...[
+                            ['stitching', 'Stitching Plan'],
+                            ['molding', 'Molding Plan'],
+                            ['grinding', 'Grinding Plan'],
+                            ['stuckon', 'Stuckon Plan'],
+                            ['packing', 'Packing Plan'],
+                        ].map(([process, label]) => ({
+                            to: `execution/${process}-plan`,
+                            label,
+                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h5" />
+                            </svg>)
+                        }))
                     ], true)}
 
             {sideBarComponent("Analysis", "analysis",

@@ -30,6 +30,8 @@ function StockEntry({user}) {
     }    
 
     const [stockData, setStockData] = useState([])
+    const [materialInwardData, setMaterialInwardData] = useState([])
+    const [materialIssueData, setMaterialIssueData] = useState([])
     const [requirementsData, setRequirementsData] = useState([])
     const [editData, setEditData] = useState({...stockStruct})
     const [editingInputElement, setEditingInputElement] = useState(null)
@@ -79,23 +81,50 @@ function StockEntry({user}) {
 
     useEffect(() => {
         const stockRef = ref(db, 'stockData/');
-
-        onValue(stockRef, (snapshot) => {
+        const inwardRef = ref(db, 'materialInwardData/');
+        const issueRef = ref(db, 'materialIssueData/');
+        const unsubscribeStock = onValue(stockRef, (snapshot) => {
             const data = snapshot.val();
-            // ;
-
-            var stockArray=[];
-            for(var key in data)
-            {
-                var item=data[key]
-                console.log(item)
-                stockArray.push(item)
-                // spareArray.push(item)
-            }
-            
-            setStockData([...stockArray])
+            setStockData(Object.values(data || {}));
         });
+        const unsubscribeInward = onValue(inwardRef, (snapshot) => {
+            setMaterialInwardData(Object.values(snapshot.val() || {}));
+        });
+        const unsubscribeIssue = onValue(issueRef, (snapshot) => {
+            setMaterialIssueData(Object.values(snapshot.val() || {}));
+        });
+        return () => {
+            unsubscribeStock();
+            unsubscribeInward();
+            unsubscribeIssue();
+        };
     }, [])
+
+    const totalsForMaterial = (materialNumber) => {
+        const matchesMaterial = (record) => String(record.materialNumber || '') === String(materialNumber || '');
+        const totalInward = materialInwardData
+            .filter(matchesMaterial)
+            .reduce((total, record) => total + (Number(record.qty) || 0), 0);
+        const totalOutward = materialIssueData
+            .filter(matchesMaterial)
+            .reduce((total, record) => total + (Number(record.qty) || 0), 0);
+        return { totalInward, totalOutward };
+    };
+
+    const stockBalances = (item) => {
+        const { totalInward, totalOutward } = totalsForMaterial(item.materialNumber);
+        const damage = Number(item.damageQty) || 0;
+        const openingQty = item.openingQty !== undefined && item.openingQty !== null
+            ? Number(item.openingQty) || 0
+            : (Number(item.qty) || 0) - totalInward + totalOutward + damage;
+        return {
+            openingQty,
+            totalInward,
+            totalOutward,
+            damage,
+            stockInHand: openingQty + totalInward - totalOutward - damage,
+        };
+    };
 
     const pushToDatabase = async() => {
             // setUpdateLoad(true)
@@ -108,6 +137,8 @@ function StockEntry({user}) {
                     if(window.confirm("Add new stock?")){
                         await set(stockRef, {
                             ...newStock,
+                            openingQty: Number(newStock.qty) || 0,
+                            damageQty: 0,
                             id:newStock.materialNumber
                         })
                         .then(()=>{
@@ -137,8 +168,13 @@ function StockEntry({user}) {
                 const snapshot=await get(stockRef)
                 if(!snapshot.exists()){
                     await set(stockRef, {
-                        ...item,
-                        qty:0,
+                        materialGroup:item.materialGroup || "",
+                        materialNumber:item.materialNumber,
+                        materialDesc:item.materialDesc || "",
+                        unit:item.unit || "",
+                        qty:Number(item.qty) || 0,
+                        openingQty:Number(item.qty) || 0,
+                        damageQty:Number(item.damage) || 0,
                         id:item.materialNumber
                     })
                     .then(()=>{
@@ -164,7 +200,7 @@ function StockEntry({user}) {
     }
 
     const editItem = (item) => {
-        item={...editData, id:item.id}
+        item={...item, ...editData, qty:item.qty, id:item.id}
 
         const stockRef = ref(db, `stockData/${item.id}`);
 
@@ -241,26 +277,20 @@ function StockEntry({user}) {
     }
 
     const RenderItem=(item, index)=>{
+        const balances = stockBalances(item);
 
         return (
-            // <div key={index} className={item.qty<item.minStock?"w-11/12 p-2 grid grid-cols-9 bg-red-400 rounded-xl bg-opacity-90 ring-2 ring-red-500":"w-11/12 p-2 grid grid-cols-9"}>
-            <div key={index} className="grid grid-cols-9 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+            <div key={index} className="grid min-w-[1200px] grid-cols-10 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
                 {item.edit!=true&&(<>
-                    <div className="text-stone-900/30 break-all text-left">{item.materialGroup}</div>
-
-                    <div className="text-stone-900/30 break-all text-left">{item.materialNumber}</div>
-
-                    <div className="text-stone-900/30 break-all text-left">{item.materialDesc}</div>
-
-                    <div className="text-stone-900/30 break-all text-left">{item.qty}</div>
-
-                    <div className="text-stone-900/30 break-all text-left">{item.unit}</div>
-
-                    <div className="text-stone-900/30 break-all text-left">{item.rackPosition}</div>
-
-                    <div className="text-stone-900/30 break-all text-left">{item.numberOfLayers}</div>
-
-                    <div className="text-stone-900/30 break-all text-left">{item.rate}</div>
+                    <div className="break-all text-left">{item.materialGroup}</div>
+                    <div className="break-all text-left">{item.materialNumber}</div>
+                    <div className="break-all text-left">{item.materialDesc}</div>
+                    <div className="break-all text-left">{balances.openingQty}</div>
+                    <div className="break-all text-left">{item.unit}</div>
+                    <div className="break-all text-left">{balances.totalInward}</div>
+                    <div className="break-all text-left">{balances.totalOutward}</div>
+                    <div className="break-all text-left">{balances.damage}</div>
+                    <div className="break-all text-left">{balances.stockInHand}</div>
                 </>)}
 
                 {item.edit&&(<>
@@ -311,15 +341,15 @@ function StockEntry({user}) {
 
                     <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
-                            value={editData.qty}
+                            value={editData.openingQty}
                             onChange={e=>{
                                 setEditingInputElement(e.target)
                                 setEditData({
                                     ...editData,
-                                    qty: e.target.value
+                                    openingQty: e.target.value
                                 })
                             }}
-                            type="text" 
+                            type="number"
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         />
                     </div> 
@@ -339,51 +369,25 @@ function StockEntry({user}) {
                         />
                     </div>  
 
+                    <div className="break-all text-left">{balances.totalInward}</div>
+                    <div className="break-all text-left">{balances.totalOutward}</div>
                     <div className="flex w-full flex flex-col items-start justify-start">
                         <input 
-                            value={editData.rackPosition}
+                            value={editData.damageQty}
                             onChange={e=>{
                                 setEditingInputElement(e.target)
                                 setEditData({
                                     ...editData,
-                                    rackPosition: e.target.value
+                                    damageQty: e.target.value
                                 })
                             }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div>  
-
-                    <div className="flex w-full flex flex-col items-start justify-start">
-                        <input 
-                            value={editData.numberOfLayers}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    numberOfLayers: e.target.value
-                                })
-                            }}
-                            type="text" 
-                            className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
-                        />
-                    </div>  
-
-                    <div className="flex w-full flex flex-col items-start justify-start">
-                        <input 
-                            value={editData.rate}
-                            onChange={e=>{
-                                setEditingInputElement(e.target)
-                                setEditData({
-                                    ...editData,
-                                    rate: e.target.value
-                                })
-                            }}
-                            type="text" 
+                            type="number"
                             className='w-full ring-2 p-1 ring-blue-200 focus:outline-none focus:ring-blue-500 rounded'
                         />
                     </div> 
-
+                    <div className="break-all text-left">
+                        {(Number(editData.openingQty) || 0) + balances.totalInward - balances.totalOutward - (Number(editData.damageQty) || 0)}
+                    </div>
                 </>)}
 
                 <div className='col-span-1'>
@@ -393,7 +397,11 @@ function StockEntry({user}) {
                             <div 
                                 onClick={()=>{
                                     if(user.admin==true){
-                                        setEditData({...item})
+                                                setEditData({
+                                                    ...item,
+                                                    openingQty: balances.openingQty,
+                                                    damageQty: balances.damage,
+                                                })
                                         var tempStockData=[...stockData].reverse()
                                         tempStockData[index].edit=true
                                         setStockData([...tempStockData].reverse())
@@ -469,7 +477,7 @@ function StockEntry({user}) {
                 <div/>
             )
         }
-    }, [stockData, editData])
+    }, [stockData, editData, materialInwardData, materialIssueData])
 
 
     const RenderInputRow=()=>{
@@ -521,7 +529,7 @@ function StockEntry({user}) {
                     />
                 </div> 
 
-                {/* <div className="flex w-full flex flex-col items-start justify-start">
+                <div className="flex w-full flex flex-col items-start justify-start">
                     <label className='text-sm'>Quantity</label>
                     <input 
                         value={newStock.qty}
@@ -534,7 +542,7 @@ function StockEntry({user}) {
                         type="text" 
                         className='w-full ring-2 ring-blue-200 bg-white h-7 pl-1 focus:outline-none focus:ring-blue-500 rounded'
                     />
-                </div> */}
+                </div>
 
                 <div className="flex w-full flex flex-col items-start justify-start">
                     <label className='text-sm'>Unit</label>
@@ -609,7 +617,17 @@ function StockEntry({user}) {
 
                 <div className='col-span-3 flex justify-start items-end'>
                     <BulkExcelUploadComponent 
-                        headings={["materialGroup","materialNumber","materialDesc","unit"]} 
+                        headings={[
+                            "materialGroup",
+                            "materialNumber",
+                            "materialDesc",
+                            "qty",
+                            "unit",
+                            "totalInward",
+                            "totalOutward",
+                            "damage",
+                            "stockInHand",
+                        ]}
                         templateName={"stock-template"}
                         pushFunction={pushStockToDatabaseBulk}
                     />
@@ -652,17 +670,21 @@ function StockEntry({user}) {
                         </button>
                     </div>
                 </div>
-                <div className="w-full sticky top-0 p-3 grid grid-cols-9 gap-1 bg-gray-200">
+                <div className="w-full overflow-x-auto">
+                <div className="sticky top-0 grid min-w-[1200px] grid-cols-10 gap-1 bg-gray-200 p-3">
                     <div className="text-sm py-2 text-left">MATERIAL GROUP</div>
                     <div className="text-sm py-2 text-left">MATERIAL NUMBER</div>
                     <div className="text-sm py-2 text-left">MATERIAL DESCRIPTION</div>
-                    <div className="text-sm py-2 text-left">QUANTITY</div>
+                    <div className="text-sm py-2 text-left">QTY</div>
                     <div className="text-sm py-2 text-left">UNIT</div>
-                    <div className="text-sm py-2 text-left">RACK POSITION</div>
-                    <div className="text-sm py-2 text-left">NO. OF LAYERS</div>
-                    <div className="text-sm py-2 text-left">RATE</div>
+                    <div className="text-sm py-2 text-left">TOTAL INWARD</div>
+                    <div className="text-sm py-2 text-left">TOTAL OUTWARD</div>
+                    <div className="text-sm py-2 text-left">DAMAGE</div>
+                    <div className="text-sm py-2 text-left">STOCK IN HAND</div>
+                    <div className="text-sm py-2 text-left">ACTION</div>
                 </div>
                 {renderItems}
+                </div>
             </div>
         </div>
 

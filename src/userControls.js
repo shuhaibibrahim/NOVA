@@ -37,6 +37,11 @@ export const CONTROL_TREE = [
     children: [
       ['execution/clicker-plan', 'Clicker Plan'],
       ['execution/printing-plan', 'Printing Plan'],
+      ['execution/stitching-plan', 'Stitching Plan'],
+      ['execution/molding-plan', 'Molding Plan'],
+      ['execution/grinding-plan', 'Grinding Plan'],
+      ['execution/stuckon-plan', 'Stuckon Plan'],
+      ['execution/packing-plan', 'Packing Plan'],
     ],
   },
   {

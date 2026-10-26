@@ -3,11 +3,12 @@ import { useOutletContext } from 'react-router-dom';
 
 function PlanningPlanPlaceholder({ title, route }) {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
+  const tab = route.startsWith('execution/') ? 'execution' : 'planningDesk';
 
   useEffect(() => {
     setSelectedLink(route);
-    setOpenedTab('planningDesk');
-  }, [route, setSelectedLink, setOpenedTab]);
+    setOpenedTab(tab);
+  }, [route, tab, setSelectedLink, setOpenedTab]);
 
   return (
     <div className="h-full bg-blue-50 px-3 pb-2 pt-4">

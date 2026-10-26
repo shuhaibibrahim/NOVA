@@ -8,6 +8,7 @@ import { db } from '../firebase_config';
 
 const FUNCTIONS = ['Knitting', 'Clicking', 'Printing', 'Stitching', 'Molding', 'Grinding', 'Stuckon', 'Packing'];
 const NO_CHILD_MATERIAL = '__no_child_material__';
+const STOCK_LIST_SHEET = 'Stock Materials';
 const NO_CHILD_MATERIAL_LABEL = 'No Child Material';
 const isFunctionActive = (article, functionName) => (
   article.activeFunctions?.[functionName] ?? functionName !== 'Knitting'
@@ -84,6 +85,7 @@ function BomEntry() {
   const { articleId } = useParams();
   const [articles, setArticles] = useState([]);
   const [bomRecords, setBomRecords] = useState([]);
+  const [stockData, setStockData] = useState([]);
   const [showNotUpdated, setShowNotUpdated] = useState(false);
   const [componentRows, setComponentRows] = useState([emptyComponentRow()]);
   const [editingComponentId, setEditingComponentId] = useState(null);
@@ -195,6 +197,25 @@ function BomEntry() {
     setBomRecords(Object.entries(data).map(([id, record]) => ({ ...record, id })));
   }), []);
 
+  useEffect(() => onValue(ref(db, 'stockData/'), (snapshot) => {
+    setStockData(Object.values(snapshot.val() || {}));
+  }), []);
+
+  const stockMaterials = useMemo(() => {
+    const seen = new Set();
+    return stockData
+      .map((item) => ({
+        description: String(item.materialDesc || '').trim(),
+        materialNumber: String(item.materialNumber || '').trim(),
+      }))
+      .filter((item) => item.description && !seen.has(item.description.toLowerCase()) && seen.add(item.description.toLowerCase()))
+      .sort((first, second) => first.description.localeCompare(second.description));
+  }, [stockData]);
+
+  const stockMaterialFor = (description) => stockMaterials.find(
+    (item) => item.description.toLowerCase() === String(description || '').trim().toLowerCase()
+  );
+
   const selectedArticle = articles.find((article) => article.id === articleId);
   const articleBomRecords = useMemo(() => {
     if (!selectedArticle) return [];
@@ -255,6 +276,15 @@ function BomEntry() {
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'NOVA';
       workbook.subject = 'BOM component entry template';
+      const stockListCount = stockMaterials.length;
+      if (stockListCount) {
+        const listSheet = workbook.addWorksheet(STOCK_LIST_SHEET);
+        listSheet.columns = [
+          { header: 'Material Description', key: 'description', width: 60 },
+          { header: 'Material No.', key: 'materialNumber', width: 24 },
+        ];
+        stockMaterials.forEach((item) => listSheet.addRow([item.description, item.materialNumber]));
+      }
       selectedRows.forEach((article) => {
         const worksheet = workbook.addWorksheet(article.sheetName);
         worksheet.columns = [
@@ -293,6 +323,14 @@ function BomEntry() {
             errorTitle: 'Invalid function',
             error: 'Select a function from the dropdown list.',
           };
+          if (stockListCount) {
+            worksheet.getCell(rowNumber, 5).dataValidation = {
+              type: 'list',
+              allowBlank: true,
+              formulae: [`'${STOCK_LIST_SHEET}'!$A$2:$A$${stockListCount + 1}`],
+              showErrorMessage: false,
+            };
+          }
         }
         worksheet.views = [{ state: 'frozen', ySplit: 1 }];
         worksheet.autoFilter = `A1:G${lastTemplateRow}`;
@@ -324,6 +362,7 @@ function BomEntry() {
       let importedRows = 0;
 
       workbook.eachSheet((worksheet) => {
+        if (worksheet.name === STOCK_LIST_SHEET) return;
         const article = articlesBySheetName.get(worksheet.name.toLowerCase());
         if (!article) {
           throw new Error(`The worksheet "${worksheet.name}" does not match a current article line item.`);
@@ -701,8 +740,15 @@ function BomEntry() {
                                 min={field === 'qtyPerCs' ? '0' : undefined}
                                 step={field === 'qtyPerCs' ? 'any' : undefined}
                                 aria-label={`${label} for row ${index + 1}`}
+                                list={field === 'childMaterial' ? 'stock-material-options' : undefined}
                                 value={row[field]}
-                                onChange={(event) => updateComponentRow(index, field, event.target.value)}
+                                onChange={(event) => {
+                                  updateComponentRow(index, field, event.target.value);
+                                  const match = field === 'childMaterial' ? stockMaterialFor(event.target.value) : null;
+                                  if (match && !row.childMaterialSapNo) {
+                                    updateComponentRow(index, 'childMaterialSapNo', match.materialNumber);
+                                  }
+                                }}
                                 className="w-full rounded border border-gray-300 bg-white p-2 focus:border-blue-500 focus:outline-none"
                               />
                             </td>
@@ -927,11 +973,16 @@ function BomEntry() {
                                   min={field === 'qtyPerCs' ? '0' : undefined}
                                   step={field === 'qtyPerCs' ? 'any' : undefined}
                                   aria-label={`Edit ${field} for ${componentDetailsForRecord(record)}`}
+                                  list={field === 'childMaterial' ? 'stock-material-options' : undefined}
                                   value={componentEditDraft[field]}
-                                  onChange={(event) => setComponentEditDraft((draft) => ({
-                                    ...draft,
-                                    [field]: event.target.value,
-                                  }))}
+                                  onChange={(event) => {
+                                    const match = field === 'childMaterial' ? stockMaterialFor(event.target.value) : null;
+                                    setComponentEditDraft((draft) => ({
+                                      ...draft,
+                                      [field]: event.target.value,
+                                      ...(match && !draft.childMaterialSapNo ? { childMaterialSapNo: match.materialNumber } : {}),
+                                    }));
+                                  }}
                                   className="w-full rounded border border-gray-300 p-2"
                                 />
                               ) : (
@@ -997,6 +1048,11 @@ function BomEntry() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-blue-50 px-3 pb-2 pt-4">
+      <datalist id="stock-material-options">
+        {stockMaterials.map((item) => (
+          <option key={item.description} value={item.description} />
+        ))}
+      </datalist>
       <div className="flex min-h-0 flex-1 flex-col space-y-4 rounded bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-lg font-semibold">BOM ENTRY</h1>

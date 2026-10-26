@@ -280,7 +280,7 @@ function StockEntry({user}) {
         const balances = stockBalances(item);
 
         return (
-            <div key={index} className="grid min-w-[1200px] grid-cols-10 gap-x-1 border-solid border-b border-gray-400 p-3 bg-gray-200" >
+            <div key={index} className="grid min-w-[1200px] grid-cols-10" >
                 {item.edit!=true&&(<>
                     <div className="break-all text-left">{item.materialGroup}</div>
                     <div className="break-all text-left">{item.materialNumber}</div>
@@ -464,10 +464,9 @@ function StockEntry({user}) {
         if(stockData.length>0)
         {
             setRenderItems(
-                <div className='w-full overflow-y-auto'>
+                <>
                     {[...stockData].reverse().map((item, index)=>RenderItem(item,index))}
-                    {/* <RenderInputRow/> */}
-                </div>
+                </>
             )
 
         }
@@ -637,7 +636,7 @@ function StockEntry({user}) {
     }
 
     return (
-        <div className="pb-2 bg-blue-50 h-full px-3 pt-4">
+        <div className="pb-2 bg-blue-50 h-full overflow-y-auto px-3 pt-4">
 
             <div className='w-full bg-white rounded p-3 my-2'>
                 {/* <RenderInputRow/> */}
@@ -670,18 +669,25 @@ function StockEntry({user}) {
                         </button>
                     </div>
                 </div>
-                <div className="w-full overflow-x-auto">
-                <div className="sticky top-0 grid min-w-[1200px] grid-cols-10 gap-1 bg-gray-200 p-3">
-                    <div className="text-sm py-2 text-left">MATERIAL GROUP</div>
-                    <div className="text-sm py-2 text-left">MATERIAL NUMBER</div>
-                    <div className="text-sm py-2 text-left">MATERIAL DESCRIPTION</div>
-                    <div className="text-sm py-2 text-left">QTY</div>
-                    <div className="text-sm py-2 text-left">UNIT</div>
-                    <div className="text-sm py-2 text-left">TOTAL INWARD</div>
-                    <div className="text-sm py-2 text-left">TOTAL OUTWARD</div>
-                    <div className="text-sm py-2 text-left">DAMAGE</div>
-                    <div className="text-sm py-2 text-left">STOCK IN HAND</div>
-                    <div className="text-sm py-2 text-left">ACTION</div>
+                <style>{`
+                    .stock-sheet > div > div { border-right: 1px solid #9ca3af; padding: 4px 8px; text-align: center; display: flex; align-items: center; justify-content: center; word-break: break-word; }
+                    .stock-sheet > div { border-bottom: 1px solid #9ca3af; background: #fff; }
+                    .stock-sheet > div:hover { background: #eff6ff; }
+                    .stock-sheet > div > div input { text-align: center; }
+                    .stock-sheet .stock-head > div { font-weight: 600; font-size: 0.8rem; background: #e5e7eb; }
+                `}</style>
+                <div className="stock-sheet w-full flex-1 min-h-0 overflow-auto border border-gray-400" style={{maxHeight: expand==true ? 'calc(100vh - 110px)' : 'calc(100vh - 330px)', minHeight: 300}}>
+                <div className="stock-head sticky top-0 z-10 grid min-w-[1200px] grid-cols-10 border-l-0" style={{background:'#e5e7eb'}}>
+                    <div>MATERIAL GROUP</div>
+                    <div>MATERIAL NO.</div>
+                    <div>MATERIAL DESCRIPTION</div>
+                    <div>QTY</div>
+                    <div>UNIT</div>
+                    <div>TOTAL INWARD</div>
+                    <div>TOTAL OUTWARD</div>
+                    <div>DAMAGE</div>
+                    <div>STOCK IN HAND</div>
+                    <div>ACTION</div>
                 </div>
                 {renderItems}
                 </div>

@@ -5,6 +5,12 @@ module.exports = {
   darkMode: false, // or 'media' or 'class'
   theme: {
     extend: {
+      colors: {
+        teal: require('tailwindcss/colors').teal,
+        slate: require('tailwindcss/colors').blueGray,
+        sky: require('tailwindcss/colors').lightBlue,
+        amber: require('tailwindcss/colors').amber,
+      },
       height: {
         '2xl': '32rem',
         '3xl':'35rem',

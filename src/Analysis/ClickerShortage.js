@@ -3,8 +3,10 @@ import { useOutletContext } from 'react-router-dom';
 import { onValue, ref, update } from 'firebase/database';
 import { db } from '../firebase_config';
 
-function ClickerShortage() {
+function ClickerShortage({ isAdmin = false }) {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleting, setDeleting] = useState(false);
   const [receipts, setReceipts] = useState([]);
   const [shortageToUpdate, setShortageToUpdate] = useState(null);
   const [shortageReceivedQty, setShortageReceivedQty] = useState('');
@@ -55,6 +57,37 @@ function ClickerShortage() {
     (!planCodeFilter || shortage.planCode === planCodeFilter) &&
     (!statusFilter || shortage.shortageStatus === statusFilter)
   );
+  const visibleIds = filteredShortages.map((shortage) => shortage.id);
+  const selectedVisible = selectedIds.filter((id) => visibleIds.includes(id));
+  const allSelected = visibleIds.length > 0 && selectedVisible.length === visibleIds.length;
+  const toggleSelected = (id) => setSelectedIds((current) =>
+    current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const toggleAll = () => setSelectedIds(allSelected ? [] : visibleIds);
+
+  const deleteSelected = async () => {
+    if (!isAdmin || !selectedVisible.length) return;
+    if (!window.confirm(`Delete ${selectedVisible.length} selected shortage row(s)? This cannot be undone.`)) return;
+    const removeByReceipt = {};
+    shortages.filter((shortage) => selectedVisible.includes(shortage.id)).forEach((shortage) => {
+      removeByReceipt[shortage.receiptId] = [...(removeByReceipt[shortage.receiptId] || []), shortage.shortageIndex];
+    });
+    const updates = {};
+    Object.entries(removeByReceipt).forEach(([receiptId, indexes]) => {
+      const receipt = receipts.find((item) => item.id === receiptId);
+      const remaining = (receipt?.shortages || []).filter((_, index) => !indexes.includes(index));
+      updates[`clickerCompStoreReceipts/${receiptId}/shortages`] = remaining.length ? remaining : null;
+    });
+    setDeleting(true);
+    try {
+      await update(ref(db), updates);
+      setSelectedIds([]);
+    } catch (error) {
+      window.alert(`Unable to delete shortage rows: ${error.message}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const shortageReceivingDate = (shortage) =>
     shortage.shortageStatus === 'NOT RECEIVED' || shortage.shortageReceivedQuantity === 0
       ? ''
@@ -189,6 +222,16 @@ function ClickerShortage() {
             >
               COPY
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={deleteSelected}
+                disabled={!selectedVisible.length || deleting}
+                className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deleting ? 'DELETING...' : `DELETE SELECTED (${selectedVisible.length})`}
+              </button>
+            )}
             {copyMessage && <span role="status" className="text-sm text-green-700">{copyMessage}</span>}
           </div>
         </div>
@@ -196,6 +239,11 @@ function ClickerShortage() {
           <table className="w-full min-w-[1200px] border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-gray-200 text-left text-xs font-semibold">
               <tr>
+                {isAdmin && (
+                  <th className="border border-gray-300 p-3">
+                    <input type="checkbox" aria-label="Select all" checked={allSelected} onChange={toggleAll} />
+                  </th>
+                )}
                 {['SL NO', 'RECEIVED DATE', 'PLAN CODE', 'MODEL', 'ARTICLE', 'COLOUR', 'PRICE CATEGORY', 'FUNCTION', 'COMPONENT', 'SIZE', 'SIDE', 'SHORTAGE QTY', 'SHORTAGE RECEIVED QTY', 'SHORTAGE RECEIVED DATE', 'SHORTAGE RECEIVING STATUS'].map((heading) => (
                   <th key={heading} className="whitespace-nowrap border border-gray-300 p-3">{heading}</th>
                 ))}
@@ -204,6 +252,11 @@ function ClickerShortage() {
             <tbody>
               {filteredShortages.map((shortage, index) => (
                 <tr key={shortage.id} className="odd:bg-white even:bg-gray-50">
+                  {isAdmin && (
+                    <td className="border border-gray-300 p-3 text-center">
+                      <input type="checkbox" aria-label="Select row" checked={selectedIds.includes(shortage.id)} onChange={() => toggleSelected(shortage.id)} />
+                    </td>
+                  )}
                   <td className="border border-gray-300 p-3">{index + 1}</td>
                   <td className="border border-gray-300 p-3">{shortage.receivedDate || '-'}</td>
                   <td className="border border-gray-300 p-3">{shortage.planCode || '-'}</td>
@@ -243,7 +296,7 @@ function ClickerShortage() {
               ))}
               {!filteredShortages.length && (
                 <tr>
-                  <td colSpan={15} className="border border-gray-300 p-6 text-center text-gray-500">
+                  <td colSpan={isAdmin ? 16 : 15} className="border border-gray-300 p-6 text-center text-gray-500">
                     {shortages.length ? 'No shortage details match the selected filters.' : 'No Clicker shortage details were found.'}
                   </td>
                 </tr>

@@ -53,6 +53,7 @@ import VendorDetails from './AdminDesk/VendorDetails';
 import CooisData from './ProductionPlanningInputs/CooisData';
 import Bor from './ProductionPlanningInputs/Bor';
 import ArticleEntryHistory from './History/ArticleEntryHistory';
+import BomHistory from './History/BomHistory';
 import FiuQc from './QCDepartment/FiuQc';
 import LoopStock from './PlanningDesk/LoopStock';
 import ClickerShortage from './Analysis/ClickerShortage';
@@ -167,6 +168,7 @@ function App() {
               <Route path="spareout" element={canAccessRibbon('spareout', true) ? <SpareOut userRole={userRole} /> : <Navigate to="/" replace />} />
               <Route path="sparehistory" element={canAccessRibbon('sparehistory', true) ? <SpareHistory userRole={userRole} /> : <Navigate to="/" replace />}/>
               <Route path="history/article-entry" element={canAccessRibbon('history/article-entry', true) ? <ArticleEntryHistory /> : <Navigate to="/" replace />}/>
+              <Route path="history/bom" element={canAccessRibbon('history/bom', true) ? <BomHistory /> : <Navigate to="/" replace />}/>
               {canAccessUserSettings && (
                 <>
                   <Route path="user-settings/request" element={<UserRequest isAdmin={isAdmin} />}/>
@@ -182,8 +184,21 @@ function App() {
               />
               <Route
                 path="analysis/shortage-details/clicker-shortage"
-                element={canAccessRibbon('analysis/shortage-details/clicker-shortage') ? <ClickerShortage /> : <Navigate to="/" replace />}
+                element={canAccessRibbon('analysis/shortage-details/clicker-shortage') ? <ClickerShortage isAdmin={isAdmin} /> : <Navigate to="/" replace />}
               />
+              {[
+                ['printed', 'Printed'],
+                ['stitching', 'Stitching'],
+                ['molding', 'Molding'],
+                ['grinding', 'Grinding'],
+                ['attaching', 'Attaching'],
+              ].map(([key, label]) => (
+                <Route
+                  key={`${key}-shortage`}
+                  path={`analysis/shortage-details/${key}-shortage`}
+                  element={canAccessRibbon(`analysis/shortage-details/${key}-shortage`) ? <PlanningPlanPlaceholder title={`${label} Shortage`} route={`analysis/shortage-details/${key}-shortage`} /> : <Navigate to="/" replace />}
+                />
+              ))}
               <Route
                 path="execution/clicker-plan"
                 element={canAccessRibbon('execution/clicker-plan', true) ? <ClickingPlan viewOnly isAdmin={isAdmin} /> : <Navigate to="/" replace />}
@@ -203,7 +218,7 @@ function App() {
                   key={process}
                   path={`execution/${process}-plan`}
                   element={canAccessRibbon(`execution/${process}-plan`, true)
-                    ? <PlanningPlanPlaceholder title={`${title} Plan`} route={`execution/${process}-plan`} />
+                    ? <PrintingPlan viewOnly stage={process} />
                     : <Navigate to="/" replace />}
                 />
               ))}
@@ -234,13 +249,13 @@ function App() {
                   <Route path="previous-clicking-plan" element={canAccessRibbon('planning-desk/clicking-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousClickingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
                   <Route path="printing-plan" element={canAccessRibbon('planning-desk/printing-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
                   <Route path="previous-printing-plan" element={canAccessRibbon('planning-desk/printing-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousPrintingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
-                  <Route path="stitching-plan" element={canAccessRibbon('planning-desk/stitching-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <StitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="stitching-plan" element={canAccessRibbon('planning-desk/stitching-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PrintingPlan stage="stitching" /> : <Navigate to="/" replace />}/>
                   <Route path="previous-stitching-plan" element={canAccessRibbon('planning-desk/stitching-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousStitchingPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
-                  <Route path="molding-plan" element={canAccessRibbon('planning-desk/molding-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PlanningPlanPlaceholder title="Molding Plan" route="planning-desk/molding-plan" /> : <Navigate to="/" replace />}/>
-                  <Route path="grinding-plan" element={canAccessRibbon('planning-desk/grinding-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PlanningPlanPlaceholder title="Grinding Plan" route="planning-desk/grinding-plan" /> : <Navigate to="/" replace />}/>
-                  <Route path="stuckon-plan" element={canAccessRibbon('planning-desk/stuckon-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <StuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
+                  <Route path="molding-plan" element={canAccessRibbon('planning-desk/molding-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PrintingPlan stage="molding" /> : <Navigate to="/" replace />}/>
+                  <Route path="grinding-plan" element={canAccessRibbon('planning-desk/grinding-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PrintingPlan stage="grinding" /> : <Navigate to="/" replace />}/>
+                  <Route path="stuckon-plan" element={canAccessRibbon('planning-desk/stuckon-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PrintingPlan stage="stuckon" /> : <Navigate to="/" replace />}/>
                   <Route path="previous-stuckon-plan" element={canAccessRibbon('planning-desk/stuckon-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PreviousStuckonPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
-                  <Route path="packing-plan" element={canAccessRibbon('planning-desk/packing-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PlanningPlanPlaceholder title="Packing Plan" route="planning-desk/packing-plan" /> : <Navigate to="/" replace />}/>
+                  <Route path="packing-plan" element={canAccessRibbon('planning-desk/packing-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <PrintingPlan stage="packing" /> : <Navigate to="/" replace />}/>
                   <Route path="process-plan" element={canAccessRibbon('planning-desk/clicking-plan', userRole === 'PP Head' || userRole === 'Production Section Charge') ? <ProcessPlan userRole={userRole} preallocatedProcesses={preallocatedProcesses} /> : <Navigate to="/" replace />}/>
                 </Route>
               )}
@@ -268,8 +283,16 @@ function App() {
                   <Route path="material-outward" element={canAccessRibbon('mmdept/material-outward', true) ? <MaterialIssueEntry userRole={userRole} /> : <Navigate to="/" replace />}/>
                  <Route path="material-inward" element={canAccessRibbon('mmdept/material-inward', true) ? <MaterialInwardEntry userRole={userRole} /> : <Navigate to="/" replace />}/>
                   <Route path="clicker-comp-store" element={canAccessRibbon('mmdept/clicker-comp-store', true) ? <SfgStore title="Clicker Comp Store" route="mmdept/clicker-comp-store" isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
-                  <Route path="printing-comp-store" element={canAccessRibbon('mmdept/printing-comp-store', true) ? <SfgStore title="Printing Comp Store" route="mmdept/printing-comp-store" /> : <Navigate to="/" replace />}/>
-                  <Route path="molding-receiving-store" element={canAccessRibbon('mmdept/molding-receiving-store', true) ? <SfgStore title="Molding Receiving Store" route="mmdept/molding-receiving-store" /> : <Navigate to="/" replace />}/>
+                  <Route path="printing-comp-store" element={canAccessRibbon('mmdept/printing-comp-store', true) ? <SfgStore title="Printing Comp Store" route="mmdept/printing-comp-store" isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
+                  <Route path="molding-receiving-store" element={canAccessRibbon('mmdept/molding-receiving-store', true) ? <SfgStore title="Molding Store" route="mmdept/molding-receiving-store" isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
+                  {[
+                    ['fiu-store', 'FIU Store'],
+                    ['grinding-store', 'Grinding Store'],
+                    ['attaching-store', 'Attaching Store'],
+                    ['packing-store', 'Packing Store'],
+                  ].map(([key, label]) => (
+                    <Route key={key} path={key} element={canAccessRibbon(`mmdept/${key}`, true) ? <SfgStore title={label} route={`mmdept/${key}`} isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
+                  ))}
                </Route>
              )}
 

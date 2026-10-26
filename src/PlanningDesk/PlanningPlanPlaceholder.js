@@ -3,7 +3,9 @@ import { useOutletContext } from 'react-router-dom';
 
 function PlanningPlanPlaceholder({ title, route }) {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
-  const tab = route.startsWith('execution/') ? 'execution' : 'planningDesk';
+  const tab = route.startsWith('execution/')
+    ? 'execution'
+    : route.startsWith('analysis/') ? 'analysis' : 'planningDesk';
 
   useEffect(() => {
     setSelectedLink(route);

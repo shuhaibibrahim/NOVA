@@ -22,7 +22,7 @@
 }
 
 .dropdown-visible{
-  max-height: 500px;
+  max-height: 2000px;
   transition: max-height .7s ease-out;
   overflow: hidden;
 }

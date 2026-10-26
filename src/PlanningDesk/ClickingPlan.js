@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { onValue, push, ref, remove, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
+import { notify } from '../notifications';
 import { genderForMaterialNumber, normalizeMatchValue, requirementMatchesArticle, sizeForRequirement as deriveSizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const PLAN_DELETE_EMAIL = 'ajimsha.albac@walkaroo.co.in';
@@ -932,9 +933,32 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
       });
     }));
 
+    const flagged = new Set();
+    cart.forEach(({ requirement }) => {
+      const article = articleForReceivingItem(requirement);
+      const label = `${requirement.article || article?.article || 'Article'} ${requirement.colour || ''}`.trim();
+      if (flagged.has(label)) return;
+      flagged.add(label);
+      const records = bomComponentsForArticle(article);
+      if (!article || !records.length) {
+        notify(`BOM missing: ${label} has no BOM entries linked. Complete the BOM Entry before it reaches the other functions.`, 'error');
+        return;
+      }
+      const functionOf = (record) => String(record.functionName || record.process || '').trim().toUpperCase();
+      const missing = ['STITCHING', 'MOLDING', 'GRINDING', 'STUCKON', 'PACKING']
+        .filter((fn) => !records.some((record) => functionOf(record) === fn));
+      if (missing.length) {
+        notify(`BOM incomplete: ${label} has no BOM for ${missing.join(', ')}. Complete it before the pairs reach these functions.`, 'error');
+      }
+      const stitchingWithoutChild = records.filter((record) => functionOf(record) === 'STITCHING' &&
+        !(record.childComponentIds || []).some((id) => ['CLICKING', 'PRINTING'].includes(functionOf(records.find((item) => item.id === id) || {}))));
+      if (stitchingWithoutChild.length) {
+        notify(`BOM incomplete: ${label} has Stitching components without Clicking or Printing child components.`, 'error');
+      }
+    });
+
     setPlanCode('');
     setPreviousPlanCode('');
-    setPlanningDate('');
     setPlannedQuantities({});
     setCart([]);
     setShowCartReview(false);

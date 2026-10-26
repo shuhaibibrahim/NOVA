@@ -9,7 +9,18 @@ const sizeKey = (size) => {
   return /^\d+$/.test(normalized) ? String(Number(normalized)) : normalized;
 };
 
+const STORE_CONFIG = {
+  'mmdept/clicker-comp-store': { fn: 'CLICKING', receiptNode: 'clickerCompStoreReceipts', overrideNode: 'clickerCompStoreOverrides' },
+  'mmdept/printing-comp-store': { fn: 'PRINTING', receiptNode: 'printingReceipts', overrideNode: 'printingCompStoreOverrides' },
+  'mmdept/fiu-store': { fn: 'FIU', receiptNode: 'fiuReceipts', overrideNode: 'fiuStoreOverrides' },
+  'mmdept/molding-receiving-store': { fn: 'MOLDING', receiptNode: 'moldingReceipts', overrideNode: 'moldingStoreOverrides' },
+  'mmdept/grinding-store': { fn: 'GRINDING', receiptNode: 'grindingReceipts', overrideNode: 'grindingStoreOverrides' },
+  'mmdept/attaching-store': { fn: 'STUCKON', receiptNode: 'attachingReceipts', overrideNode: 'attachingStoreOverrides' },
+  'mmdept/packing-store': { fn: 'PACKING', receiptNode: 'packingReceipts', overrideNode: 'packingStoreOverrides' },
+};
+
 function SfgStore({ title, route, isAdmin = false }) {
+  const config = STORE_CONFIG[route];
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [articles, setArticles] = useState([]);
   const [bomRecords, setBomRecords] = useState([]);
@@ -25,7 +36,7 @@ function SfgStore({ title, route, isAdmin = false }) {
   }, [route, setSelectedLink, setOpenedTab]);
 
   useEffect(() => {
-    if (route !== 'mmdept/clicker-comp-store') return undefined;
+    if (!config) return undefined;
     return onValue(ref(db, 'articleData/'), (snapshot) => {
       const data = snapshot.val() || {};
       setArticles(Object.entries(data).map(([id, article]) => ({ ...article, id })));
@@ -33,7 +44,7 @@ function SfgStore({ title, route, isAdmin = false }) {
   }, [route]);
 
   useEffect(() => {
-    if (route !== 'mmdept/clicker-comp-store') return undefined;
+    if (!config) return undefined;
     return onValue(ref(db, 'bomData/'), (snapshot) => {
       const data = snapshot.val() || {};
       setBomRecords(Object.entries(data).map(([id, record]) => ({ ...record, id })));
@@ -41,16 +52,16 @@ function SfgStore({ title, route, isAdmin = false }) {
   }, [route]);
 
   useEffect(() => {
-    if (route !== 'mmdept/clicker-comp-store') return undefined;
-    return onValue(ref(db, 'clickerCompStoreReceipts/'), (snapshot) => {
+    if (!config) return undefined;
+    return onValue(ref(db, `${config.receiptNode}/`), (snapshot) => {
       const data = snapshot.val() || {};
       setReceipts(Object.values(data));
     });
   }, [route]);
 
   useEffect(() => {
-    if (route !== 'mmdept/clicker-comp-store') return undefined;
-    return onValue(ref(db, 'clickerCompStoreOverrides/'), (snapshot) => {
+    if (!config) return undefined;
+    return onValue(ref(db, `${config.overrideNode}/`), (snapshot) => {
       setQuantityOverrides(snapshot.val() || {});
     });
   }, [route]);
@@ -80,7 +91,7 @@ function SfgStore({ title, route, isAdmin = false }) {
       const linkedIds = new Set(String(article.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean));
       bomByArticle.set(article.id, bomRecords.filter((record) =>
         linkedIds.has(record.id) &&
-        String(record.functionName || record.process || '').trim().toUpperCase() === 'CLICKING'
+        String(record.functionName || record.process || '').trim().toUpperCase() === config.fn
       ));
     });
     receipts.forEach((receipt) => {
@@ -115,7 +126,7 @@ function SfgStore({ title, route, isAdmin = false }) {
       window.alert('Enter a whole-number component quantity.');
       return;
     }
-    const path = `clickerCompStoreOverrides/${articleId}/${componentId}/${sizeKey(size)}`;
+    const path = `${config.overrideNode}/${articleId}/${componentId}/${sizeKey(size)}`;
     try {
       await update(ref(db, path), { [side]: quantity });
     } catch (error) {
@@ -123,7 +134,7 @@ function SfgStore({ title, route, isAdmin = false }) {
     }
   };
 
-  if (route === 'mmdept/clicker-comp-store') {
+  if (config) {
     const sizeRows = articles.flatMap((article) => {
       const genderSizes = sizesForGender(article.gender);
       const sizes = genderSizes.length ? genderSizes : ['-'];
@@ -133,7 +144,7 @@ function SfgStore({ title, route, isAdmin = false }) {
       const linkedIds = new Set(String(article.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean));
       return [article.id, bomRecords.filter((record) =>
         linkedIds.has(record.id) &&
-        String(record.functionName || record.process || '').trim().toUpperCase() === 'CLICKING'
+        String(record.functionName || record.process || '').trim().toUpperCase() === config.fn
       )];
     }));
     const componentColumns = [...new Map([...componentsByArticle.values()]

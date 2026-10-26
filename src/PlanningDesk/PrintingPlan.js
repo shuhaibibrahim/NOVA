@@ -4,7 +4,12 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { createPortal } from 'react-dom';
 import { onValue, push, ref, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
-import { genderForMaterialNumber, normalizeMatchValue, sizeForRequirement } from '../requirementMatching';
+import { genderForMaterialNumber, normalizeMatchValue, sizeForRequirement, sizesForGender } from '../requirementMatching';
+
+const receiptSizeKey = (size) => {
+  const normalized = String(size || '').trim();
+  return /^\d+$/.test(normalized) ? String(Number(normalized)) : normalized;
+};
 
 const REQUIREMENT_COLUMNS = [
   ['sourcePlanCode', 'Clicker Plan Code'],
@@ -77,10 +82,30 @@ const packingQuantityForSize = (packing, sizeIndex) => {
   return Number.isFinite(quantity) ? quantity : 0;
 };
 
-function PrintingPlan({ viewOnly = false }) {
+const PLAN_STAGES = {
+  printing: { label: 'Printing', fn: 'PRINTING', route: 'printing-plan', planNode: 'printingPlans', receiptNode: 'printingReceipts' },
+  stitching: { label: 'Stitching', fn: 'STITCHING', route: 'stitching-plan', planNode: 'stitchingPlans', receiptNode: 'stitchingReceipts' },
+  molding: { label: 'Molding', fn: 'MOLDING', route: 'molding-plan', planNode: 'moldingPlans', receiptNode: 'moldingReceipts' },
+  grinding: { label: 'Grinding', fn: 'GRINDING', route: 'grinding-plan', planNode: 'grindingPlans', receiptNode: 'grindingReceipts' },
+  stuckon: { label: 'Stuckon', fn: 'STUCKON', route: 'stuckon-plan', planNode: 'stuckonPlans', receiptNode: 'attachingReceipts' },
+  packing: { label: 'Packing', fn: 'PACKING', route: 'packing-plan', planNode: 'packingPlans', receiptNode: 'packingReceipts' },
+};
+
+// Functions whose receipts supply the requirements of each stage; a BOM component's children decide which are used.
+const UPSTREAM_FUNCTIONS = {
+  stitching: ['CLICKING', 'PRINTING'],
+  molding: ['PRINTING'],
+  grinding: ['MOLDING'],
+  stuckon: ['CLICKING', 'PRINTING', 'STITCHING', 'MOLDING', 'GRINDING'],
+  packing: ['CLICKING', 'PRINTING', 'STITCHING', 'MOLDING', 'GRINDING', 'STUCKON'],
+};
+
+function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
+  const stage = PLAN_STAGES[stageKey] || PLAN_STAGES.printing;
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [activeSheet, setActiveSheet] = useState('plan');
   const [clickingPlans, setClickingPlans] = useState([]);
+  const [upstream, setUpstream] = useState({});
   const [packingCombinations, setPackingCombinations] = useState([]);
   const [articles, setArticles] = useState([]);
   const [bomRecords, setBomRecords] = useState([]);
@@ -102,11 +127,16 @@ function PrintingPlan({ viewOnly = false }) {
   const [cart, setCart] = useState([]);
   const [showCartReview, setShowCartReview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [printingReceipts, setPrintingReceipts] = useState([]);
+  const [receivingItem, setReceivingItem] = useState(null);
+  const [receivedDate, setReceivedDate] = useState('');
+  const [receivedSizeRows, setReceivedSizeRows] = useState([]);
+  const [savingReceipt, setSavingReceipt] = useState(false);
 
   useEffect(() => {
-    setSelectedLink(viewOnly ? 'execution/printing-plan' : 'planning-desk/printing-plan');
+    setSelectedLink(`${viewOnly ? 'execution' : 'planning-desk'}/${stage.route}`);
     setOpenedTab(viewOnly ? 'execution' : 'planningDesk');
-  }, [setSelectedLink, setOpenedTab, viewOnly]);
+  }, [setSelectedLink, setOpenedTab, viewOnly, stage.route]);
 
   useEffect(() => onAuthStateChanged(auth, (user) => {
     setIsDeleteUser(user?.email?.toLowerCase() === PLAN_DELETE_EMAIL);
@@ -117,15 +147,42 @@ function PrintingPlan({ viewOnly = false }) {
     setClickingPlans(Object.entries(data).map(([id, plan]) => ({ ...plan, id })));
   }), []);
 
+  useEffect(() => {
+    const functions = UPSTREAM_FUNCTIONS[stageKey];
+    if (!functions) return undefined;
+    const patch = (fn, values) => setUpstream((current) => ({ ...current, [fn]: { ...current[fn], ...values } }));
+    const unsubscribers = functions.flatMap((fn) => {
+      if (fn === 'CLICKING') {
+        return [onValue(ref(db, 'clickerCompStoreReceipts/'), (snapshot) => {
+          patch(fn, { receipts: Object.values(snapshot.val() || {}) });
+        })];
+      }
+      const config = Object.values(PLAN_STAGES).find((item) => item.fn === fn);
+      return [
+        onValue(ref(db, `${config.planNode}/`), (snapshot) => {
+          patch(fn, { plans: Object.entries(snapshot.val() || {}).map(([id, plan]) => ({ ...plan, id })) });
+        }),
+        onValue(ref(db, `${config.receiptNode}/`), (snapshot) => {
+          patch(fn, { receipts: Object.values(snapshot.val() || {}) });
+        }),
+      ];
+    });
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [stageKey]);
+
   useEffect(() => onValue(ref(db, 'packingCombination/'), (snapshot) => {
     const data = snapshot.val() || {};
     setPackingCombinations(Object.values(data));
   }), []);
 
-  useEffect(() => onValue(ref(db, 'printingPlans/'), (snapshot) => {
+  useEffect(() => onValue(ref(db, `${stage.receiptNode}/`), (snapshot) => {
+    setPrintingReceipts(Object.entries(snapshot.val() || {}).map(([id, receipt]) => ({ ...receipt, id })));
+  }), [stage.receiptNode]);
+
+  useEffect(() => onValue(ref(db, `${stage.planNode}/`), (snapshot) => {
     const data = snapshot.val() || {};
     setPrintingPlans(Object.entries(data).map(([id, plan]) => ({ ...plan, id })));
-  }), []);
+  }), [stage.planNode]);
 
   useEffect(() => onValue(ref(db, 'vendorDetails/'), (snapshot) => {
     const data = snapshot.val() || {};
@@ -226,7 +283,7 @@ function PrintingPlan({ viewOnly = false }) {
     const linkedBomIds = String(article?.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean);
     return bomRecords.filter((record) => (
       linkedBomIds.includes(record.id) &&
-      normalizeMatchValue(record.functionName || record.process) === 'PRINTING'
+      normalizeMatchValue(record.functionName || record.process) === stage.fn
     ));
   };
 
@@ -331,6 +388,89 @@ function PrintingPlan({ viewOnly = false }) {
     ? Math.max(numericQuantity(plan.leftQty), numericQuantity(plan.rightQty))
     : numericQuantity(plan.plannedQty ?? plan.caseQty ?? plan.qty));
 
+  const sourcePlans = useMemo(() => {
+    if (stageKey === 'printing') return clickingPlans;
+    const upstreamFunctions = UPSTREAM_FUNCTIONS[stageKey];
+    if (!upstreamFunctions) return [];
+
+    // Each component's children come from earlier functions. Only the pieces received for every
+    // child can be used, so the quantity per size and side is the smallest received quantity
+    // across the children; any shortage stays short.
+    const childRecords = (component) => (component.childComponentIds || [])
+      .map((id) => bomRecords.find((record) => record.id === id))
+      .filter(Boolean);
+    const functionOf = (record) => normalizeMatchValue(record.functionName || record.process);
+    const received = new Map();
+    const addReceived = (articleId, childId, size, row) => {
+      const key = `${articleId}|${childId}|${receiptSizeKey(size)}`;
+      const current = received.get(key) || { leftQty: 0, rightQty: 0 };
+      current.leftQty += Number(row.leftQty) || 0;
+      current.rightQty += Number(row.rightQty) || 0;
+      received.set(key, current);
+    };
+
+    upstreamFunctions.forEach((fn) => {
+      const { plans = [], receipts = [] } = upstream[fn] || {};
+      if (fn === 'CLICKING') {
+        receipts.forEach((receipt) => {
+          if (Array.isArray(receipt.componentQuantities)) {
+            receipt.componentQuantities.forEach((row) => addReceived(receipt.articleId, row.componentId, row.size, row));
+            return;
+          }
+          const article = articles.find((item) => item.id === receipt.articleId);
+          const linkedIds = String(article?.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean);
+          bomRecords
+            .filter((record) => linkedIds.includes(record.id) && functionOf(record) === 'CLICKING')
+            .forEach((record) => (receipt.receivedSizes || []).forEach((row) => addReceived(receipt.articleId, record.id, row.size, row)));
+        });
+        return;
+      }
+      const componentsByPlan = new Map(plans.map((plan) => [plan.id, plan.printingComponentIds || []]));
+      receipts.forEach((receipt) => {
+        const componentIds = new Set((receipt.planIds || []).flatMap((id) => componentsByPlan.get(id) || []));
+        componentIds.forEach((componentId) => (receipt.receivedSizes || []).forEach((row) => addReceived(receipt.articleId, componentId, row.size, row)));
+      });
+    });
+
+    return articles.flatMap((article) => {
+      const linkedIds = String(article.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean);
+      const childIds = [...new Set(bomRecords
+        .filter((record) => linkedIds.includes(record.id) && functionOf(record) === stage.fn)
+        .flatMap(childRecords)
+        .filter((child) => upstreamFunctions.includes(functionOf(child)))
+        .map((child) => child.id))];
+      if (!childIds.length) return [];
+      const sizes = new Map();
+      received.forEach((_, key) => {
+        const [articleId, childId, size] = key.split('|');
+        if (articleId === article.id && childIds.includes(childId)) sizes.set(size, true);
+      });
+      return [...sizes.keys()].flatMap((size) => {
+        const rows = childIds.map((childId) => received.get(`${article.id}|${childId}|${size}`) || { leftQty: 0, rightQty: 0 });
+        const leftQty = Math.min(...rows.map((row) => row.leftQty));
+        const rightQty = Math.min(...rows.map((row) => row.rightQty));
+        if (leftQty <= 0 && rightQty <= 0) return [];
+        const displaySize = sizesForGender(article.gender).find((item) => receiptSizeKey(item) === size) || size;
+        return [{
+          id: `${stageKey}:${article.id}:${size}`,
+          articleDataId: article.id,
+          planCode: 'RECEIVED',
+          model: article.model,
+          article: article.article,
+          gender: article.gender,
+          colour: article.colour ?? article.color,
+          priceCategory: article.priceCategory,
+          size: displaySize,
+          isLoosePlan: true,
+          leftQty,
+          rightQty,
+          plannedQty: Math.max(leftQty, rightQty),
+          submittedAt: 0,
+        }];
+      });
+    });
+  }, [stageKey, stage.fn, clickingPlans, upstream, articles, bomRecords]);
+
   const availableByClickingPlan = useMemo(() => {
     const allocated = new Map();
     printingPlans.forEach((plan) => {
@@ -338,11 +478,11 @@ function PrintingPlan({ viewOnly = false }) {
       if (!sourceId) return;
       allocated.set(sourceId, (allocated.get(sourceId) || 0) + numericQuantity(plan.plannedQty));
     });
-    return new Map(clickingPlans.map((plan) => [
+    return new Map(sourcePlans.map((plan) => [
       plan.id,
       Math.max(0, sourceQuantity(plan) - (allocated.get(plan.id) || 0)),
     ]));
-  }, [clickingPlans, printingPlans]);
+  }, [sourcePlans, printingPlans]);
 
   const existingPlanCodes = useMemo(() => [...new Set(
     printingPlans.map((plan) => String(plan.planCode || '').trim()).filter(Boolean)
@@ -355,7 +495,7 @@ function PrintingPlan({ viewOnly = false }) {
   const selectedPlanCode = planCodeMode === 'existing' ? previousPlanCode : (nextPlanCode || planCode);
 
   const requirementRows = useMemo(() => {
-    return [...clickingPlans]
+    return [...sourcePlans]
       .filter((plan) => availableQtyForPlan(plan) > 0)
       .filter((plan) => REQUIREMENT_COLUMNS.every(([key]) => {
         const filter = String(requirementFilters[key] || '').trim().toLowerCase();
@@ -380,7 +520,7 @@ function PrintingPlan({ viewOnly = false }) {
         return String(value ?? '').toLowerCase().includes(filter);
       }))
       .sort((first, second) => (second.submittedAt || 0) - (first.submittedAt || 0));
-  }, [clickingPlans, availableByClickingPlan, requirementFilters, cart, printingPlans, articles, bomRecords]);
+  }, [sourcePlans, availableByClickingPlan, requirementFilters, cart, printingPlans, articles, bomRecords]);
 
   const requirementGroups = useMemo(() => {
     const groups = new Map();
@@ -524,7 +664,7 @@ function PrintingPlan({ viewOnly = false }) {
   const updatePlanField = async (plans, field, value) => {
     const updates = {};
     plans.forEach((plan) => {
-      updates[`printingPlans/${plan.id}/${field}`] = value;
+      updates[`${stage.planNode}/${plan.id}/${field}`] = value;
     });
     try {
       await update(ref(db), updates);
@@ -542,7 +682,7 @@ function PrintingPlan({ viewOnly = false }) {
       .filter((component) => nextIds.includes(component.id))
       .map(componentLabel);
     try {
-      await update(ref(db, `printingPlans/${plan.id}`), {
+      await update(ref(db, `${stage.planNode}/${plan.id}`), {
         printingComponentIds: nextIds,
         remarks: names.join(', '),
       });
@@ -649,7 +789,7 @@ function PrintingPlan({ viewOnly = false }) {
     setSaving(true);
     try {
       await Promise.all(cart.map(({ source, plannedQty, vendorName, componentIds }) => {
-        const planRef = push(ref(db, 'printingPlans/'));
+        const planRef = push(ref(db, `${stage.planNode}/`));
         const sourceQty = sourceQuantity(source);
         const quantityRatio = sourceQty > 0 ? plannedQty / sourceQty : 0;
         const selectedComponents = printingComponentsForPlan(source)
@@ -663,12 +803,16 @@ function PrintingPlan({ viewOnly = false }) {
           planningDate,
           plannedQty,
           caseQty: plannedQty,
-          leftQty: numericQuantity(source.leftQty ?? source.plannedQty) * quantityRatio,
-          rightQty: numericQuantity(source.rightQty ?? source.plannedQty) * quantityRatio,
+          leftQty: Math.round(numericQuantity(source.leftQty ?? source.plannedQty) * quantityRatio),
+          rightQty: Math.round(numericQuantity(source.rightQty ?? source.plannedQty) * quantityRatio),
           vendorName,
           printingComponentIds: componentIds,
           remarks: selectedComponents.map(componentLabel).join(', '),
           submittedAt: Date.now(),
+          receiptId: null,
+          receivedDate: null,
+          receivingStatus: null,
+          receiptIds: null,
         });
       }));
       setCart([]);
@@ -704,7 +848,7 @@ function PrintingPlan({ viewOnly = false }) {
     if (!window.confirm(`Delete ${selectedPlanIds.length} selected Printing Plan item(s)? This cannot be undone.`)) return;
     const updates = {};
     selectedPlanIds.forEach((id) => {
-      updates[`printingPlans/${id}`] = null;
+      updates[`${stage.planNode}/${id}`] = null;
     });
     try {
       await update(ref(db), updates);
@@ -747,7 +891,7 @@ function PrintingPlan({ viewOnly = false }) {
     });
     const titleCell = clone.querySelector('thead tr th');
     if (titleCell) {
-      titleCell.textContent = 'ELS CALICUT - PRINTING PLAN';
+      titleCell.textContent = `ELS CALICUT - ${stage.label.toUpperCase()} PLAN`;
       titleCell.setAttribute('colspan', '13');
       titleCell.setAttribute('bgcolor', '#0f766e');
       titleCell.setAttribute('align', 'center');
@@ -798,6 +942,152 @@ function PrintingPlan({ viewOnly = false }) {
     }
   };
 
+  const articleForPrintingItem = (item) => articles.find((article) =>
+    item.plans.some((plan) => plan.articleDataId && article.id === plan.articleDataId) ||
+    (
+      normalizeMatchValue(article.article) === normalizeMatchValue(item.article) &&
+      normalizeMatchValue(article.colour ?? article.color) === normalizeMatchValue(item.colour) &&
+      normalizeMatchValue(article.gender) === normalizeMatchValue(item.gender) &&
+      normalizeMatchValue(article.priceCategory).slice(0, 2) === normalizeMatchValue(item.category).slice(0, 2)
+    )
+  );
+
+  const receiptForItem = (item) => {
+    const ids = new Set(item.plans.map((plan) => plan.receiptId).filter(Boolean));
+    return printingReceipts.find((receipt) => ids.has(receipt.id));
+  };
+
+  const openReceiving = (item) => {
+    const receipt = receiptForItem(item);
+    const received = new Map((receipt?.receivedSizes || []).map((row) => [receiptSizeKey(row.size), row]));
+    setReceivingItem(item);
+    setReceivedDate(receipt?.receivedDate || new Date().toISOString().slice(0, 10));
+    setReceivedSizeRows(item.sizes.map((size) => ({
+      size: size.size,
+      plannedLeft: size.leftQty,
+      plannedRight: size.rightQty,
+      leftQty: String(received.get(receiptSizeKey(size.size))?.leftQty ?? 0),
+      rightQty: String(received.get(receiptSizeKey(size.size))?.rightQty ?? 0),
+    })));
+  };
+
+  const submitReceiving = async (event) => {
+    event.preventDefault();
+    if (!receivingItem || !receivedDate) {
+      window.alert('Enter the received date before submitting.');
+      return;
+    }
+    const rows = receivedSizeRows.map((row) => ({
+      size: row.size,
+      leftQty: Number(row.leftQty || 0),
+      rightQty: Number(row.rightQty || 0),
+    }));
+    const invalid = receivedSizeRows.some((row, index) => (
+      !Number.isInteger(rows[index].leftQty) || rows[index].leftQty < 0 || rows[index].leftQty > row.plannedLeft ||
+      !Number.isInteger(rows[index].rightQty) || rows[index].rightQty < 0 || rows[index].rightQty > row.plannedRight
+    ));
+    if (invalid) {
+      window.alert('Enter whole numbers for Left and Right, not more than the planned quantity.');
+      return;
+    }
+    const article = articleForPrintingItem(receivingItem);
+    if (!article) {
+      window.alert('Could not match this plan item to an Article Entry line item.');
+      return;
+    }
+
+    const existing = receiptForItem(receivingItem);
+    const receiptId = existing?.id || push(ref(db, `${stage.receiptNode}/`)).key;
+    const updates = {
+      [`${stage.receiptNode}/${receiptId}`]: {
+        id: receiptId,
+        articleId: article.id,
+        article: receivingItem.article,
+        model: receivingItem.model,
+        gender: receivingItem.gender,
+        colour: receivingItem.colour,
+        priceCategory: receivingItem.category,
+        planCode: receivingItem.plans[0]?.planCode || '',
+        planIds: receivingItem.plans.map((plan) => plan.id),
+        receivedDate,
+        receivedSizes: rows.filter((row) => row.leftQty > 0 || row.rightQty > 0),
+        submittedAt: Date.now(),
+      },
+    };
+    receivingItem.plans.forEach((plan) => {
+      updates[`${stage.planNode}/${plan.id}/receiptId`] = receiptId;
+      updates[`${stage.planNode}/${plan.id}/receivedDate`] = receivedDate;
+    });
+
+    setSavingReceipt(true);
+    try {
+      await update(ref(db), updates);
+      setReceivingItem(null);
+    } catch (error) {
+      window.alert(`Unable to save the receiving status: ${error.message}`);
+    } finally {
+      setSavingReceipt(false);
+    }
+  };
+
+  const renderReceivingForm = () => {
+    if (!receivingItem) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <form onSubmit={submitReceiving} className="max-h-full w-full max-w-2xl space-y-4 overflow-auto rounded bg-white p-5 shadow-xl">
+          <div>
+            <h2 className="text-lg font-semibold">{stage.label} Receiving</h2>
+            <p className="text-sm text-gray-600">
+              {receivingItem.plans[0]?.planCode} · {receivingItem.model} · {receivingItem.article} · {receivingItem.colour} · {receivingItem.category}
+            </p>
+          </div>
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            Received Date
+            <input type="date" value={receivedDate} onChange={(event) => setReceivedDate(event.target.value)} className="w-48 rounded border border-gray-300 p-2" />
+          </label>
+          <table className="w-full border-collapse text-sm">
+            <thead className="bg-gray-200">
+              <tr>
+                {['SIZE', 'PLANNED LEFT', 'PLANNED RIGHT', 'RECEIVED LEFT', 'RECEIVED RIGHT'].map((heading) => (
+                  <th key={heading} className="border border-gray-400 p-2 text-center">{heading}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {receivedSizeRows.map((row, index) => (
+                <tr key={`${row.size}-${index}`} className="text-center">
+                  <td className="border border-gray-300 p-2">{row.size}</td>
+                  <td className="border border-gray-300 p-2">{displayQuantity(row.plannedLeft)}</td>
+                  <td className="border border-gray-300 p-2">{displayQuantity(row.plannedRight)}</td>
+                  {['leftQty', 'rightQty'].map((field) => (
+                    <td key={field} className="border border-gray-300 p-1">
+                      <input
+                        type="number"
+                        min="0"
+                        aria-label={`${field === 'leftQty' ? 'Received left' : 'Received right'} for size ${row.size}`}
+                        value={row[field]}
+                        onChange={(event) => setReceivedSizeRows((current) => current.map((item, itemIndex) => (
+                          itemIndex === index ? { ...item, [field]: event.target.value } : item
+                        )))}
+                        className="w-24 rounded border border-gray-300 p-1 text-center"
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setReceivingItem(null)} className="rounded border border-gray-300 px-4 py-2">Cancel</button>
+            <button type="submit" disabled={savingReceipt} className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+              {savingReceipt ? 'Saving...' : 'Save Receiving'}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
   const renderPlanSheet = () => (
     <>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -838,14 +1128,14 @@ function PrintingPlan({ viewOnly = false }) {
             <table className="w-full min-w-[1100px] border-collapse text-sm">
               <thead>
                 <tr>
-                  <th colSpan={canDeletePlans ? 14 : 13} className="border border-gray-400 bg-teal-700 p-2 text-center text-base font-bold text-white">VEEKESY ELASTOMERS - CALICUT - PRINTING PLAN</th>
+                  <th colSpan={(canDeletePlans ? 14 : 13) + (viewOnly ? 1 : 0)} className="border border-gray-400 bg-teal-700 p-2 text-center text-base font-bold text-white">VEEKESY ELASTOMERS - CALICUT - {stage.label.toUpperCase()} PLAN</th>
                 </tr>
                 <tr className="bg-teal-200 text-center text-xs font-bold">
                   <td colSpan={canDeletePlans ? 4 : 3} className="border border-gray-400 p-2">PLAN DATE: {formatPlanDate(group.planningDate)}</td>
                   <td colSpan={2} className="border border-gray-400 p-2">{group.planCode.toUpperCase()}</td>
                   <td colSpan={3} className="border border-gray-400 p-2">PU CORK: {displayQuantity(group.totals.puCorkPairs)} PR, {displayQuantity(group.totals.puCorkCases)} CS</td>
                   <td colSpan={2} className="border border-gray-400 p-2">SD: {displayQuantity(group.totals.sdPairs)} PR, {displayQuantity(group.totals.sdCases)} CS</td>
-                  <td colSpan={3} className="border border-gray-400 p-2">TOTAL: {displayQuantity(group.totals.puCorkPairs + group.totals.sdPairs)} PR, {displayQuantity(group.totals.puCorkCases + group.totals.sdCases)} CS</td>
+                  <td colSpan={3 + (viewOnly ? 1 : 0)} className="border border-gray-400 p-2">TOTAL: {displayQuantity(group.totals.puCorkPairs + group.totals.sdPairs)} PR, {displayQuantity(group.totals.puCorkCases + group.totals.sdCases)} CS</td>
                 </tr>
                 <tr className="bg-teal-100 text-center text-xs font-bold">
                   {canDeletePlans && (
@@ -861,7 +1151,7 @@ function PrintingPlan({ viewOnly = false }) {
                       </label>
                     </th>
                   )}
-                  {['SL NO', 'VENDOR', 'MODEL', 'ARTICLE', 'GENDER', 'COLOUR', 'SIZE', 'LEFT', 'RIGHT', 'CASE', 'CATEGORY', 'REMARKS', 'LOT NUMBER'].map((heading) => (
+                  {['SL NO', 'VENDOR', 'MODEL', 'ARTICLE', 'GENDER', 'COLOUR', 'SIZE', 'LEFT', 'RIGHT', 'CASE', 'CATEGORY', 'REMARKS', 'LOT NUMBER', ...(viewOnly ? ['RECEIVING'] : [])].map((heading) => (
                     <th key={heading} className="whitespace-nowrap border border-gray-400 p-2">{heading}</th>
                   ))}
                 </tr>
@@ -988,6 +1278,17 @@ function PrintingPlan({ viewOnly = false }) {
                               className="w-32 rounded border border-gray-300 p-1 text-center"
                             />
                           </td>
+                          {viewOnly && (
+                            <td rowSpan={itemSpan} className="border border-gray-400 p-2 text-center align-middle">
+                              <button
+                                type="button"
+                                onClick={() => openReceiving(item)}
+                                className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
+                              >
+                                {receiptForItem(item) ? 'Edit Receive' : 'Receive'}
+                              </button>
+                            </td>
+                          )}
                         </>
                       )}
                     </tr>
@@ -1344,7 +1645,7 @@ function PrintingPlan({ viewOnly = false }) {
   return (
     <div className="h-full min-w-0 overflow-auto bg-blue-50 px-3 pb-2 pt-4">
       <div className="flex min-w-0 flex-col gap-4 rounded bg-white p-4">
-        <h1 className="text-lg font-semibold">Printing Plan</h1>
+        <h1 className="text-lg font-semibold">{stage.label} Plan</h1>
         <div className={`flex border-b border-gray-200 ${viewOnly ? 'hidden' : ''}`}>
           {['plan', 'requirements'].map((sheet) => (
             <button
@@ -1358,6 +1659,7 @@ function PrintingPlan({ viewOnly = false }) {
           ))}
         </div>
         {viewOnly || activeSheet === 'plan' ? renderPlanSheet() : renderRequirementsSheet()}
+        {viewOnly && renderReceivingForm()}
       </div>
     </div>
   );

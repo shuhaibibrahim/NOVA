@@ -27,6 +27,9 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
             const tabKey = `${parentKey}${tabItem.value || tabItem.to || tabItem.label || index}`;
             const isExpanded = expandedSubTab === tabKey;
             const paddingClass = level > 0 ? 'pl-8' : 'pl-4';
+            const levelColour = level > 0
+                ? 'bg-slate-50 text-slate-600 hover:bg-teal-200 border-l-4 border-transparent'
+                : 'bg-teal-50 text-teal-900 hover:bg-teal-200 border-l-4 border-transparent';
 
             if (tabItem.children) {
                 return (
@@ -35,12 +38,12 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                             type="button"
                             onClick={() => setExpandedSubTab((tab) => tab === tabKey ? '' : tabKey)}
                             aria-expanded={isExpanded}
-                            className={`flex w-full flex-row items-center space-x-2 py-3 pr-2 text-left hover:bg-blue-300 ${paddingClass} ${isExpanded ? 'bg-blue-100' : ''}`}
+                            className={`flex w-full flex-row items-center space-x-2 py-3 pr-2 text-left ${paddingClass} ${isExpanded ? 'bg-teal-100 text-teal-900 border-l-4 border-teal-400' : levelColour}`}
                         >
                             <div>{tabItem.icon}</div>
                             <div className="font-medium text-sm">{tabItem.label}</div>
                         </button>
-                        <div className={`flex w-full flex-col bg-blue-50 ${isExpanded ? 'dropdown-visible' : 'dropdown-hidden'}`}>
+                        <div className={`flex w-full flex-col bg-slate-50 ${isExpanded ? 'dropdown-visible' : 'dropdown-hidden'}`}>
                             {tabItem.children.map((child, childIndex) =>
                                 renderNavigationItem(child, childIndex, `${tabKey}/`, level + 1)
                             )}
@@ -53,7 +56,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                 <Link
                     key={tabKey}
                     to={tabItem.to}
-                    className={`flex w-full flex-row space-x-2 py-3 pr-2 hover:bg-blue-300 ${paddingClass} ${selectedLink === tabItem.to ? 'bg-gray-300 border-r-4 border-blue-500' : ''}`}
+                    className={`flex w-full flex-row space-x-2 py-3 pr-2 ${paddingClass} ${selectedLink === tabItem.to ? 'bg-teal-400 text-teal-900 font-semibold border-l-4 border-teal-600' : levelColour}`}
                 >
                     <div>{tabItem.icon}</div>
                     <div className="font-medium text-sm">{tabItem.label}</div>
@@ -64,7 +67,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
         return (
             <div className='px-1'>
                 <div 
-                    className={" flex flex-row space-x-2 hover:bg-gray-300 w-full py-3 cursor-pointer "+ (openedTab==mainTabValue?" border-l-4 border-blue-500":"")}
+                    className={" flex flex-row space-x-2 w-full py-3 px-2 cursor-pointer text-white transition-colors hover:bg-teal-700 bg-teal-600 border-l-4 border-transparent"}
                     onClick={()=>{setCurrentOpenedTab(tab=>{return tab===mainTabValue?"":mainTabValue})}}
                 >
                     <div>
@@ -75,7 +78,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                     <div className="font-medium text-base">{mainTabLabel}</div>
                 </div>
 
-                <div className={"flex flex-col items-start w-full bg-blue-50"+(currentOpenedTab===mainTabValue?" dropdown-visible":" dropdown-hidden")}>
+                <div className={"flex flex-col items-start w-full bg-teal-50"+(currentOpenedTab===mainTabValue?" dropdown-visible":" dropdown-hidden")}>
                 {
                     visibleTabs.map((tabItem, index) => renderNavigationItem(tabItem, index))
                 }
@@ -220,7 +223,7 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h5" />
                             </svg>)
                         }))
-                    ], true)}
+                    ])}
 
             {sideBarComponent("Analysis", "analysis",
                     [
@@ -241,7 +244,19 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v4m0 4h.01M10.3 3.86L1.82 18a2 2 0 001.7 3h16.96a2 2 0 001.7-3L13.7 3.86a2 2 0 00-3.4 0z" />
                                     </svg>)
                                 }
-                            ]
+                            ].concat([
+                                ['printed', 'Printed Shortage'],
+                                ['stitching', 'Stitching Shortage'],
+                                ['molding', 'Molding Shortage'],
+                                ['grinding', 'Grinding Shortage'],
+                                ['attaching', 'Attaching Shortage'],
+                            ].map(([key, label]) => ({
+                                to: `analysis/shortage-details/${key}-shortage`,
+                                label,
+                                icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v4m0 4h.01M10.3 3.86L1.82 18a2 2 0 001.7 3h16.96a2 2 0 001.7-3L13.7 3.86a2 2 0 00-3.4 0z" />
+                                </svg>)
+                            })))
                         }
                     ])}
 
@@ -355,16 +370,22 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                                     icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M12 22a10 10 0 100-20 10 10 0 000 20z" />
                                     </svg>)
-                                },
-                                {
-                                    to:"mmdept/molding-receiving-store",
-                                    label:"Molding Receiving Store",
-                                    icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M12 22a10 10 0 100-20 10 10 0 000 20z" />
-                                    </svg>)
                                 }
                             ]
-                        }
+                        },
+                        ...[
+                            ['mmdept/fiu-store', 'FIU Store'],
+                            ['mmdept/molding-receiving-store', 'Molding Store'],
+                            ['mmdept/grinding-store', 'Grinding Store'],
+                            ['mmdept/attaching-store', 'Attaching Store'],
+                            ['mmdept/packing-store', 'Packing Store'],
+                        ].map(([to, label]) => ({
+                            to,
+                            label,
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7h18M5 7v12h14V7M9 11h6" />
+                            </svg>)
+                        }))
                     ])
             }
 
@@ -385,6 +406,13 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                         {
                             to:"history/article-entry",
                             label:"Article Entry",
+                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 19.5V4.75A2.75 2.75 0 016.75 2h10.5A2.75 2.75 0 0120 4.75V19.5M4 19.5h16M8 7h8M8 11h8M8 15h5" />
+                            </svg>)
+                        },
+                        {
+                            to:"history/bom",
+                            label:"BOM",
                             icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 19.5V4.75A2.75 2.75 0 016.75 2h10.5A2.75 2.75 0 0120 4.75V19.5M4 19.5h16M8 7h8M8 11h8M8 15h5" />
                             </svg>)

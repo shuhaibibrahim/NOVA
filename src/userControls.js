@@ -29,6 +29,11 @@ export const CONTROL_TREE = [
     children: [
       ['analysis/loop-stocks', 'Loop Stocks'],
       ['analysis/shortage-details/clicker-shortage', 'Clicker Shortage'],
+      ['analysis/shortage-details/printed-shortage', 'Printed Shortage'],
+      ['analysis/shortage-details/stitching-shortage', 'Stitching Shortage'],
+      ['analysis/shortage-details/molding-shortage', 'Molding Shortage'],
+      ['analysis/shortage-details/grinding-shortage', 'Grinding Shortage'],
+      ['analysis/shortage-details/attaching-shortage', 'Attaching Shortage'],
     ],
   },
   {
@@ -72,7 +77,11 @@ export const CONTROL_TREE = [
       ['mmdept/material-inward', 'Material Inward'],
       ['mmdept/clicker-comp-store', 'Clicker Comp Store'],
       ['mmdept/printing-comp-store', 'Printing Comp Store'],
-      ['mmdept/molding-receiving-store', 'Molding Receiving Store'],
+      ['mmdept/fiu-store', 'FIU Store'],
+      ['mmdept/molding-receiving-store', 'Molding Store'],
+      ['mmdept/grinding-store', 'Grinding Store'],
+      ['mmdept/attaching-store', 'Attaching Store'],
+      ['mmdept/packing-store', 'Packing Store'],
     ],
   },
   {
@@ -83,7 +92,7 @@ export const CONTROL_TREE = [
   {
     id: 'history',
     label: 'History',
-    children: [['history/article-entry', 'Article Entry History']],
+    children: [['history/article-entry', 'Article Entry History'], ['history/bom', 'BOM']],
   },
 ];
 

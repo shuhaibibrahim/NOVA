@@ -5,6 +5,7 @@ import { onValue, push, ref, update } from 'firebase/database';
 import { saveAs } from 'file-saver';
 import ExcelJS from 'exceljs';
 import { db } from '../firebase_config';
+import { bomChanges, writeBomHistory } from '../bomHistory';
 
 const FUNCTIONS = ['Knitting', 'Clicking', 'Printing', 'Stitching', 'Molding', 'Grinding', 'Stuckon', 'Packing'];
 const NO_CHILD_MATERIAL = '__no_child_material__';
@@ -367,6 +368,7 @@ function BomEntry() {
       await workbook.xlsx.load(await file.arrayBuffer());
       const articlesBySheetName = new Map(rows.map((article) => [article.sheetName.toLowerCase(), article]));
       const updates = {};
+      const importLog = [];
       let importedRows = 0;
 
       workbook.eachSheet((worksheet) => {
@@ -417,6 +419,12 @@ function BomEntry() {
               String(existingRecord[field] ?? '') !== details[field]
             ));
             if (changed.length) {
+              importLog.push({
+                article,
+                record: existingRecord,
+                action: 'edited (import)',
+                changes: bomChanges(existingRecord, { ...existingRecord, ...details }),
+              });
               changed.forEach((field) => {
                 updates[`bomData/${existingRecord.id}/${field}`] = details[field];
               });
@@ -436,6 +444,7 @@ function BomEntry() {
           };
           existingByKey.set(componentKey, record);
           updates[`bomData/${bomRef.key}`] = record;
+          importLog.push({ article, record, action: 'created (import)', changes: bomChanges({}, record) });
           articleBomIds.push(bomRef.key);
           importedRows += 1;
         });
@@ -448,6 +457,7 @@ function BomEntry() {
       }
       if (!window.confirm(`Save ${importedRows} component row(s) from ${workbook.worksheets.length} worksheet(s)?`)) return;
       await update(ref(db), updates);
+      await Promise.all(importLog.map((entry) => writeBomHistory(entry)));
       window.alert(`Imported ${importedRows} component row(s) successfully.`);
     } catch (error) {
       window.alert(`Unable to import the updated template: ${error.message}`);
@@ -512,6 +522,11 @@ function BomEntry() {
         updates[`articleData/${selectedArticle.id}/bomIds`] = updatedBomIds.join(',');
       }
       await update(ref(db), updates);
+      const previousRecord = bomRecords.find((item) => item.id === recordId);
+      const changes = bomChanges(previousRecord, record);
+      if (!previousRecord || Object.keys(changes).length) {
+        await writeBomHistory({ article: selectedArticle, record, action: previousRecord ? 'edited' : 'created', changes: previousRecord ? changes : bomChanges({}, record) });
+      }
       setComponentRows((current) => current.map((currentRow, rowIndex) => (
         rowIndex === index ? emptyComponentRow() : currentRow
       )));
@@ -544,7 +559,7 @@ function BomEntry() {
     }
     setSavingComponentEdit(true);
     try {
-      await update(ref(db, `bomData/${recordId}`), {
+      const editedRecord = {
         functionName: componentEditDraft.functionName,
         process: componentEditDraft.functionName,
         componentDetails: componentEditDraft.componentDetails.trim(),
@@ -555,7 +570,18 @@ function BomEntry() {
         unit: String(componentEditDraft.unit || '').trim(),
         childComponentIds: [...new Set(componentEditDraft.childComponentIds)]
           .filter((childId) => childId !== recordId),
-      });
+      };
+      const previousRecord = bomRecords.find((item) => item.id === recordId) || {};
+      await update(ref(db, `bomData/${recordId}`), editedRecord);
+      const changes = bomChanges(previousRecord, editedRecord);
+      if (Object.keys(changes).length) {
+        await writeBomHistory({
+          article: articles.find((item) => item.id === previousRecord.articleId) || selectedArticle,
+          record: { ...previousRecord, ...editedRecord, id: recordId },
+          action: 'edited',
+          changes,
+        });
+      }
       setEditingComponentId(null);
       setComponentEditDraft(null);
       setEditChildDropdownOpen(false);

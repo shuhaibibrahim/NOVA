@@ -22,6 +22,15 @@ const ARTICLE_FIELDS = [
 const emptyArticle = () => Object.fromEntries(ARTICLE_FIELDS.map(({ key }) => [key, '']));
 const ARTICLE_FIELD_LABELS = Object.fromEntries(ARTICLE_FIELDS.map(({ key, label }) => [key, label]));
 
+// An article is unique by article, colour, model, gender and price category.
+const articleIdentity = (article) => ['article', 'colour', 'model', 'gender', 'priceCategory']
+  .map((key) => String(article?.[key] ?? '').trim().toUpperCase())
+  .join('|');
+
+// Order by model, then article, colour and price category.
+const compareArticles = (first, second) => ['model', 'article', 'colour', 'priceCategory']
+  .reduce((result, key) => result || String(first[key] ?? '').localeCompare(String(second[key] ?? ''), undefined, { numeric: true, sensitivity: 'base' }), 0);
+
 function normalizeArticle(article) {
   const normalized = { ...article };
 
@@ -53,7 +62,7 @@ function ArticleEntry() {
     const articleRef = ref(db, 'articleData/');
     return onValue(articleRef, (snapshot) => {
       const data = snapshot.val() || {};
-      setArticleData(Object.entries(data).map(([id, item]) => normalizeArticle({ ...item, id })));
+      setArticleData(Object.entries(data).map(([id, item]) => normalizeArticle({ ...item, id })).sort(compareArticles));
     });
   }, []);
 
@@ -110,6 +119,10 @@ function ArticleEntry() {
 
     const articleRef = push(ref(db, 'articleData/'));
     const article = { ...normalizeArticle(newArticle), id: articleRef.key };
+    if (articleData.some((existing) => articleIdentity(existing) === articleIdentity(article))) {
+      window.alert('This article already exists with the same Article, Colour, Model, Gender and Price Category. Duplicates are not allowed.');
+      return;
+    }
     await set(articleRef, article);
     await writeArticleHistory({
       article,
@@ -120,7 +133,16 @@ function ArticleEntry() {
   };
 
   const importArticles = async (rows) => {
-    await Promise.all(rows.map(async (row) => {
+    const seen = new Set(articleData.map(articleIdentity));
+    const uniqueRows = rows.filter((row) => {
+      const identity = articleIdentity(normalizeArticle(row));
+      if (seen.has(identity)) return false;
+      seen.add(identity);
+      return true;
+    });
+    const skipped = rows.length - uniqueRows.length;
+    if (skipped) window.alert(`${skipped} duplicate article row(s) were skipped.`);
+    await Promise.all(uniqueRows.map(async (row) => {
       const articleRef = push(ref(db, 'articleData/'));
       const article = { ...normalizeArticle(row), id: articleRef.key };
       await set(articleRef, article);
@@ -140,6 +162,10 @@ function ArticleEntry() {
   const saveArticle = async () => {
     const previousArticle = articleData.find((article) => article.id === editingId);
     const article = { ...normalizeArticle(editingArticle), id: editingId };
+    if (articleData.some((existing) => existing.id !== editingId && articleIdentity(existing) === articleIdentity(article))) {
+      window.alert('Another article already has the same Article, Colour, Model, Gender and Price Category. Duplicates are not allowed.');
+      return;
+    }
     const changes = getArticleChanges(previousArticle, article);
 
     await set(ref(db, `articleData/${editingId}`), article);

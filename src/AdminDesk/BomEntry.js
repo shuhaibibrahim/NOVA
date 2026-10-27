@@ -254,7 +254,10 @@ function BomEntry() {
           hasMissingActiveFunctions,
         };
       })
-      .sort((first, second) => String(first.article || '').localeCompare(String(second.article || '')));
+      .sort((first, second) => ['model', 'article', 'colour', 'priceCategory'].reduce(
+        (result, key) => result || String(first[key] ?? '').localeCompare(String(second[key] ?? ''), undefined, { numeric: true, sensitivity: 'base' }),
+        0
+      ));
   }, [articles, bomRecords]);
 
   const visibleRows = showNotUpdated ? rows.filter((article) => !article.isUpdated) : rows;

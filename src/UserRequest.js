@@ -91,13 +91,8 @@ function UserRequest({ isAdmin }) {
       return;
     }
     try {
-      try {
-        await sendPasswordResetEmail(auth, email, { url: `${window.location.origin}/reset-password` });
-      } catch (error) {
-        // Unauthorized continue-URL domains are rejected; retry with Firebase's default reset page.
-        if (!['auth/unauthorized-continue-uri', 'auth/invalid-continue-uri', 'auth/missing-continue-uri'].includes(error.code)) throw error;
-        await sendPasswordResetEmail(auth, email);
-      }
+      // No continue URL: Firebase's hosted reset page is used, so no authorized-domain setup is needed.
+      await sendPasswordResetEmail(auth, email);
       await update(ref(db), {
         [`passwordRequests/${request.id}/status`]: 'approved',
         [`passwordRequests/${request.id}/approvedAt`]: Date.now(),
@@ -107,6 +102,14 @@ function UserRequest({ isAdmin }) {
     } catch (error) {
       alert(`Could not send reset email to ${email}: ${error.code || error.message}`);
     }
+  };
+
+  const rejectPasswordRequest = async (request) => {
+    if (!window.confirm(`Reject the password request from ${request.email}?`)) return;
+    await update(ref(db), {
+      [`passwordRequests/${request.id}/status`]: 'rejected',
+      [`passwordRequests/${request.id}/rejectedAt`]: Date.now(),
+    });
   };
 
   if (!isAdmin) {
@@ -140,9 +143,14 @@ function UserRequest({ isAdmin }) {
               <div key={request.id} className="rounded border border-gray-200 p-3">
                 <div className="font-medium">{request.email}</div>
                 <div className="text-sm text-gray-600">Requested {new Date(request.requestedAt).toLocaleString()}</div>
-                <button type="button" className="mt-3 rounded bg-green-600 px-3 py-1 text-white" onClick={() => approvePasswordRequest(request)}>
-                  Approve and send reset email
-                </button>
+                <div className="mt-3 flex gap-2">
+                  <button type="button" className="rounded bg-green-600 px-3 py-1 text-white" onClick={() => approvePasswordRequest(request)}>
+                    Approve and send reset email
+                  </button>
+                  <button type="button" className="rounded bg-red-600 px-3 py-1 text-white" onClick={() => rejectPasswordRequest(request)}>
+                    Reject
+                  </button>
+                </div>
               </div>
             ))}
             {visiblePasswordRequests.length === 0 && <p className="text-gray-500">No password requests.</p>}

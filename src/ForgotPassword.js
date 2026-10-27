@@ -44,7 +44,7 @@ function ForgotPassword() {
       <form onSubmit={submit} className="w-96 rounded-xl bg-white p-8 text-center shadow-md">
         <h2 className="pb-4 text-2xl font-extrabold text-gray-500">Forgot password</h2>
         <p className="mb-4 text-left text-sm text-gray-600">
-          An administrator will review your request. After approval, you will receive a secure link to set your new password.
+          An administrator will review your request. After approval, you will receive an email from Firebase with a link to set your new password. Check your spam folder too.
         </p>
         <input className="mb-3 block w-full rounded-xl p-3 ring-2 ring-blue-200" type="email" placeholder="Email address" required value={email} onChange={(event) => setEmail(event.target.value)} />
         {error && <div className="mb-3 text-sm text-red-600">{error}</div>}

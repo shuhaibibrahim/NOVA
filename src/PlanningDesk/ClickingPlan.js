@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { onValue, push, ref, remove, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
 import { notify } from '../notifications';
-import { genderForMaterialNumber, normalizeMatchValue, requirementMatchesArticle, sizeForRequirement as deriveSizeForRequirement, sizesForGender } from '../requirementMatching';
+import { genderForMaterialNumber, normalizeMatchValue, requirementMatchesArticle, requirementMismatchReason, sizeForRequirement as deriveSizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const PLAN_DELETE_EMAIL = 'ajimsha.albac@walkaroo.co.in';
 const normalizeSizeKey = (value) => {
@@ -796,6 +796,24 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
       );
   }, [requirements, articles, requirementFilters, cooisRows, cart]);
 
+  const requirementDiagnostics = useMemo(() => {
+    const unmatchedRows = requirements.filter((requirement) => !requirement.isBor && !requirementMatchesArticle(requirement, articles));
+    const matched = requirements.filter((requirement) => requirement.isBor || requirementMatchesArticle(requirement, articles));
+    const consumed = matched.filter((requirement) => {
+      const orderQty = Number(requirement.qty);
+      return orderQty > 0 && consumedQtyForRequirement({ ...requirement, csPlannedQty: cooisPlannedQtyForRequirement(requirement) }) >= orderQty;
+    }).length;
+    const reasons = [...new Set(unmatchedRows.map((requirement) => requirementMismatchReason(requirement, articles)))].slice(0, 5);
+    const hasFilters = Object.values(requirementFilters).some((value) => String(value || '').trim());
+    return {
+      total: requirements.length,
+      unmatched: unmatchedRows.length,
+      consumed,
+      filtered: hasFilters ? Math.max(0, matched.length - consumed - requirementsForPlanning.length) : 0,
+      reasons,
+    };
+  }, [requirements, articles, requirementFilters, requirementsForPlanning, cooisRows, plans]);
+
   const cartTotals = useMemo(() => cart.reduce((totals, { requirement, plannedQty }) => {
     const model = normalizeMatchValue(modelForRequirement(requirement));
     if (model !== 'SINGLE DENSITY' && model !== 'PU CORK') return totals;
@@ -1352,7 +1370,18 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
                   REQUIREMENT_COLUMNS.length + 3 +
                   (showOptionalRequirementColumns ? 1 : 0) -
                   (showOptionalRequirementColumns ? 0 : 3)
-                } className="p-4 text-center text-gray-500">No requirements have been entered yet.</td>
+                } className="p-4 text-center text-gray-500">
+                  <div>{requirementDiagnostics.total ? 'No requirements are available to plan.' : 'No requirements have been entered yet.'}</div>
+                  {requirementDiagnostics.total > 0 && (
+                    <ul className="mt-2 space-y-1 text-xs">
+                      <li>Total requirements loaded: {requirementDiagnostics.total}</li>
+                      <li>Not matching Article Entry (article / colour / gender): {requirementDiagnostics.unmatched}</li>
+                      <li>Already fully planned (COOIS / BOR / plans): {requirementDiagnostics.consumed}</li>
+                      <li>Hidden by column filters: {requirementDiagnostics.filtered}</li>
+                      {requirementDiagnostics.reasons.map((reason) => <li key={reason} className="text-red-700">{reason}</li>)}
+                    </ul>
+                  )}
+                </td>
               </tr>
             )}
           </tbody>

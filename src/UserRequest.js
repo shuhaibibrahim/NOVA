@@ -85,17 +85,28 @@ function UserRequest({ isAdmin }) {
   };
 
   const approvePasswordRequest = async (request) => {
-    const actionCodeSettings = {
-      url: `${window.location.origin}/reset-password`,
-      handleCodeInApp: true,
-    };
-
-    await sendPasswordResetEmail(auth, request.email, actionCodeSettings);
-    await update(ref(db), {
-      [`passwordRequests/${request.id}/status`]: 'approved',
-      [`passwordRequests/${request.id}/approvedAt`]: Date.now(),
-      [`passwordRequests/${request.id}/resetEmailStatus`]: 'sent',
-    });
+    const email = String(request.email || '').trim();
+    if (!email) {
+      alert('This request has no email address.');
+      return;
+    }
+    try {
+      try {
+        await sendPasswordResetEmail(auth, email, { url: `${window.location.origin}/reset-password` });
+      } catch (error) {
+        // Unauthorized continue-URL domains are rejected; retry with Firebase's default reset page.
+        if (!['auth/unauthorized-continue-uri', 'auth/invalid-continue-uri', 'auth/missing-continue-uri'].includes(error.code)) throw error;
+        await sendPasswordResetEmail(auth, email);
+      }
+      await update(ref(db), {
+        [`passwordRequests/${request.id}/status`]: 'approved',
+        [`passwordRequests/${request.id}/approvedAt`]: Date.now(),
+        [`passwordRequests/${request.id}/resetEmailStatus`]: 'sent',
+      });
+      alert(`Password reset email sent to ${email}.`);
+    } catch (error) {
+      alert(`Could not send reset email to ${email}: ${error.code || error.message}`);
+    }
   };
 
   if (!isAdmin) {

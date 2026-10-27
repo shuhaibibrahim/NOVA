@@ -34,6 +34,17 @@ function UserRequest({ isAdmin }) {
   }, [setSelectedLink, setOpenedTab]);
 
   const visibleRequests = useMemo(() => {
+    if (view === 'removed') {
+      const requestByUserId = new Map(requests.map((request) => [request.id, request]));
+      const removedFromUsers = registeredUsers
+        .filter((user) => user.status === 'removed')
+        .map((user) => ({ ...(requestByUserId.get(user.id) || {}), ...user, id: user.id, name: user.name || user.email }));
+      const removedIds = new Set(removedFromUsers.map((user) => user.id));
+      return [
+        ...removedFromUsers,
+        ...requests.filter((request) => request.status === 'removed' && !removedIds.has(request.id)),
+      ].sort((a, b) => (b.removedAt || 0) - (a.removedAt || 0));
+    }
     if (view !== 'approved') return requests.filter((request) => request.status === view);
 
     const requestByUserId = new Map(requests.map((request) => [request.id, request]));
@@ -77,10 +88,31 @@ function UserRequest({ isAdmin }) {
   };
 
   const removeApprovedUser = async (request) => {
+    const removedAt = Date.now();
     await update(ref(db), {
       [`userRequests/${request.id}/status`]: 'removed',
+      [`userRequests/${request.id}/removedAt`]: removedAt,
+      [`userRequests/${request.id}/name`]: request.name || request.email || '',
+      [`userRequests/${request.id}/email`]: request.email || '',
+      [`userRequests/${request.id}/department`]: request.department || '',
+      [`userRequests/${request.id}/productionPlant`]: request.productionPlant || '',
+      [`userRequests/${request.id}/phone`]: request.phone || '',
       [`users/${request.id}/status`]: 'removed',
-      [`users/${request.id}/removedAt`]: Date.now(),
+      [`users/${request.id}/removedAt`]: removedAt,
+    });
+  };
+
+  const restoreUser = async (request) => {
+    await update(ref(db), {
+      [`userRequests/${request.id}/status`]: 'approved',
+      [`userRequests/${request.id}/name`]: request.name || request.email || '',
+      [`userRequests/${request.id}/email`]: request.email || '',
+      [`userRequests/${request.id}/department`]: request.department || '',
+      [`userRequests/${request.id}/productionPlant`]: request.productionPlant || '',
+      [`userRequests/${request.id}/phone`]: request.phone || '',
+      [`userRequests/${request.id}/restoredAt`]: Date.now(),
+      [`users/${request.id}/status`]: 'approved',
+      [`users/${request.id}/removedAt`]: null,
     });
   };
 
@@ -130,6 +162,7 @@ function UserRequest({ isAdmin }) {
             ['approved', 'Approved'],
             ['rejected', 'Rejected'],
             ['password', 'Password Request'],
+            ['removed', 'Removed Users'],
           ].map(([status, label]) => (
             <button key={status} type="button" onClick={() => setView(status)} className={`rounded px-3 py-2 text-sm ${view === status ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
               {label}
@@ -171,6 +204,14 @@ function UserRequest({ isAdmin }) {
                 )}
                 {view === 'rejected' && (
                   <button type="button" className="mt-3 rounded bg-green-600 px-3 py-1 text-white" onClick={() => updateRequest(request, 'approved')}>Add User</button>
+                )}
+                {view === 'removed' && (
+                  <>
+                    <div className="mt-1 text-xs text-gray-500">
+                      Removed {request.removedAt ? new Date(request.removedAt).toLocaleString() : 'earlier (date not recorded)'}
+                    </div>
+                    <button type="button" className="mt-3 rounded bg-green-600 px-3 py-1 text-white" onClick={() => restoreUser(request)}>Add User Back</button>
+                  </>
                 )}
                 {view === 'approved' && (
                   <button type="button" className="mt-3 rounded bg-red-600 px-3 py-1 text-white" onClick={() => removeApprovedUser(request)}>Remove User</button>

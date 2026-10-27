@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { ref, set } from 'firebase/database';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { get, ref, set } from 'firebase/database';
 import { auth, db } from './firebase_config';
 
 const DEPARTMENTS = [
@@ -35,8 +35,27 @@ function Signup() {
   const submit = async (event) => {
     event.preventDefault();
     setError('');
+    const email = form.email.trim();
     try {
-      const credential = await createUserWithEmailAndPassword(auth, form.email.trim(), form.password);
+      let credential;
+      try {
+        credential = await createUserWithEmailAndPassword(auth, email, form.password);
+      } catch (err) {
+        if (err.code !== 'auth/email-already-in-use') throw err;
+        // Removing a user in User Settings keeps their Firebase login, so let them re-apply with it.
+        try {
+          credential = await signInWithEmailAndPassword(auth, email, form.password);
+        } catch (signInError) {
+          setError('This email already has a login. Enter the password you used before, or use "Forgot password" on the login page and then sign up again.');
+          return;
+        }
+        const existing = (await get(ref(db, `users/${credential.user.uid}`))).val();
+        if (existing && !['removed', 'rejected'].includes(existing.status)) {
+          await signOut(auth);
+          setError('This email is already registered. Please log in.');
+          return;
+        }
+      }
       const request = {
         uid: credential.user.uid,
         name: form.name.trim(),

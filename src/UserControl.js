@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { onValue, ref, set } from 'firebase/database';
 import { db } from './firebase_config';
 import { CONTROL_TREE, controlKey } from './userControls';
+import { deleteKey, modifyKey } from './ActionGuard';
 
 const emptySelection = () => ({});
 
@@ -44,23 +45,30 @@ function UserControl() {
       ? `userControls/departments/${encodeURIComponent(target)}`
       : `userControls/users/${target}`;
     return onValue(ref(db, path), (snapshot) => {
-      const permissions = snapshot.val()?.permissions || {};
-      setSelection(permissions);
+      const saved = snapshot.val()?.permissions;
+      // Nothing saved yet: default every ribbon to view-only.
+      setSelection(saved || Object.fromEntries(
+        CONTROL_TREE.flatMap(({ children }) => children.map(([id]) => [controlKey(id), true]))
+      ));
       setMessage('');
       setMessageType('');
     });
   }, [targetType, target]);
 
-  const togglePermission = (permissionId) => {
-    const key = controlKey(permissionId);
+  const toggleKey = (key) => {
     setSelection((current) => ({ ...current, [key]: !current[key] }));
   };
 
+  const groupKeys = (group) => group.children.flatMap(([id]) => [
+    controlKey(id), modifyKey(controlKey(id)), deleteKey(controlKey(id)),
+  ]);
+
   const toggleGroup = (group) => {
-    const enabled = group.children.every(([id]) => selection[controlKey(id)]);
+    const keys = groupKeys(group);
+    const enabled = keys.every((key) => selection[key]);
     setSelection((current) => ({
       ...current,
-      ...Object.fromEntries(group.children.map(([id]) => [controlKey(id), !enabled])),
+      ...Object.fromEntries(keys.map((key) => [key, !enabled])),
     }));
   };
 
@@ -129,16 +137,34 @@ function UserControl() {
             return (
               <div key={group.id} className="rounded border border-gray-200">
                 <label className="flex items-center gap-2 bg-gray-100 p-3 font-medium">
-                  <input type="checkbox" checked={checkedCount === group.children.length} onChange={() => toggleGroup(group)} />
+                  <input type="checkbox" checked={groupKeys(group).every((key) => selection[key])} onChange={() => toggleGroup(group)} />
                   {group.label} ({checkedCount}/{group.children.length})
                 </label>
-                <div className="grid gap-2 p-3 md:grid-cols-2">
-                  {group.children.map(([id, label]) => (
-                    <label key={id} className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={Boolean(selection[controlKey(id)])} onChange={() => togglePermission(id)} />
-                      {label}
-                    </label>
-                  ))}
+                <div className="p-3">
+                  <div className="mb-2 flex justify-end gap-6 pr-1 text-xs font-semibold text-gray-600">
+                    <span className="w-14 text-center">VIEW</span>
+                    <span className="w-14 text-center">MODIFY</span>
+                    <span className="w-14 text-center">DELETE</span>
+                  </div>
+                  <div className="grid gap-x-8 gap-y-2 md:grid-cols-2">
+                    {group.children.map(([id, label]) => (
+                      <div key={id} className="flex items-center justify-between gap-2 text-sm">
+                        <span>{label}</span>
+                        <span className="flex gap-6">
+                          {[controlKey(id), modifyKey(controlKey(id)), deleteKey(controlKey(id))].map((key, index) => (
+                            <span key={key} className="flex w-14 justify-center">
+                              <input
+                                type="checkbox"
+                                aria-label={`${['View', 'Modify', 'Delete'][index]} ${label}`}
+                                checked={Boolean(selection[key])}
+                                onChange={() => toggleKey(key)}
+                              />
+                            </span>
+                          ))}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             );

@@ -3,6 +3,8 @@ import {Outlet} from "react-router-dom";
 import spareData from './DummyData';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import ActionGuard, { deleteKey, modifyKey } from './ActionGuard';
+import { controlKey } from './userControls';
 
 function HomePage({setUser, userRole, preallocatedProcesses, isAdmin, canAccessUserSettings, ribbonPermissions, permissionsConfigured}) {
 
@@ -24,9 +26,12 @@ function HomePage({setUser, userRole, preallocatedProcesses, isAdmin, canAccessU
                     </div>
                 </div>
 
-                <div className={'h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden'}>
+                <ActionGuard
+                    canModify={(id) => isAdmin || Boolean(ribbonPermissions?.[modifyKey(controlKey(id))])}
+                    canDelete={(id) => isAdmin || Boolean(ribbonPermissions?.[deleteKey(controlKey(id))])}
+                >
                     <Outlet context={[setSelectedLink, setOpenedTab]}/>
-                </div>
+                </ActionGuard>
             </div>
         </div>
     )

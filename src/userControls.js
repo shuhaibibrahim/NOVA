@@ -1,3 +1,5 @@
+import { REQUIREMENT_CATEGORIES, requirementRoute } from './requirementCategories';
+
 export const CONTROL_TREE = [
   {
     id: 'spare',
@@ -34,6 +36,13 @@ export const CONTROL_TREE = [
       ['analysis/shortage-details/molding-shortage', 'Molding Shortage'],
       ['analysis/shortage-details/grinding-shortage', 'Grinding Shortage'],
       ['analysis/shortage-details/attaching-shortage', 'Attaching Shortage'],
+      ...['printing', 'stitching', 'molding', 'grinding', 'stuckon'].flatMap((stageKey) => {
+        const label = stageKey.charAt(0).toUpperCase() + stageKey.slice(1);
+        return [
+          [`analysis/damage-details/${stageKey}-damage`, `${label} Damage`],
+          [`analysis/repair-details/${stageKey}-repair`, `${label} Repair`],
+        ];
+      }),
     ],
   },
   {
@@ -53,7 +62,7 @@ export const CONTROL_TREE = [
     id: 'productionPlanningInputs',
     label: 'Production Planning Inputs',
     children: [
-      ['production-planning-inputs/requirement-entry', 'Requirement Entry'],
+      ...REQUIREMENT_CATEGORIES.map((category) => [requirementRoute(category), `Requirement Entry - ${category.label}`]),
       ['production-planning-inputs/coois-data', 'Coois Data'],
             ['production-planning-inputs/bor', 'BOR'],
           ],

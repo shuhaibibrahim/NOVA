@@ -4,6 +4,7 @@ import { db } from '../firebase_config';
 import { onValue, push, ref, remove, set } from 'firebase/database';
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
 import { genderForMaterialNumber, requirementMatchesArticle, requirementMismatchReason, sizeForRequirement } from '../requirementMatching';
+import { requirementRoute } from '../requirementCategories';
 
 const REQUIREMENT_FIELDS = [
   { key: 'dateOfReq', label: 'Date of Req', type: 'date' },
@@ -16,6 +17,7 @@ const REQUIREMENT_FIELDS = [
   { key: 'colour', label: 'Colour', type: 'text', upper: true },
   { key: 'qty', label: 'Qty', type: 'number', step: '1' },
   { key: 'unit', label: 'Unit', type: 'text', upper: true },
+  { key: 'priceCategory', label: 'Price Category', type: 'text', upper: true },
 ];
 
 const emptyRequirement = () => Object.fromEntries(REQUIREMENT_FIELDS.map(({ key }) => [key, '']));
@@ -32,7 +34,9 @@ function normalizeRequirement(requirement) {
   return normalized;
 }
 
-function RequirementEntry() {
+function RequirementEntry({ category }) {
+  const dbPath = category.dbPath;
+  const route = requirementRoute(category);
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [requirements, setRequirements] = useState([]);
   const [newRequirement, setNewRequirement] = useState(emptyRequirement);
@@ -45,17 +49,19 @@ function RequirementEntry() {
   const [showUnmatchedOnly, setShowUnmatchedOnly] = useState(false);
 
   useEffect(() => {
-    setSelectedLink('production-planning-inputs/requirement-entry');
+    setSelectedLink(route);
     setOpenedTab('productionPlanningInputs');
-  }, [setSelectedLink, setOpenedTab]);
+  }, [setSelectedLink, setOpenedTab, route]);
 
   useEffect(() => {
-    const requirementRef = ref(db, 'requirementsData/');
+    setEditingId(null);
+    setSelectedIds([]);
+    const requirementRef = ref(db, dbPath);
     return onValue(requirementRef, (snapshot) => {
       const data = snapshot.val() || {};
       setRequirements(Object.entries(data).map(([id, requirement]) => normalizeRequirement({ ...requirement, id })));
     });
-  }, []);
+  }, [dbPath]);
 
   useEffect(() => {
     return onValue(ref(db, 'articleData/'), (snapshot) => {
@@ -174,7 +180,7 @@ function RequirementEntry() {
     event.preventDefault();
     if (!window.confirm('Please confirm entering the requirement.')) return;
 
-    const requirementRef = push(ref(db, 'requirementsData/'));
+    const requirementRef = push(ref(db, dbPath));
     const record = { ...normalizeRequirement(newRequirement), id: requirementRef.key };
     await Promise.all([
       set(requirementRef, record),
@@ -185,7 +191,7 @@ function RequirementEntry() {
 
   const importRequirements = async (rows) => {
     await Promise.all(rows.map(async (row) => {
-      const requirementRef = push(ref(db, 'requirementsData/'));
+      const requirementRef = push(ref(db, dbPath));
       const record = { ...normalizeRequirement(row), id: requirementRef.key };
       await Promise.all([
         set(requirementRef, record),
@@ -202,7 +208,7 @@ function RequirementEntry() {
   const saveRequirement = async () => {
     const record = { ...normalizeRequirement(editingRequirement), id: editingId };
     await Promise.all([
-      set(ref(db, `requirementsData/${editingId}`), record),
+      set(ref(db, `${dbPath}${editingId}`), record),
       set(ref(db, `requirementsHistoryData/${editingId}`), record),
     ]);
     setEditingId(null);
@@ -211,7 +217,7 @@ function RequirementEntry() {
   const deleteRequirement = async (requirement) => {
     if (!window.confirm(`Please confirm deleting requirement for ${requirement.article}.`)) return;
     await Promise.all([
-      remove(ref(db, `requirementsData/${requirement.id}`)),
+      remove(ref(db, `${dbPath}${requirement.id}`)),
       remove(ref(db, `requirementsHistoryData/${requirement.id}`)),
     ]);
   };
@@ -242,7 +248,7 @@ function RequirementEntry() {
         if (!requirement) return;
 
         await Promise.all([
-          remove(ref(db, `requirementsData/${id}`)),
+          remove(ref(db, `${dbPath}${id}`)),
           remove(ref(db, `requirementsHistoryData/${id}`)),
         ]);
       })
@@ -254,10 +260,10 @@ function RequirementEntry() {
   const gridStyle = { gridTemplateColumns: `repeat(${REQUIREMENT_FIELDS.length + 4}, minmax(0, 1fr))` };
 
   return (
-    <div className="h-full bg-blue-50 px-3 pb-2 pt-4">
-      <div className="flex flex-col space-y-3 rounded bg-white p-4">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-blue-50 px-3 pb-2 pt-4">
+      <div className="flex min-h-0 flex-1 flex-col space-y-3 rounded bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="font-semibold text-lg">Requirement Entry</div>
+          <div className="font-semibold text-lg">Requirement Entry - {category.label}</div>
           <div className="flex items-center gap-3 text-sm">
             <span className="font-medium text-red-700">Unmatched: {unmatchedCount}</span>
             <button
@@ -279,7 +285,7 @@ function RequirementEntry() {
             </button>
             <BulkExcelUploadComponent
               headings={REQUIREMENT_FIELDS.map(({ key }) => key)}
-              dbPath="requirementsData/"
+              dbPath={dbPath}
               templateName="Requirement-template"
               pushFunction={importRequirements}
             />
@@ -293,9 +299,9 @@ function RequirementEntry() {
           className="w-full max-w-md rounded border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
         />
 
-        <div className="overflow-x-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           <div className="min-w-[1700px]">
-            <div className="grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold" style={gridStyle}>
+            <div className="sticky top-0 z-10 grid gap-x-3 bg-gray-200 p-3 text-xs font-semibold" style={gridStyle}>
               <div className="flex items-center justify-center">
                 <input
                   type="checkbox"

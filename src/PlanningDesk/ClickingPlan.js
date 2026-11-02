@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { onValue, push, ref, remove, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
 import { notify } from '../notifications';
+import { REQUIREMENT_CATEGORIES } from '../requirementCategories';
 import { genderForMaterialNumber, normalizeMatchValue, requirementMatchesArticle, requirementMismatchReason, sizeForRequirement as deriveSizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const PLAN_DELETE_EMAIL = 'ajimsha.albac@walkaroo.co.in';
@@ -155,11 +156,18 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   }), []);
 
   useEffect(() => {
-    const requirementsRef = ref(db, 'requirementsData/');
-    return onValue(requirementsRef, (snapshot) => {
+    const byCategory = {};
+    const publish = () => setRequirements(Object.values(byCategory).flat());
+    const unsubscribes = REQUIREMENT_CATEGORIES.map((category) => onValue(ref(db, category.dbPath), (snapshot) => {
       const data = snapshot.val() || {};
-      setRequirements(Object.entries(data).map(([id, requirement]) => ({ ...requirement, id })));
-    });
+      byCategory[category.key] = Object.entries(data).map(([id, requirement]) => ({
+        ...requirement,
+        id,
+        priceCategory: requirement.priceCategory || '',
+      }));
+      publish();
+    }));
+    return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
   }, []);
 
   useEffect(() => onValue(ref(db, 'borData/'), (snapshot) => setBorData(snapshot.val())), []);

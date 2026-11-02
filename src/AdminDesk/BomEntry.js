@@ -555,6 +555,27 @@ function BomEntry() {
     });
   };
 
+  const deleteComponent = async (record) => {
+    if (!window.confirm(`Delete component "${componentDetailsForRecord(record)}"? This cannot be undone.`)) return;
+    try {
+      const article = articles.find((item) => item.id === record.articleId) || selectedArticle;
+      const updates = { [`bomData/${record.id}`]: null };
+      if (article) {
+        updates[`articleData/${article.id}/bomIds`] = bomIdsForArticle(article)
+          .filter((id) => id !== record.id).join(',');
+      }
+      bomRecords.forEach((item) => {
+        if ((item.childComponentIds || []).includes(record.id)) {
+          updates[`bomData/${item.id}/childComponentIds`] = item.childComponentIds.filter((id) => id !== record.id);
+        }
+      });
+      await update(ref(db), updates);
+      await writeBomHistory({ article, record, action: 'deleted', changes: bomChanges(record, {}) });
+    } catch (error) {
+      window.alert(`Unable to delete component: ${error.message}`);
+    }
+  };
+
   const saveComponentEdit = async (recordId) => {
     if (!componentEditDraft?.functionName || !componentEditDraft.componentDetails.trim()) {
       window.alert('Select a function and enter Component Details before saving.');
@@ -1100,6 +1121,16 @@ function BomEntry() {
                                 className="rounded border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"
                               >
                                 EDIT
+                              </button>
+                            )}
+                            {!isEditing && (
+                              <button
+                                type="button"
+                                onClick={() => deleteComponent(record)}
+                                disabled={editingComponentId !== null}
+                                className="ml-2 rounded border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                              >
+                                DELETE
                               </button>
                             )}
                           </td>

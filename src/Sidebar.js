@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import {Link} from "react-router-dom";
 import { controlKey } from './userControls';
+import { REQUIREMENT_CATEGORIES, requirementRoute } from './requirementCategories';
 
 function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpenedTab, userRole, preallocatedProcesses, isAdmin, canAccessUserSettings, ribbonPermissions, permissionsConfigured}) {
     const [currentOpenedTab, setCurrentOpenedTab] = useState(openedTab);
@@ -257,17 +258,33 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v4m0 4h.01M10.3 3.86L1.82 18a2 2 0 001.7 3h16.96a2 2 0 001.7-3L13.7 3.86a2 2 0 00-3.4 0z" />
                                 </svg>)
                             })))
-                        }
+                        },
+                        ...[
+                            ['Damage Details', 'damage-details', 'damage'],
+                            ['Repair Details', 'repair-details', 'repair'],
+                        ].map(([groupLabel, section, kind]) => ({
+                            label: groupLabel,
+                            children: ['printing', 'stitching', 'molding', 'grinding', 'stuckon'].map((stageKey) => ({
+                                to: `analysis/${section}/${stageKey}-${kind}`,
+                                label: `${stageKey.charAt(0).toUpperCase() + stageKey.slice(1)} ${kind.charAt(0).toUpperCase() + kind.slice(1)}`,
+                                icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v4m0 4h.01M10.3 3.86L1.82 18a2 2 0 001.7 3h16.96a2 2 0 001.7-3L13.7 3.86a2 2 0 00-3.4 0z" />
+                                </svg>)
+                            }))
+                        }))
                     ])}
 
             {sideBarComponent("Production Planning Inputs", "productionPlanningInputs",
                     [
                         {
-                            to: "production-planning-inputs/requirement-entry",
                             label: "Requirement Entry",
-                            icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                            </svg>)
+                            children: REQUIREMENT_CATEGORIES.map((category) => ({
+                                to: requirementRoute(category),
+                                label: category.label,
+                                icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                                </svg>)
+                            }))
                         },
                         {
                             to: "production-planning-inputs/coois-data",

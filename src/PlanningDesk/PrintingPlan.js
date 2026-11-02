@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { createPortal } from 'react-dom';
 import { onValue, push, ref, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
+import { DEFECT_KINDS, defectStatus, effectiveReceivedSizes, goodSizesOf } from '../stageDefects';
 import { genderForMaterialNumber, normalizeMatchValue, sizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const receiptSizeKey = (size) => {
@@ -131,6 +132,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
   const [receivingItem, setReceivingItem] = useState(null);
   const [receivedDate, setReceivedDate] = useState('');
   const [receivedSizeRows, setReceivedSizeRows] = useState([]);
+  const [defectRows, setDefectRows] = useState({ shortage: [], damage: [], repair: [] });
   const [savingReceipt, setSavingReceipt] = useState(false);
 
   useEffect(() => {
@@ -959,7 +961,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
 
   const openReceiving = (item) => {
     const receipt = receiptForItem(item);
-    const received = new Map((receipt?.receivedSizes || []).map((row) => [receiptSizeKey(row.size), row]));
+    const received = new Map((receipt ? goodSizesOf(receipt) : []).map((row) => [receiptSizeKey(row.size), row]));
     setReceivingItem(item);
     setReceivedDate(receipt?.receivedDate || new Date().toISOString().slice(0, 10));
     setReceivedSizeRows(item.sizes.map((size) => ({
@@ -969,6 +971,16 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
       leftQty: String(received.get(receiptSizeKey(size.size))?.leftQty ?? 0),
       rightQty: String(received.get(receiptSizeKey(size.size))?.rightQty ?? 0),
     })));
+    setDefectRows(Object.fromEntries(Object.entries(DEFECT_KINDS).map(([kind, { field }]) => [
+      kind,
+      (receipt?.[field] || []).map((line) => ({
+        size: line.size || '',
+        side: line.side || '',
+        qty: String(line.quantity ?? ''),
+        receivedQuantity: Number(line.receivedQuantity) || 0,
+        receivedDate: line.receivedDate || '',
+      })),
+    ])));
   };
 
   const submitReceiving = async (event) => {
@@ -990,6 +1002,44 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
       window.alert('Enter whole numbers for Left and Right, not more than the planned quantity.');
       return;
     }
+
+    const defectLines = {};
+    const usedBySizeSide = new Map();
+    for (const [kind, { field, label }] of Object.entries(DEFECT_KINDS)) {
+      const lines = [];
+      for (const row of defectRows[kind] || []) {
+        if (!row.size && !row.side && !String(row.qty).trim()) continue;
+        const quantity = Number(row.qty);
+        if (!row.size || !['LEFT', 'RIGHT'].includes(row.side) || !Number.isInteger(quantity) || quantity <= 0) {
+          window.alert(`For each ${label.toLowerCase()} row, select a size and side, then enter a positive whole-number quantity.`);
+          return;
+        }
+        if (quantity < row.receivedQuantity) {
+          window.alert(`The ${label.toLowerCase()} quantity for size ${row.size} cannot be less than the ${row.receivedQuantity} already received.`);
+          return;
+        }
+        const key = `${receiptSizeKey(row.size)}|${row.side}`;
+        usedBySizeSide.set(key, (usedBySizeSide.get(key) || 0) + quantity);
+        lines.push({
+          size: row.size,
+          side: row.side,
+          quantity,
+          receivedQuantity: row.receivedQuantity,
+          receivedDate: row.receivedQuantity > 0 ? row.receivedDate || null : null,
+          status: defectStatus({ quantity, receivedQuantity: row.receivedQuantity }),
+          recordedDate: receivedDate,
+        });
+      }
+      defectLines[field] = lines;
+    }
+    const overPlanned = receivedSizeRows.find((row, index) => (
+      rows[index].leftQty + (usedBySizeSide.get(`${receiptSizeKey(row.size)}|LEFT`) || 0) > row.plannedLeft ||
+      rows[index].rightQty + (usedBySizeSide.get(`${receiptSizeKey(row.size)}|RIGHT`) || 0) > row.plannedRight
+    ));
+    if (overPlanned) {
+      window.alert(`Received + shortage + damage + repair for size ${overPlanned.size} cannot be more than the planned quantity.`);
+      return;
+    }
     const article = articleForPrintingItem(receivingItem);
     if (!article) {
       window.alert('Could not match this plan item to an Article Entry line item.');
@@ -998,22 +1048,24 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
 
     const existing = receiptForItem(receivingItem);
     const receiptId = existing?.id || push(ref(db, `${stage.receiptNode}/`)).key;
-    const updates = {
-      [`${stage.receiptNode}/${receiptId}`]: {
-        id: receiptId,
-        articleId: article.id,
-        article: receivingItem.article,
-        model: receivingItem.model,
-        gender: receivingItem.gender,
-        colour: receivingItem.colour,
-        priceCategory: receivingItem.category,
-        planCode: receivingItem.plans[0]?.planCode || '',
-        planIds: receivingItem.plans.map((plan) => plan.id),
-        receivedDate,
-        receivedSizes: rows.filter((row) => row.leftQty > 0 || row.rightQty > 0),
-        submittedAt: Date.now(),
-      },
+    const goodSizes = rows.filter((row) => row.leftQty > 0 || row.rightQty > 0);
+    const receipt = {
+      id: receiptId,
+      articleId: article.id,
+      article: receivingItem.article,
+      model: receivingItem.model,
+      gender: receivingItem.gender,
+      colour: receivingItem.colour,
+      priceCategory: receivingItem.category,
+      planCode: receivingItem.plans[0]?.planCode || '',
+      planIds: receivingItem.plans.map((plan) => plan.id),
+      receivedDate,
+      goodSizes,
+      ...defectLines,
+      submittedAt: Date.now(),
     };
+    receipt.receivedSizes = effectiveReceivedSizes(receipt);
+    const updates = { [`${stage.receiptNode}/${receiptId}`]: receipt };
     receivingItem.plans.forEach((plan) => {
       updates[`${stage.planNode}/${plan.id}/receiptId`] = receiptId;
       updates[`${stage.planNode}/${plan.id}/receivedDate`] = receivedDate;
@@ -1077,6 +1129,71 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
               ))}
             </tbody>
           </table>
+          {Object.entries(DEFECT_KINDS).map(([kind, { label }]) => (
+            <div key={kind} className="space-y-2 rounded border border-gray-200 p-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">{label} Details (Optional)</h3>
+                <button
+                  type="button"
+                  onClick={() => setDefectRows((current) => ({
+                    ...current,
+                    [kind]: [...current[kind], { size: '', side: '', qty: '', receivedQuantity: 0, receivedDate: '' }],
+                  }))}
+                  className="rounded bg-orange-500 px-3 py-1 text-sm font-medium text-white hover:bg-orange-600"
+                >
+                  ADD {label.toUpperCase()}
+                </button>
+              </div>
+              {defectRows[kind].map((row, index) => (
+                <div key={index} className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={row.size}
+                    onChange={(event) => setDefectRows((current) => ({
+                      ...current,
+                      [kind]: current[kind].map((item, itemIndex) => (itemIndex === index ? { ...item, size: event.target.value } : item)),
+                    }))}
+                    aria-label={`${label} size`}
+                    className="rounded border border-gray-300 p-1"
+                  >
+                    <option value="">Size</option>
+                    {receivedSizeRows.map((sizeRow) => <option key={sizeRow.size} value={sizeRow.size}>{sizeRow.size}</option>)}
+                  </select>
+                  <select
+                    value={row.side}
+                    onChange={(event) => setDefectRows((current) => ({
+                      ...current,
+                      [kind]: current[kind].map((item, itemIndex) => (itemIndex === index ? { ...item, side: event.target.value } : item)),
+                    }))}
+                    aria-label={`${label} side`}
+                    className="rounded border border-gray-300 p-1"
+                  >
+                    <option value="">Side</option>
+                    <option value="LEFT">LEFT</option>
+                    <option value="RIGHT">RIGHT</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    value={row.qty}
+                    onChange={(event) => setDefectRows((current) => ({
+                      ...current,
+                      [kind]: current[kind].map((item, itemIndex) => (itemIndex === index ? { ...item, qty: event.target.value } : item)),
+                    }))}
+                    placeholder={`${label} Qty`}
+                    aria-label={`${label} quantity`}
+                    className="w-28 rounded border border-gray-300 p-1 text-center"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDefectRows((current) => ({ ...current, [kind]: current[kind].filter((_, itemIndex) => itemIndex !== index) }))}
+                    className="rounded border border-red-300 px-2 py-1 text-red-600 hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setReceivingItem(null)} className="rounded border border-gray-300 px-4 py-2">Cancel</button>
             <button type="submit" disabled={savingReceipt} className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50">

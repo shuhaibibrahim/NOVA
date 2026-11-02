@@ -42,6 +42,7 @@ import StuckonPlan from './PlanningDesk/StuckonPlan';
 import PreviousStuckonPlan from './PlanningDesk/PreviousStuckonPlan';
 import DataEntry from './AdminDesk/DataEntry';
 import RequirementEntry from './AdminDesk/RequirementEntry';
+import { REQUIREMENT_CATEGORIES, requirementRoute } from './requirementCategories';
 import BomEntry from './AdminDesk/BomEntry';
 import StockEntry from './AdminDesk/StockEntry';
 import MaterialIssueEntry from './AdminDesk/MaterialOutward';
@@ -57,6 +58,7 @@ import BomHistory from './History/BomHistory';
 import FiuQc from './QCDepartment/FiuQc';
 import LoopStock from './PlanningDesk/LoopStock';
 import ClickerShortage from './Analysis/ClickerShortage';
+import StageDefectDetails from './Analysis/StageDefectDetails';
 import PlanningPlanPlaceholder from './PlanningDesk/PlanningPlanPlaceholder';
 import SfgStore from './MMDepartment/SfgStore';
 import UserSettings from './UserSettings';
@@ -187,18 +189,28 @@ function App() {
                 element={canAccessRibbon('analysis/shortage-details/clicker-shortage') ? <ClickerShortage isAdmin={isAdmin} /> : <Navigate to="/" replace />}
               />
               {[
-                ['printed', 'Printed'],
-                ['stitching', 'Stitching'],
-                ['molding', 'Molding'],
-                ['grinding', 'Grinding'],
-                ['attaching', 'Attaching'],
-              ].map(([key, label]) => (
+                ['printed', 'printing'],
+                ['stitching', 'stitching'],
+                ['molding', 'molding'],
+                ['grinding', 'grinding'],
+                ['attaching', 'stuckon'],
+              ].map(([key, stageKey]) => (
                 <Route
                   key={`${key}-shortage`}
                   path={`analysis/shortage-details/${key}-shortage`}
-                  element={canAccessRibbon(`analysis/shortage-details/${key}-shortage`) ? <PlanningPlanPlaceholder title={`${label} Shortage`} route={`analysis/shortage-details/${key}-shortage`} /> : <Navigate to="/" replace />}
+                  element={canAccessRibbon(`analysis/shortage-details/${key}-shortage`) ? <StageDefectDetails kind="shortage" stageKey={stageKey} route={`analysis/shortage-details/${key}-shortage`} isAdmin={isAdmin} /> : <Navigate to="/" replace />}
                 />
               ))}
+              {['printing', 'stitching', 'molding', 'grinding', 'stuckon'].flatMap((stageKey) => [
+                ['damage', 'damage-details'],
+                ['repair', 'repair-details'],
+              ].map(([kind, section]) => (
+                <Route
+                  key={`${stageKey}-${kind}`}
+                  path={`analysis/${section}/${stageKey}-${kind}`}
+                  element={canAccessRibbon(`analysis/${section}/${stageKey}-${kind}`) ? <StageDefectDetails kind={kind} stageKey={stageKey} route={`analysis/${section}/${stageKey}-${kind}`} isAdmin={isAdmin} /> : <Navigate to="/" replace />}
+                />
+              )))}
               <Route
                 path="execution/clicker-plan"
                 element={canAccessRibbon('execution/clicker-plan', true) ? <ClickingPlan viewOnly isAdmin={isAdmin} /> : <Navigate to="/" replace />}
@@ -222,12 +234,13 @@ function App() {
                     : <Navigate to="/" replace />}
                 />
               ))}
-              {(isAdmin || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey('production-planning-inputs/requirement-entry')]))) && (
+              {REQUIREMENT_CATEGORIES.map((category) => (
                 <Route
-                  path="production-planning-inputs/requirement-entry"
-                  element={canAccessRibbon('production-planning-inputs/requirement-entry') ? <RequirementEntry /> : <Navigate to="/" replace />}
+                  key={category.key}
+                  path={requirementRoute(category)}
+                  element={canAccessRibbon(requirementRoute(category)) ? <RequirementEntry category={category} /> : <Navigate to="/" replace />}
                 />
-              )}
+              ))}
               {(isAdmin || (permissionsConfigured && Boolean(ribbonPermissions?.[controlKey('production-planning-inputs/coois-data')]))) && (
                 <Route
                   path="production-planning-inputs/coois-data"

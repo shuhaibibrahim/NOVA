@@ -372,6 +372,7 @@ function BomEntry() {
       const articlesBySheetName = new Map(rows.map((article) => [article.sheetName.toLowerCase(), article]));
       const updates = {};
       const importLog = [];
+      const newRecordIds = new Set();
       let importedRows = 0;
 
       workbook.eachSheet((worksheet) => {
@@ -417,6 +418,10 @@ function BomEntry() {
           };
           const componentKey = componentRecordKey(matchedFunction, componentValue);
           const existingRecord = existingByKey.get(componentKey);
+          if (existingRecord && newRecordIds.has(existingRecord.id)) {
+            Object.assign(updates[`bomData/${existingRecord.id}`], details);
+            return;
+          }
           if (existingRecord) {
             const changed = Object.keys(details).filter((field) => (
               String(existingRecord[field] ?? '') !== details[field]
@@ -447,6 +452,7 @@ function BomEntry() {
           };
           existingByKey.set(componentKey, record);
           updates[`bomData/${bomRef.key}`] = record;
+          newRecordIds.add(bomRef.key);
           importLog.push({ article, record, action: 'created (import)', changes: bomChanges({}, record) });
           articleBomIds.push(bomRef.key);
           importedRows += 1;

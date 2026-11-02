@@ -5,6 +5,8 @@ import { onValue, push, ref, remove, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
 import { notify } from '../notifications';
 import { REQUIREMENT_CATEGORIES } from '../requirementCategories';
+import ReceivedDateDialog from '../ReceivedDateDialog';
+import { clearPlannedStock, markReceivedUpdates } from '../plannedStore';
 import { genderForMaterialNumber, normalizeMatchValue, requirementMatchesArticle, requirementMismatchReason, sizeForRequirement as deriveSizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const PLAN_DELETE_EMAIL = 'ajimsha.albac@walkaroo.co.in';
@@ -27,6 +29,7 @@ const REQUIREMENT_COLUMNS = [
   ['gender', 'Gender'],
   ['article', 'Article'],
   ['colour', 'Colour'],
+  ['priceCategory', 'Price Category'],
   ['size', 'Size'],
   ['qty', 'Order Qty'],
   ['csPlannedQty', 'CS PLANNED QTY'],
@@ -144,6 +147,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   const [receivedSizeRows, setReceivedSizeRows] = useState([]);
   const [shortageRows, setShortageRows] = useState([]);
   const [savingReceipt, setSavingReceipt] = useState(false);
+  const [markingItem, setMarkingItem] = useState(null);
   const canManagePlans = canDeletePlans && !viewOnly;
 
   useEffect(() => {
@@ -280,13 +284,15 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
       const articleName = String(plan.article || '').trim();
       const colour = String(plan.colour ?? plan.color ?? '').trim();
       const gender = String(plan.gender || genderForMaterialNumber(plan.materialNo) || '').trim();
-      const articleData = articles.find((article) =>
+      const articleMatches = articles.filter((article) =>
         normalizeMatchValue(article.article) === normalizeMatchValue(articleName) &&
         normalizeMatchValue(article.colour ?? article.color) === normalizeMatchValue(colour) &&
         normalizeMatchValue(article.gender) === normalizeMatchValue(gender) &&
         (!plan.priceCategory ||
           normalizeMatchValue(article.priceCategory) === normalizeMatchValue(plan.priceCategory))
       );
+      // Older plans have no stored price category: prefer the P category over E.
+      const articleData = articleMatches.find((article) => String(article.priceCategory || '').trim().toUpperCase().startsWith('P')) || articleMatches[0];
       const remarks = String(plan.remarks ?? plan.looseComponentType ?? '');
       const vendorName = String(plan.vendorName || defaultClickerVendor?.vendorName || '');
       const itemKey = [
@@ -446,6 +452,24 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
     return requirement.isLoosePlan || requirement.isBor ? requirement.gender : genderForMaterialNumber(requirement.materialNo);
   };
 
+  const priceCategoryForRequirement = (requirement) => {
+    if (requirement.priceCategory) return requirement.priceCategory;
+    const articleName = normalizeMatchValue(requirement.article);
+    const colourName = normalizeMatchValue(requirement.colour ?? requirement.color);
+    const genderName = normalizeMatchValue(genderForRequirement(requirement));
+    const modelName = normalizeMatchValue(modelForRequirement(requirement));
+    const candidates = articles.filter((article) =>
+      normalizeMatchValue(article.article) === articleName &&
+      normalizeMatchValue(article.colour ?? article.color) === colourName &&
+      (requirement.isBor || (
+        normalizeMatchValue(article.gender) === genderName &&
+        (!modelName || normalizeMatchValue(article.model) === modelName)
+      ))
+    );
+    const pCategory = candidates.find((article) => String(article.priceCategory || '').trim().toUpperCase().startsWith('P'));
+    return String(pCategory?.priceCategory || '').trim();
+  };
+
   const sizeForRequirement = (requirement) => (
     requirement.size || deriveSizeForRequirement(requirement)
   );
@@ -590,12 +614,15 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
 
   const borColumnIndexes = useMemo(() => {
     const headers = (borData?.headers || []).map((heading) => String(heading).toLowerCase().replace(/[^a-z0-9]/g, ''));
-    const find = (candidates) => headers.findIndex((heading) => candidates.some((candidate) => heading.includes(candidate)));
+    const find = (candidates) => {
+      const exact = headers.findIndex((heading) => candidates.includes(heading));
+      return exact >= 0 ? exact : headers.findIndex((heading) => candidates.some((candidate) => heading.includes(candidate)));
+    };
     return {
       sku: find(['skucode', 'sku']),
       article: find(['article']),
-      colour: find(['colour', 'color']),
-      size: find(['size']),
+      colour: find(['color', 'colour']),
+      size: find(['gridcode']),
       gender: find(['gender']),
       qty: find(['cumtog']),
     };
@@ -603,7 +630,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
 
   const borColumnError = useMemo(() => {
     if (!borData?.headers?.length) return '';
-    const labels = { sku: 'SKU Code', article: 'Article', colour: 'Color', size: 'Size', gender: 'Gender', qty: 'Cum Tog' };
+    const labels = { sku: 'SKU Code', article: 'Article', colour: 'Color', size: 'Grid Code', gender: 'Gender', qty: 'Cum Tog' };
     const missing = Object.entries(borColumnIndexes).filter(([, index]) => index < 0).map(([key]) => labels[key]);
     return missing.length ? `BOR rows were not loaded. Missing BOR column(s): ${missing.join(', ')}.` : '';
   }, [borData, borColumnIndexes]);
@@ -627,7 +654,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
 
       const colour = String(row[borColumnIndexes.colour] ?? '').trim();
       const gender = String(row[borColumnIndexes.gender] ?? '').trim();
-      const size = String(row[borColumnIndexes.size] ?? '').trim();
+      const size = String(row[borColumnIndexes.size] ?? '').trim().split(/\s+/)[0].toUpperCase();
       const articleData = matchingArticles.find((item) =>
         normalizeMatchValue(item.colour ?? item.color) === normalizeMatchValue(colour) &&
         normalizeMatchValue(item.gender) === normalizeMatchValue(gender)
@@ -791,6 +818,8 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
 
         const value = key === 'model'
           ? modelForRequirement(requirement)
+          : key === 'priceCategory'
+            ? priceCategoryForRequirement(requirement)
           : key === 'gender'
             ? genderForRequirement(requirement)
             : key === 'size'
@@ -945,6 +974,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
         model: modelForRequirement(requirement),
         gender: requirement.isLoosePlan ? requirement.gender : genderForRequirement(requirement),
         size: sizeForRequirement(requirement),
+        priceCategory: priceCategoryForRequirement(requirement),
         unit: normalizeMatchValue(requirement.unit) === 'PR' ? 'CS' : requirement.unit,
         id: planRef.key,
         requirementId: requirement.id,
@@ -1333,6 +1363,8 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
                   <td key={key} className="p-3 break-words">
                     {key === 'model'
                       ? modelForRequirement(requirement)
+                      : key === 'priceCategory'
+                        ? priceCategoryForRequirement(requirement)
                       : key === 'gender'
                         ? genderForRequirement(requirement)
                         : key === 'size'
@@ -1476,6 +1508,82 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
   const bomComponentsForArticle = (article) => {
     const linkedBomIds = String(article?.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean);
     return bomRecords.filter((record) => linkedBomIds.includes(record.id));
+  };
+
+  const buildClickingComponentQuantities = (item, article, rows) => {
+    const clickingComponents = bomComponentsForArticle(article).filter((component) =>
+      normalizeMatchValue(component.functionName || component.process) === 'CLICKING'
+    );
+    return rows.flatMap((row) => {
+      const sizeEntry = item.sizes.find((size) =>
+        normalizeSizeKey(size.size) === normalizeSizeKey(row.size)
+      );
+      const sizePlans = sizeEntry?.plans?.length ? sizeEntry.plans : item.plans;
+      const componentIds = new Set();
+      sizePlans.forEach((plan) => {
+        if (!plan.isLoosePlan) {
+          clickingComponents.forEach((component) => componentIds.add(component.id));
+          return;
+        }
+        const selectedIds = Array.isArray(plan.looseComponentIds) ? plan.looseComponentIds : [];
+        selectedIds.forEach((id) => componentIds.add(id));
+        if (!selectedIds.length) {
+          const selectedNames = String(plan.looseComponentType || plan.remarks || '')
+            .split(',')
+            .map((name) => normalizeMatchValue(name))
+            .filter(Boolean);
+          clickingComponents
+            .filter((component) => selectedNames.includes(normalizeMatchValue(
+              component.componentDetails || component.materialDesc || component.materialNumber
+            )))
+            .forEach((component) => componentIds.add(component.id));
+        }
+      });
+      return [...componentIds].flatMap((componentId) => {
+        if (!clickingComponents.some((component) => component.id === componentId)) return [];
+        return [{
+          componentId,
+          size: row.size,
+          leftQty: row.leftQty,
+          rightQty: row.rightQty,
+        }];
+      });
+    });
+  };
+
+  const submitMarkReceived = async (date) => {
+    const item = markingItem;
+    const article = articleForReceivingItem(item);
+    if (!article) {
+      window.alert('Could not match this plan item to an Article Entry line item.');
+      return;
+    }
+    setSavingReceipt(true);
+    try {
+      const updates = await markReceivedUpdates({
+        fn: 'CLICKING',
+        planNode: 'clickingPlans',
+        plans: [...new Map(item.plans.map((plan) => [plan.id, plan])).values()],
+        details: {
+          articleId: article.id,
+          article: item.article,
+          model: item.model,
+          gender: item.gender,
+          colour: item.colour,
+          priceCategory: item.category,
+          planCode: item.plans[0]?.planCode || '',
+        },
+        sizes: item.sizes,
+        buildComponentQuantities: (rows) => buildClickingComponentQuantities(item, article, rows),
+        date,
+      });
+      await update(ref(db), updates);
+      setMarkingItem(null);
+    } catch (error) {
+      window.alert(`Unable to mark the plan as received: ${error.message}`);
+    } finally {
+      setSavingReceipt(false);
+    }
   };
 
   const openReceivingForm = (item) => {
@@ -1657,44 +1765,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
         return;
       }
     }
-    const clickingComponents = bomComponentsForArticle(article).filter((component) =>
-      normalizeMatchValue(component.functionName || component.process) === 'CLICKING'
-    );
-    const componentQuantities = receivedSizes.flatMap((row) => {
-      const sizeEntry = receivingItem.sizes.find((size) =>
-        normalizeSizeKey(size.size) === normalizeSizeKey(row.size)
-      );
-      const sizePlans = sizeEntry?.plans?.length ? sizeEntry.plans : receivingItem.plans;
-      const componentIds = new Set();
-      sizePlans.forEach((plan) => {
-        if (!plan.isLoosePlan) {
-          clickingComponents.forEach((component) => componentIds.add(component.id));
-          return;
-        }
-        const selectedIds = Array.isArray(plan.looseComponentIds) ? plan.looseComponentIds : [];
-        selectedIds.forEach((id) => componentIds.add(id));
-        if (!selectedIds.length) {
-          const selectedNames = String(plan.looseComponentType || plan.remarks || '')
-            .split(',')
-            .map((name) => normalizeMatchValue(name))
-            .filter(Boolean);
-          clickingComponents
-            .filter((component) => selectedNames.includes(normalizeMatchValue(
-              component.componentDetails || component.materialDesc || component.materialNumber
-            )))
-            .forEach((component) => componentIds.add(component.id));
-        }
-      });
-      return [...componentIds].flatMap((componentId) => {
-        if (!clickingComponents.some((component) => component.id === componentId)) return [];
-        return [{
-          componentId,
-          size: row.size,
-          leftQty: row.leftQty,
-          rightQty: row.rightQty,
-        }];
-      });
-    });
+    const componentQuantities = buildClickingComponentQuantities(receivingItem, article, receivedSizes);
     const receipt = {
       id: receiptId,
       articleId: article.id,
@@ -1725,6 +1796,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
 
     setSavingReceipt(true);
     try {
+      Object.assign(updates, await clearPlannedStock('CLICKING', uniquePlans.map((plan) => plan.id)));
       await update(ref(db), updates);
       setReceivingItem(null);
       setReceivedDate('');
@@ -1763,7 +1835,7 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
             <button type="button" onClick={() => setReceivingItem(null)} className="text-gray-600 hover:text-gray-900">CLOSE</button>
           </div>
           <label className="flex max-w-xs flex-col gap-1 text-sm font-medium">
-            Received Date
+            Checked Date
             <input
               type="date"
               required
@@ -2195,8 +2267,11 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
                                     );
                                   };
                                   const receivedPlans = item.plans.filter(planHasReceivedQuantity);
+                                  const markedPlans = item.plans.filter((plan) => plan.receivedMarked);
+                                  const allMarked = markedPlans.length === item.plans.length;
+                                  const markedDate = markedPlans.map((plan) => plan.receivedMarkedDate).filter(Boolean).sort().pop();
                                   const status = receivedPlans.length === 0
-                                    ? 'NOT RECEIVED'
+                                    ? (allMarked ? 'RECEIVED' : 'NOT RECEIVED')
                                     : receivedPlans.length === item.plans.length ? 'RECEIVED' : 'PARTIALLY RECEIVED';
                                   const latestReceivedDate = receivedPlans
                                     .map((plan) => {
@@ -2221,8 +2296,18 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
                                   return (
                                     <div className="flex flex-col items-center gap-2">
                                       <span className={`text-xs font-semibold ${status === 'RECEIVED' ? 'text-green-700' : status === 'PARTIALLY RECEIVED' ? 'text-yellow-700' : 'text-gray-600'}`}>
-                                        {status}{latestReceivedDate ? ` — ${formatPlanDate(latestReceivedDate)}` : ''}
+                                        {status}{(latestReceivedDate || (receivedPlans.length === 0 && allMarked && markedDate)) ? ` — ${formatPlanDate(latestReceivedDate || markedDate)}` : ''}
                                       </span>
+                                      {status === 'NOT RECEIVED' && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setMarkingItem(item)}
+                                          disabled={!receiptRecordsLoaded}
+                                          className="whitespace-nowrap rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                                        >
+                                          RECEIVED
+                                        </button>
+                                      )}
                                       <button
                                         type="button"
                                         onClick={() => openReceivingForm(item)}
@@ -2263,6 +2348,15 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
           <h1 className="text-lg font-semibold">Clicker Plan</h1>
           {renderPlanSheet()}
           {renderReceivingForm()}
+          {markingItem && (
+            <ReceivedDateDialog
+              title="Mark as Received"
+              subtitle={`${markingItem.plans[0]?.planCode || ''} · ${markingItem.article}`}
+              saving={savingReceipt}
+              onSubmit={submitMarkReceived}
+              onClose={() => setMarkingItem(null)}
+            />
+          )}
         </div>
       </div>
     );

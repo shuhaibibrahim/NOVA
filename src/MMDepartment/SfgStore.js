@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { onValue, ref, update } from 'firebase/database';
 import { db } from '../firebase_config';
 import { sizesForGender } from '../requirementMatching';
+import { PLANNED_STORE_NODE } from '../plannedStore';
 
 const sizeKey = (size) => {
   const normalized = String(size || '').trim();
@@ -12,15 +13,25 @@ const sizeKey = (size) => {
 const STORE_CONFIG = {
   'mmdept/clicker-comp-store': { fn: 'CLICKING', receiptNode: 'clickerCompStoreReceipts', overrideNode: 'clickerCompStoreOverrides' },
   'mmdept/printing-comp-store': { fn: 'PRINTING', receiptNode: 'printingReceipts', overrideNode: 'printingCompStoreOverrides' },
-  'mmdept/fiu-store': { fn: 'FIU', receiptNode: 'fiuReceipts', overrideNode: 'fiuStoreOverrides' },
+  'mmdept/fiu-store': { fn: 'STITCHING', altFns: ['FIU'], receiptNode: 'stitchingReceipts', overrideNode: 'fiuStoreOverrides' },
   'mmdept/molding-receiving-store': { fn: 'MOLDING', receiptNode: 'moldingReceipts', overrideNode: 'moldingStoreOverrides' },
   'mmdept/grinding-store': { fn: 'GRINDING', receiptNode: 'grindingReceipts', overrideNode: 'grindingStoreOverrides' },
   'mmdept/attaching-store': { fn: 'STUCKON', receiptNode: 'attachingReceipts', overrideNode: 'attachingStoreOverrides' },
   'mmdept/packing-store': { fn: 'PACKING', receiptNode: 'packingReceipts', overrideNode: 'packingStoreOverrides' },
 };
 
+const PLANNING_STORE_PREFIX = 'mmdept/planning-store/';
+
+const storeConfigFor = (route) => {
+  if (STORE_CONFIG[route]) return STORE_CONFIG[route];
+  if (!route.startsWith(PLANNING_STORE_PREFIX)) return undefined;
+  const actual = STORE_CONFIG[`mmdept/${route.slice(PLANNING_STORE_PREFIX.length)}`];
+  return actual && { fn: actual.fn, altFns: actual.altFns, receiptNode: `${PLANNED_STORE_NODE}/${actual.fn}`, overrideNode: null, planned: true };
+};
+
 function SfgStore({ title, route, isAdmin = false }) {
-  const config = STORE_CONFIG[route];
+  const config = storeConfigFor(route);
+  const canEdit = isAdmin && !config?.planned;
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [articles, setArticles] = useState([]);
   const [bomRecords, setBomRecords] = useState([]);
@@ -60,7 +71,7 @@ function SfgStore({ title, route, isAdmin = false }) {
   }, [route]);
 
   useEffect(() => {
-    if (!config) return undefined;
+    if (!config?.overrideNode) return undefined;
     return onValue(ref(db, `${config.overrideNode}/`), (snapshot) => {
       setQuantityOverrides(snapshot.val() || {});
     });
@@ -91,7 +102,7 @@ function SfgStore({ title, route, isAdmin = false }) {
       const linkedIds = new Set(String(article.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean));
       bomByArticle.set(article.id, bomRecords.filter((record) =>
         linkedIds.has(record.id) &&
-        String(record.functionName || record.process || '').trim().toUpperCase() === config.fn
+        [config.fn, ...(config.altFns || [])].includes(String(record.functionName || record.process || '').trim().toUpperCase())
       ));
     });
     receipts.forEach((receipt) => {
@@ -120,7 +131,7 @@ function SfgStore({ title, route, isAdmin = false }) {
   }, [articles, bomRecords, receipts]);
 
   const saveComponentQuantity = async (articleId, componentId, size, side, value) => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     const quantity = Number(value);
     if (!Number.isInteger(quantity)) {
       window.alert('Enter a whole-number component quantity.');
@@ -144,7 +155,7 @@ function SfgStore({ title, route, isAdmin = false }) {
       const linkedIds = new Set(String(article.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean));
       return [article.id, bomRecords.filter((record) =>
         linkedIds.has(record.id) &&
-        String(record.functionName || record.process || '').trim().toUpperCase() === config.fn
+        [config.fn, ...(config.altFns || [])].includes(String(record.functionName || record.process || '').trim().toUpperCase())
       )];
     }));
     const componentColumns = [...new Map([...componentsByArticle.values()]
@@ -294,7 +305,7 @@ function SfgStore({ title, route, isAdmin = false }) {
                             Number(row[key]) > 0 ? 'bg-green-100' : Number(row[key]) < 0 ? 'bg-red-100' : ''
                           }`}
                         >
-                          {isAdmin ? (
+                          {canEdit ? (
                             <input
                               key={`${key}-${row[key]}`}
                               type="number"

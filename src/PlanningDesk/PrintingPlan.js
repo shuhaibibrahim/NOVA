@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { onValue, push, ref, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
 import { DEFECT_KINDS, defectStatus, effectiveReceivedSizes, goodSizesOf } from '../stageDefects';
+import ReceivedDateDialog from '../ReceivedDateDialog';
+import { clearPlannedStock, markReceivedUpdates } from '../plannedStore';
 import { genderForMaterialNumber, normalizeMatchValue, sizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const receiptSizeKey = (size) => {
@@ -134,6 +136,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
   const [receivedSizeRows, setReceivedSizeRows] = useState([]);
   const [defectRows, setDefectRows] = useState({ shortage: [], damage: [], repair: [] });
   const [savingReceipt, setSavingReceipt] = useState(false);
+  const [markingItem, setMarkingItem] = useState(null);
 
   useEffect(() => {
     setSelectedLink(`${viewOnly ? 'execution' : 'planning-desk'}/${stage.route}`);
@@ -959,6 +962,40 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
     return printingReceipts.find((receipt) => ids.has(receipt.id));
   };
 
+  const submitMarkReceived = async (date) => {
+    const item = markingItem;
+    const article = articleForPrintingItem(item);
+    if (!article) {
+      window.alert('Could not match this plan item to an Article Entry line item.');
+      return;
+    }
+    setSavingReceipt(true);
+    try {
+      const updates = await markReceivedUpdates({
+        fn: stage.fn,
+        planNode: stage.planNode,
+        plans: item.plans,
+        details: {
+          articleId: article.id,
+          article: item.article,
+          model: item.model,
+          gender: item.gender,
+          colour: item.colour,
+          priceCategory: item.category,
+          planCode: item.plans[0]?.planCode || '',
+        },
+        sizes: item.sizes,
+        date,
+      });
+      await update(ref(db), updates);
+      setMarkingItem(null);
+    } catch (error) {
+      window.alert(`Unable to mark the plan as received: ${error.message}`);
+    } finally {
+      setSavingReceipt(false);
+    }
+  };
+
   const openReceiving = (item) => {
     const receipt = receiptForItem(item);
     const received = new Map((receipt ? goodSizesOf(receipt) : []).map((row) => [receiptSizeKey(row.size), row]));
@@ -1073,6 +1110,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
 
     setSavingReceipt(true);
     try {
+      Object.assign(updates, await clearPlannedStock(stage.fn, receivingItem.plans.map((plan) => plan.id)));
       await update(ref(db), updates);
       setReceivingItem(null);
     } catch (error) {
@@ -1094,7 +1132,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
             </p>
           </div>
           <label className="flex flex-col gap-1 text-sm font-medium">
-            Received Date
+            Checked Date
             <input type="date" value={receivedDate} onChange={(event) => setReceivedDate(event.target.value)} className="w-48 rounded border border-gray-300 p-2" />
           </label>
           <table className="w-full border-collapse text-sm">
@@ -1268,7 +1306,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
                       </label>
                     </th>
                   )}
-                  {['SL NO', 'VENDOR', 'MODEL', 'ARTICLE', 'GENDER', 'COLOUR', 'SIZE', 'LEFT', 'RIGHT', 'CASE', 'CATEGORY', 'REMARKS', 'LOT NUMBER', ...(viewOnly ? ['RECEIVING'] : [])].map((heading) => (
+                  {['SL NO', 'VENDOR', 'MODEL', 'ARTICLE', 'GENDER', 'COLOUR', 'SIZE', 'LEFT', 'RIGHT', 'CASE', 'CATEGORY', 'REMARKS', 'LOT NUMBER', ...(viewOnly ? ['RECEIVING STATUS'] : [])].map((heading) => (
                     <th key={heading} className="whitespace-nowrap border border-gray-400 p-2">{heading}</th>
                   ))}
                 </tr>
@@ -1396,14 +1434,39 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
                             />
                           </td>
                           {viewOnly && (
-                            <td rowSpan={itemSpan} className="border border-gray-400 p-2 text-center align-middle">
-                              <button
-                                type="button"
-                                onClick={() => openReceiving(item)}
-                                className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
-                              >
-                                {receiptForItem(item) ? 'Edit Receive' : 'Receive'}
-                              </button>
+                            <td rowSpan={itemSpan} className="min-w-40 border border-gray-400 p-2 text-center align-middle">
+                              {(() => {
+                                const receipt = receiptForItem(item);
+                                const hasReceived = Boolean(receipt) && effectiveReceivedSizes(receipt).some((row) => Number(row.leftQty) > 0 || Number(row.rightQty) > 0);
+                                const markedDate = item.plans.every((plan) => plan.receivedMarked)
+                                  ? item.plans.map((plan) => plan.receivedMarkedDate).filter(Boolean).sort().pop() || ''
+                                  : null;
+                                const status = hasReceived || markedDate !== null ? 'RECEIVED' : 'NOT RECEIVED';
+                                const statusDate = hasReceived ? receipt.receivedDate : markedDate;
+                                return (
+                                  <div className="flex flex-col items-center gap-2">
+                                    <span className={`text-xs font-semibold ${status === 'RECEIVED' ? 'text-green-700' : 'text-gray-600'}`}>
+                                      {status}{statusDate ? ` — ${statusDate}` : ''}
+                                    </span>
+                                    {status === 'NOT RECEIVED' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setMarkingItem(item)}
+                                        className="whitespace-nowrap rounded bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700"
+                                      >
+                                        RECEIVED
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => openReceiving(item)}
+                                      className="whitespace-nowrap rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                                    >
+                                      UPDATE RECEIVING
+                                    </button>
+                                  </div>
+                                );
+                              })()}
                             </td>
                           )}
                         </>
@@ -1777,6 +1840,15 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
         </div>
         {viewOnly || activeSheet === 'plan' ? renderPlanSheet() : renderRequirementsSheet()}
         {viewOnly && renderReceivingForm()}
+        {viewOnly && markingItem && (
+          <ReceivedDateDialog
+            title={`${stage.label} — Mark as Received`}
+            subtitle={`${markingItem.plans[0]?.planCode || ''} · ${markingItem.article}`}
+            saving={savingReceipt}
+            onSubmit={submitMarkReceived}
+            onClose={() => setMarkingItem(null)}
+          />
+        )}
       </div>
     </div>
   );

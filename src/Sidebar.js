@@ -367,41 +367,30 @@ function Sidebar({spareData, selectedLink, setSelectedLink, openedTab, setOpened
                                 }
                             ]
                         },
-                        {
-                            value: "sfgStore",
-                            label: "SFG Store",
+                        ...[
+                            ['actualStore', 'Actual Store', 'mmdept/'],
+                            ['planningStore', 'Planning Store', 'mmdept/planning-store/'],
+                        ].map(([value, label, prefix]) => ({
+                            value,
+                            label,
                             icon: (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7h18M5 7v12h14V7M9 11h6" />
                             </svg>),
                             children: [
-                                {
-                                    to:"mmdept/clicker-comp-store",
-                                    label:"Clicker Comp Store",
-                                    icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M12 22a10 10 0 100-20 10 10 0 000 20z" />
-                                    </svg>)
-                                },
-                                {
-                                    to:"mmdept/printing-comp-store",
-                                    label:"Printing Comp Store",
-                                    icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M12 22a10 10 0 100-20 10 10 0 000 20z" />
-                                    </svg>)
-                                }
-                            ]
-                        },
-                        ...[
-                            ['mmdept/fiu-store', 'FIU Store'],
-                            ['mmdept/molding-receiving-store', 'Molding Store'],
-                            ['mmdept/grinding-store', 'Grinding Store'],
-                            ['mmdept/attaching-store', 'Attaching Store'],
-                            ['mmdept/packing-store', 'Packing Store'],
-                        ].map(([to, label]) => ({
-                            to,
-                            label,
-                            icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7h18M5 7v12h14V7M9 11h6" />
-                            </svg>)
+                                ['clicker-comp-store', 'Clicker Comp Store'],
+                                ['printing-comp-store', 'Printing Comp Store'],
+                                ['fiu-store', 'FIU Store'],
+                                ['molding-receiving-store', 'Molding Store'],
+                                ['grinding-store', 'Grinding Store'],
+                                ['attaching-store', 'Attaching Store'],
+                                ['packing-store', 'Packing Store'],
+                            ].map(([key, storeLabel]) => ({
+                                to: `${prefix}${key}`,
+                                label: storeLabel,
+                                icon:(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7h18M5 7v12h14V7M9 11h6" />
+                                </svg>)
+                            }))
                         }))
                     ])
             }

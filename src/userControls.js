@@ -91,6 +91,13 @@ export const CONTROL_TREE = [
       ['mmdept/grinding-store', 'Grinding Store'],
       ['mmdept/attaching-store', 'Attaching Store'],
       ['mmdept/packing-store', 'Packing Store'],
+      ['mmdept/planning-store/clicker-comp-store', 'Planning — Clicker Comp Store'],
+      ['mmdept/planning-store/printing-comp-store', 'Planning — Printing Comp Store'],
+      ['mmdept/planning-store/fiu-store', 'Planning — FIU Store'],
+      ['mmdept/planning-store/molding-receiving-store', 'Planning — Molding Store'],
+      ['mmdept/planning-store/grinding-store', 'Planning — Grinding Store'],
+      ['mmdept/planning-store/attaching-store', 'Planning — Attaching Store'],
+      ['mmdept/planning-store/packing-store', 'Planning — Packing Store'],
     ],
   },
   {

@@ -306,6 +306,17 @@ function App() {
                   ].map(([key, label]) => (
                     <Route key={key} path={key} element={canAccessRibbon(`mmdept/${key}`, true) ? <SfgStore title={label} route={`mmdept/${key}`} isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
                   ))}
+                  {[
+                    ['clicker-comp-store', 'Clicker Comp Store'],
+                    ['printing-comp-store', 'Printing Comp Store'],
+                    ['fiu-store', 'FIU Store'],
+                    ['molding-receiving-store', 'Molding Store'],
+                    ['grinding-store', 'Grinding Store'],
+                    ['attaching-store', 'Attaching Store'],
+                    ['packing-store', 'Packing Store'],
+                  ].map(([key, label]) => (
+                    <Route key={`planning-${key}`} path={`planning-store/${key}`} element={canAccessRibbon(`mmdept/planning-store/${key}`, true) ? <SfgStore title={`Planning ${label}`} route={`mmdept/planning-store/${key}`} isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
+                  ))}
                </Route>
              )}
 

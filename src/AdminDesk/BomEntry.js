@@ -59,8 +59,9 @@ const getExcelCellText = (value) => {
   return String(value).trim();
 };
 
-const componentRecordKey = (functionName, componentDetails) => (
-  `${String(functionName || '').trim().toUpperCase()}::${String(componentDetails || '').trim().toLowerCase()}`
+const componentRecordKey = (functionName, componentDetails, childSapNo = '', childMaterial = '') => (
+  [functionName, componentDetails, childSapNo, childMaterial]
+    .map((part) => String(part || '').trim().toLowerCase()).join('::')
 );
 
 const getArticleSheetName = (article, usedNames) => {
@@ -305,7 +306,7 @@ function BomEntry() {
           { header: 'Components', key: 'componentDetails', width: 60 },
           { header: 'Child Material SAP No', key: 'childMaterialSapNo', width: 24 },
           { header: 'Child Material', key: 'childMaterial', width: 40 },
-          { header: 'Qty/CS', key: 'qtyPerCs', width: 12 },
+          { header: 'Qty/PR', key: 'qtyPerCs', width: 12 },
           { header: 'Unit', key: 'unit', width: 12 },
         ];
         const linkedIds = new Set(bomIdsForArticle(article));
@@ -396,7 +397,9 @@ function BomEntry() {
           .filter((record) => articleBomIds.includes(record.id))
           .map((record) => [componentRecordKey(
             record.functionName || record.process,
-            record.componentDetails || record.materialDesc || record.materialNumber
+            record.componentDetails || record.materialDesc || record.materialNumber,
+            record.childMaterialSapNo,
+            record.childMaterial
           ), record]));
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber === 1) return;
@@ -413,11 +416,21 @@ function BomEntry() {
             sapMaterialNo: cellText(row, 'sap material no'),
             childMaterialSapNo: cellText(row, 'child material sap no'),
             childMaterial: cellText(row, 'child material'),
-            qtyPerCs: cellText(row, 'qty/cs'),
+            qtyPerCs: (cellText(row, 'qty/pr') || cellText(row, 'qty/cs')),
             unit: cellText(row, 'unit'),
           };
-          const componentKey = componentRecordKey(matchedFunction, componentValue);
-          const existingRecord = existingByKey.get(componentKey);
+          const componentKey = componentRecordKey(matchedFunction, componentValue, details.childMaterialSapNo, details.childMaterial);
+          let existingRecord = existingByKey.get(componentKey);
+          if (!existingRecord) {
+            // A saved component with no child material yet can take the first child row.
+            const blankKey = componentRecordKey(matchedFunction, componentValue);
+            const blankRecord = existingByKey.get(blankKey);
+            if (blankRecord && !newRecordIds.has(blankRecord.id)) {
+              existingByKey.delete(blankKey);
+              existingByKey.set(componentKey, blankRecord);
+              existingRecord = blankRecord;
+            }
+          }
           if (existingRecord && newRecordIds.has(existingRecord.id)) {
             Object.assign(updates[`bomData/${existingRecord.id}`], details);
             return;
@@ -660,7 +673,7 @@ function BomEntry() {
                         <th className="border border-gray-300 p-3">CHILD</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL SAP NO</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL</th>
-                        <th className="border border-gray-300 p-3">QTY/CS</th>
+                        <th className="border border-gray-300 p-3">QTY/PR</th>
                         <th className="border border-gray-300 p-3">UNIT</th>
                         <th className="w-32 border border-gray-300 p-3 text-center">ACTION</th>
                       </tr>
@@ -880,7 +893,7 @@ function BomEntry() {
                         <th className="border border-gray-300 p-3">CHILD</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL SAP NO</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL</th>
-                        <th className="border border-gray-300 p-3">QTY/CS</th>
+                        <th className="border border-gray-300 p-3">QTY/PR</th>
                         <th className="border border-gray-300 p-3">UNIT</th>
                         <th className="w-28 border border-gray-300 p-3 text-center">ACTION</th>
                       </tr>

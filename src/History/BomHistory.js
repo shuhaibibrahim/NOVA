@@ -9,7 +9,7 @@ const FIELD_LABELS = {
   sapMaterialNo: 'SAP Material No',
   childMaterialSapNo: 'Child Material SAP No',
   childMaterial: 'Child Material',
-  qtyPerCs: 'Qty/CS',
+  qtyPerCs: 'Qty/PR',
   unit: 'Unit',
   childComponentIds: 'Child Components',
 };

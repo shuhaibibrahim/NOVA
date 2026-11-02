@@ -180,7 +180,7 @@ function App() {
 
               <Route
                 path="analysis/loop-stocks"
-                element={canAccessRibbon('analysis/loop-stocks', true) ? <LoopStock /> : <Navigate to="/" replace />}
+                element={canAccessRibbon('analysis/loop-stocks', true) ? <LoopStock isAdmin={isAdmin} /> : <Navigate to="/" replace />}
               />
               <Route
                 path="analysis/shortage-details/clicker-shortage"

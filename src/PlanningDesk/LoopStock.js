@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { onValue, ref } from 'firebase/database';
+import { onValue, ref, set } from 'firebase/database';
 import { db } from '../firebase_config';
 import { normalizeMatchValue, sizesForGender } from '../requirementMatching';
 
@@ -20,12 +20,16 @@ const sizeKey = (size) => {
   return /^\d+$/.test(normalized) ? String(Number(normalized)) : normalized;
 };
 const text = (value) => String(value ?? '').trim();
+const adjustmentKey = (articleId, size, side, stageIndex) => (
+  `${articleId}_${text(size)}_${side}_${stageIndex}`.replace(/[.#$[\]/]/g, '-')
+);
 const isPuCork = (model) => normalizeMatchValue(model).includes('PU CORK');
 const compare = (first, second) => text(first).localeCompare(text(second), undefined, { numeric: true });
 
-function LoopStock() {
+function LoopStock({ isAdmin }) {
   const [setSelectedLink, setOpenedTab] = useOutletContext();
   const [articles, setArticles] = useState([]);
+  const [adjustments, setAdjustments] = useState({});
   const [receiptsByStage, setReceiptsByStage] = useState({});
   const [hideEmpty, setHideEmpty] = useState(false);
 
@@ -33,6 +37,10 @@ function LoopStock() {
     setSelectedLink('analysis/loop-stocks');
     setOpenedTab('analysis');
   }, [setSelectedLink, setOpenedTab]);
+
+  useEffect(() => onValue(ref(db, 'loopStockAdjustments/'), (snapshot) => {
+    setAdjustments(snapshot.val() || {});
+  }), []);
 
   useEffect(() => onValue(ref(db, 'articleData/'), (snapshot) => {
     setArticles(Object.entries(snapshot.val() || {}).map(([id, article]) => ({ ...article, id })));
@@ -78,13 +86,27 @@ function LoopStock() {
             colour: article.colour ?? article.color,
             priceCategory: article.priceCategory,
             size: `${size}${sideLabel}`,
-            stock: received.map((quantity, index) => quantity - (received[index + 1] || 0)),
+            cellKeys: received.map((_, index) => adjustmentKey(article.id, size, sideLabel, index)),
+            baseStock: received.map((quantity, index) => quantity - (received[index + 1] || 0)),
           };
         })
       )));
   }, [articles, receiptsByStage]);
 
-  const visibleRows = hideEmpty ? rows.filter((row) => row.stock.some((quantity) => quantity !== 0)) : rows;
+  const adjustedRows = useMemo(() => rows.map((row) => ({
+    ...row,
+    stock: row.baseStock.map((quantity, index) => quantity + (Number(adjustments[row.cellKeys[index]]) || 0)),
+  })), [rows, adjustments]);
+
+  const saveStock = async (row, index, value) => {
+    const text = String(value).trim();
+    const current = row.stock[index];
+    if (text === '' || Number(text) === current || Number.isNaN(Number(text))) return;
+    const delta = Number(text) - row.baseStock[index];
+    await set(ref(db, `loopStockAdjustments/${row.cellKeys[index]}`), delta === 0 ? null : delta);
+  };
+
+  const visibleRows = hideEmpty ? adjustedRows.filter((row) => row.stock.some((quantity) => quantity !== 0)) : adjustedRows;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-blue-50 px-3 pb-2 pt-4">
@@ -118,7 +140,16 @@ function LoopStock() {
                       key={STAGES[index].label}
                       className={`border border-gray-300 px-3 py-1 text-center ${quantity < 0 ? 'text-red-600' : ''}`}
                     >
-                      {quantity}
+                      {isAdmin ? (
+                        <input
+                          key={`${row.key}-${quantity}`}
+                          type="number"
+                          defaultValue={quantity}
+                          onBlur={(event) => saveStock(row, index, event.target.value)}
+                          onKeyDown={(event) => event.key === 'Enter' && event.target.blur()}
+                          className="no-number-spinner w-16 rounded border border-blue-200 p-0.5 text-center"
+                        />
+                      ) : quantity}
                     </td>
                   ))}
                 </tr>

@@ -132,6 +132,8 @@ function BomEntry() {
   const [savingFunctionToggles, setSavingFunctionToggles] = useState({});
   const [openFunctionDropdown, setOpenFunctionDropdown] = useState(null);
   const [selectedArticleIds, setSelectedArticleIds] = useState([]);
+  const [columnFilters, setColumnFilters] = useState({});
+  const [selectedComponentIds, setSelectedComponentIds] = useState([]);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [importingWorkbook, setImportingWorkbook] = useState(false);
   const functionDropdownRef = useRef(null);
@@ -285,7 +287,18 @@ function BomEntry() {
       ));
   }, [articles, bomRecords]);
 
-  const visibleRows = showNotUpdated ? rows.filter((article) => !article.isUpdated) : rows;
+  const filterValueOf = (article, key) => {
+    if (key === 'ARTICLE') return article.article;
+    if (key === 'COLOUR') return article.colour || article.color;
+    if (key === 'MODEL') return article.model;
+    if (key === 'GENDER') return article.gender;
+    if (key === 'PRICE CATEGORY') return article.priceCategory;
+    return article.isUpdated ? 'UPDATED' : article.hasBomRecords ? 'PARTIALLY UPDATED' : 'NOT UPDATED';
+  };
+  const visibleRows = (showNotUpdated ? rows.filter((article) => !article.isUpdated) : rows)
+    .filter((article) => Object.entries(columnFilters).every(([key, value]) => (
+      !value || String(filterValueOf(article, key) ?? '').toLowerCase().includes(value.trim().toLowerCase())
+    )));
   const selectedRows = rows.filter((article) => selectedArticleIds.includes(article.id));
   const toggleSelectedArticle = (articleId) => {
     setSelectedArticleIds((current) => current.includes(articleId)
@@ -636,6 +649,35 @@ function BomEntry() {
     }
   };
 
+  const deleteSelectedComponents = async () => {
+    const records = articleBomRecords.filter((record) => selectedComponentIds.includes(record.id));
+    if (!records.length) return;
+    if (!window.confirm(`Delete ${records.length} selected component(s)? This cannot be undone.`)) return;
+    try {
+      const removedIds = new Set(records.map((record) => record.id));
+      const updates = {};
+      records.forEach((record) => { updates[`bomData/${record.id}`] = null; });
+      if (selectedArticle) {
+        updates[`articleData/${selectedArticle.id}/bomIds`] = bomIdsForArticle(selectedArticle)
+          .filter((id) => !removedIds.has(id)).join(',');
+      }
+      bomRecords.forEach((item) => {
+        if (removedIds.has(item.id)) return;
+        const children = item.childComponentIds || [];
+        if (children.some((id) => removedIds.has(id))) {
+          updates[`bomData/${item.id}/childComponentIds`] = children.filter((id) => !removedIds.has(id));
+        }
+      });
+      await update(ref(db), updates);
+      for (const record of records) {
+        await writeBomHistory({ article: selectedArticle, record, action: 'deleted', changes: bomChanges(record, {}) });
+      }
+      setSelectedComponentIds([]);
+    } catch (error) {
+      window.alert(`Unable to delete the selected components: ${error.message}`);
+    }
+  };
+
   const saveComponentEdit = async (recordId) => {
     if (!componentEditDraft?.functionName || !componentEditDraft.componentDetails.trim()) {
       window.alert('Select a function and enter Component Details before saving.');
@@ -960,11 +1002,29 @@ function BomEntry() {
               </section>
 
               <section className="space-y-2">
-                <h2 className="font-semibold">COMPONENTS ({articleBomRecords.length})</h2>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="font-semibold">COMPONENTS ({articleBomRecords.length})</h2>
+                  <button
+                    type="button"
+                    onClick={deleteSelectedComponents}
+                    disabled={!selectedComponentIds.length || editingComponentId !== null}
+                    className="rounded border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    DELETE SELECTED ({selectedComponentIds.filter((id) => articleBomRecords.some((record) => record.id === id)).length})
+                  </button>
+                </div>
                 <div className="overflow-x-auto rounded border border-gray-300">
                   <table className="w-full min-w-[800px] border-collapse text-sm">
                     <thead className="bg-gray-200 text-left text-xs font-semibold text-gray-700">
                       <tr>
+                        <th className="border border-gray-300 p-3 text-center">
+                          <input
+                            type="checkbox"
+                            aria-label="Select all components"
+                            checked={articleBomRecords.length > 0 && articleBomRecords.every((record) => selectedComponentIds.includes(record.id))}
+                            onChange={(event) => setSelectedComponentIds(event.target.checked ? articleBomRecords.map((record) => record.id) : [])}
+                          />
+                        </th>
                         <th className="border border-gray-300 p-3">FUNCTIONS</th>
                         <th className="border border-gray-300 p-3">SAP MATERIAL NO</th>
                         <th className="border border-gray-300 p-3">COMPONENT DETAILS</th>
@@ -980,6 +1040,16 @@ function BomEntry() {
                       const isEditing = editingComponentId === record.id;
                       return (
                         <tr key={record.id} className="odd:bg-white even:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-center">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${componentDetailsForRecord(record)}`}
+                              checked={selectedComponentIds.includes(record.id)}
+                              onChange={() => setSelectedComponentIds((current) => (current.includes(record.id)
+                                ? current.filter((id) => id !== record.id)
+                                : [...current, record.id]))}
+                            />
+                          </td>
                           <td className="border border-gray-300 p-2">
                             {isEditing ? (
                               <select
@@ -1316,7 +1386,18 @@ function BomEntry() {
                   />
                 </th>
                 {['ARTICLE', 'COLOUR', 'MODEL', 'GENDER', 'PRICE CATEGORY', 'FUNCTIONS', 'BOM STATUS', 'BOM ENTRY'].map((heading) => (
-                  <th key={heading} className="border border-gray-300 p-3">{heading}</th>
+                  <th key={heading} className="border border-gray-300 p-3 align-top">
+                    <div>{heading}</div>
+                    {!['FUNCTIONS', 'BOM ENTRY'].includes(heading) && (
+                      <input
+                        value={columnFilters[heading] || ''}
+                        onChange={(event) => setColumnFilters((current) => ({ ...current, [heading]: event.target.value }))}
+                        placeholder="Filter"
+                        aria-label={`Filter by ${heading}`}
+                        className="mt-1 w-full min-w-20 rounded border border-gray-300 bg-white p-1 text-xs font-normal"
+                      />
+                    )}
+                  </th>
                 ))}
               </tr>
             </thead>

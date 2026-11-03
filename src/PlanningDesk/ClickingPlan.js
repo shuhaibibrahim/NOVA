@@ -1006,10 +1006,15 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
       if (missing.length) {
         notify(`BOM incomplete: ${label} has no BOM for ${missing.join(', ')}. Complete it before the pairs reach these functions.`, 'error');
       }
-      const stitchingWithoutChild = records.filter((record) => functionOf(record) === 'STITCHING' &&
-        !(record.childComponentIds || []).some((id) => ['CLICKING', 'PRINTING'].includes(functionOf(records.find((item) => item.id === id) || {}))));
+      const stitchingRecords = records.filter((record) => functionOf(record) === 'STITCHING');
+      const stitchingWithoutChild = stitchingRecords.filter((record) => {
+        const name = String(record.componentDetails || '').trim().toLowerCase();
+        return !stitchingRecords
+          .filter((item) => String(item.componentDetails || '').trim().toLowerCase() === name)
+          .some((item) => (item.childComponentIds || []).some((id) => functionOf(records.find((child) => child.id === id) || {}) === 'CLICKING'));
+      });
       if (stitchingWithoutChild.length) {
-        notify(`BOM incomplete: ${label} has Stitching components without Clicking or Printing child components.`, 'error');
+        notify(`BOM incomplete: ${label} has Stitching components without a Clicking child component.`, 'error');
       }
     });
 

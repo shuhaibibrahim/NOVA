@@ -56,6 +56,18 @@ const childMaterialFields = (ids, records, stockOptions, current) => {
   };
 };
 
+// One option per distinct component name; an already-selected duplicate stays as the representative.
+const uniqueByDetails = (records, selectedIds = []) => {
+  const byName = new Map();
+  records.forEach((record) => {
+    const key = componentDetailsForRecord(record).trim().toLowerCase();
+    if (!key) return;
+    const kept = byName.get(key);
+    if (!kept || (!selectedIds.includes(kept.id) && selectedIds.includes(record.id))) byName.set(key, record);
+  });
+  return [...byName.values()];
+};
+
 const bomIdsForArticle = (article) => String(article.bomIds || '')
   .split(',')
   .map((id) => id.trim())
@@ -738,10 +750,10 @@ function BomEntry() {
                           <td className="border border-gray-300 p-2">
                             {(() => {
                               const currentDetails = row.componentDetails.trim().toLowerCase();
-                              const childOptions = articleBomRecords.filter((record) => (
+                              const childOptions = uniqueByDetails(articleBomRecords.filter((record) => (
                                 record.id !== row.recordId &&
                                 (row.recordId || componentDetailsForRecord(record).toLowerCase() !== currentDetails)
-                              ));
+                              )), row.childComponentIds || []);
                               const selectedNames = childComponentNames(
                                 (row.childComponentIds || []).filter((id) => id !== NO_CHILD_MATERIAL),
                                 childOptions,
@@ -1049,7 +1061,7 @@ function BomEntry() {
                                         />
                                         {NO_CHILD_MATERIAL_LABEL}
                                       </label>
-                                      {articleBomRecords
+                                      {uniqueByDetails(articleBomRecords, componentEditDraft.childComponentIds)
                                         .filter((child) => child.id !== record.id)
                                         .filter((child) => componentDetailsForRecord(child)
                                           .toLowerCase().includes(editChildFilter.trim().toLowerCase()))

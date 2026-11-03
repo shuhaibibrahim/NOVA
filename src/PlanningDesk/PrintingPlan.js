@@ -6,7 +6,8 @@ import { onValue, push, ref, set, update } from 'firebase/database';
 import { auth, db } from '../firebase_config';
 import { DEFECT_KINDS, defectStatus, effectiveReceivedSizes, goodSizesOf } from '../stageDefects';
 import ReceivedDateDialog from '../ReceivedDateDialog';
-import { clearPlannedStock, markReceivedUpdates } from '../plannedStore';
+import { PLANNED_STORE_NODE, clearPlannedStock, markReceivedUpdates } from '../plannedStore';
+import { CONSUMPTION_NODE, STOCK_STAGES, availableStock, consumptionKey } from '../stockConsumption';
 import { genderForMaterialNumber, normalizeMatchValue, sizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const receiptSizeKey = (size) => {
@@ -27,6 +28,28 @@ const REQUIREMENT_COLUMNS = [
   ['caseQty', 'Case Qty'],
   ['category', 'Category'],
 ];
+
+// Requirements of stock-based stages (Molding) list the available Planning + Actual stock.
+const STOCK_REQUIREMENT_COLUMNS = [
+  ['model', 'Model'],
+  ['article', 'Article'],
+  ['gender', 'Gender'],
+  ['colour', 'Colour'],
+  ['category', 'Price Category'],
+  ['size', 'Size'],
+  ['leftQty', 'Left Qty'],
+  ['rightQty', 'Right Qty'],
+];
+
+const STORE_OVERRIDE_NODES = {
+  CLICKING: 'clickerCompStoreOverrides',
+  PRINTING: 'printingCompStoreOverrides',
+  STITCHING: 'fiuStoreOverrides',
+  MOLDING: 'moldingStoreOverrides',
+  GRINDING: 'grindingStoreOverrides',
+  STUCKON: 'attachingStoreOverrides',
+  PACKING: 'packingStoreOverrides',
+};
 
 const normalizeCode = (value) => String(value || '').trim().toUpperCase();
 const PLAN_DELETE_EMAIL = 'ajimsha.albac@walkaroo.co.in';
@@ -95,12 +118,15 @@ const PLAN_STAGES = {
 };
 
 // Functions whose receipts supply the requirements of each stage; a BOM component's children decide which are used.
+// Stock stages take their child materials from the BOM, whatever function the child belongs to
+// (only the direct child is used, never the child's own children).
+const STOCK_SOURCE_FUNCTIONS = ['CLICKING', 'PRINTING', 'STITCHING', 'MOLDING', 'GRINDING', 'STUCKON'];
 const UPSTREAM_FUNCTIONS = {
   stitching: ['CLICKING', 'PRINTING'],
-  molding: ['PRINTING'],
-  grinding: ['MOLDING'],
-  stuckon: ['CLICKING', 'PRINTING', 'STITCHING', 'MOLDING', 'GRINDING'],
-  packing: ['CLICKING', 'PRINTING', 'STITCHING', 'MOLDING', 'GRINDING', 'STUCKON'],
+  molding: STOCK_SOURCE_FUNCTIONS.filter((fn) => fn !== 'MOLDING'),
+  grinding: STOCK_SOURCE_FUNCTIONS.filter((fn) => fn !== 'GRINDING'),
+  stuckon: STOCK_SOURCE_FUNCTIONS.filter((fn) => fn !== 'STUCKON'),
+  packing: STOCK_SOURCE_FUNCTIONS,
 };
 
 function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
@@ -109,6 +135,8 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
   const [activeSheet, setActiveSheet] = useState('plan');
   const [clickingPlans, setClickingPlans] = useState([]);
   const [upstream, setUpstream] = useState({});
+  const [stockConsumptions, setStockConsumptions] = useState([]);
+  const stockStage = STOCK_STAGES.includes(stageKey);
   const [packingCombinations, setPackingCombinations] = useState([]);
   const [articles, setArticles] = useState([]);
   const [bomRecords, setBomRecords] = useState([]);
@@ -156,14 +184,23 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
     const functions = UPSTREAM_FUNCTIONS[stageKey];
     if (!functions) return undefined;
     const patch = (fn, values) => setUpstream((current) => ({ ...current, [fn]: { ...current[fn], ...values } }));
+    const stockListeners = (fn) => (STOCK_STAGES.includes(stageKey) ? [
+      onValue(ref(db, `${PLANNED_STORE_NODE}/${fn}`), (snapshot) => {
+        patch(fn, { planned: Object.values(snapshot.val() || {}) });
+      }),
+      ...(STORE_OVERRIDE_NODES[fn] ? [onValue(ref(db, `${STORE_OVERRIDE_NODES[fn]}/`), (snapshot) => {
+        patch(fn, { overrides: snapshot.val() || {} });
+      })] : []),
+    ] : []);
     const unsubscribers = functions.flatMap((fn) => {
       if (fn === 'CLICKING') {
         return [onValue(ref(db, 'clickerCompStoreReceipts/'), (snapshot) => {
           patch(fn, { receipts: Object.values(snapshot.val() || {}) });
-        })];
+        }), ...stockListeners(fn)];
       }
       const config = Object.values(PLAN_STAGES).find((item) => item.fn === fn);
       return [
+        ...stockListeners(fn),
         onValue(ref(db, `${config.planNode}/`), (snapshot) => {
           patch(fn, { plans: Object.entries(snapshot.val() || {}).map(([id, plan]) => ({ ...plan, id })) });
         }),
@@ -174,6 +211,10 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
     });
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [stageKey]);
+
+  useEffect(() => onValue(ref(db, `${CONSUMPTION_NODE}/`), (snapshot) => {
+    setStockConsumptions(Object.entries(snapshot.val() || {}).map(([id, record]) => ({ ...record, id })));
+  }), []);
 
   useEffect(() => onValue(ref(db, 'packingCombination/'), (snapshot) => {
     const data = snapshot.val() || {};
@@ -306,7 +347,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
   };
 
   const plannedForComponent = (plan, componentId, includeCart = true) => {
-    const saved = printingPlans
+    const saved = stockStage ? 0 : printingPlans
       .filter((item) => item.sourceClickingPlanId === plan.id && (item.printingComponentIds || []).includes(componentId))
       .reduce((total, item) => total + numericQuantity(item.plannedQty), 0);
     const carted = includeCart
@@ -406,36 +447,73 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
       .filter(Boolean);
     const functionOf = (record) => normalizeMatchValue(record.functionName || record.process);
     const received = new Map();
-    const addReceived = (articleId, childId, size, row) => {
+    const plannedStock = new Map();
+    const addTo = (target, articleId, childId, size, row) => {
       const key = `${articleId}|${childId}|${receiptSizeKey(size)}`;
-      const current = received.get(key) || { leftQty: 0, rightQty: 0 };
+      const current = target.get(key) || { leftQty: 0, rightQty: 0 };
       current.leftQty += Number(row.leftQty) || 0;
       current.rightQty += Number(row.rightQty) || 0;
-      received.set(key, current);
+      target.set(key, current);
     };
-
-    upstreamFunctions.forEach((fn) => {
-      const { plans = [], receipts = [] } = upstream[fn] || {};
+    const addReceived = (articleId, childId, size, row) => addTo(received, articleId, childId, size, row);
+    const collect = (fn, records, target, plans) => {
       if (fn === 'CLICKING') {
-        receipts.forEach((receipt) => {
+        records.forEach((receipt) => {
           if (Array.isArray(receipt.componentQuantities)) {
-            receipt.componentQuantities.forEach((row) => addReceived(receipt.articleId, row.componentId, row.size, row));
+            receipt.componentQuantities.forEach((row) => addTo(target, receipt.articleId, row.componentId, row.size, row));
             return;
           }
           const article = articles.find((item) => item.id === receipt.articleId);
           const linkedIds = String(article?.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean);
           bomRecords
             .filter((record) => linkedIds.includes(record.id) && functionOf(record) === 'CLICKING')
-            .forEach((record) => (receipt.receivedSizes || []).forEach((row) => addReceived(receipt.articleId, record.id, row.size, row)));
+            .forEach((record) => (receipt.receivedSizes || []).forEach((row) => addTo(target, receipt.articleId, record.id, row.size, row)));
         });
         return;
       }
       const componentsByPlan = new Map(plans.map((plan) => [plan.id, plan.printingComponentIds || []]));
-      receipts.forEach((receipt) => {
+      records.forEach((receipt) => {
         const componentIds = new Set((receipt.planIds || []).flatMap((id) => componentsByPlan.get(id) || []));
-        componentIds.forEach((componentId) => (receipt.receivedSizes || []).forEach((row) => addReceived(receipt.articleId, componentId, row.size, row)));
+        componentIds.forEach((componentId) => (receipt.receivedSizes || []).forEach((row) => addTo(target, receipt.articleId, componentId, row.size, row)));
       });
+    };
+
+    upstreamFunctions.forEach((fn) => {
+      const { plans = [], receipts = [], planned = [], overrides = {} } = upstream[fn] || {};
+      collect(fn, receipts, received, plans);
+      if (!stockStage) return;
+      collect(fn, planned, plannedStock, plans);
+      Object.entries(overrides).forEach(([articleId, components]) => Object.entries(components || {}).forEach(([componentId, sizes]) => (
+        Object.entries(sizes || {}).forEach(([sizeKey, values]) => {
+          received.set(`${articleId}|${componentId}|${sizeKey}`, {
+            leftQty: Number(values?.leftQty) || 0,
+            rightQty: Number(values?.rightQty) || 0,
+          });
+        })
+      )));
     });
+
+    if (stockStage) {
+      const consumed = new Map();
+      stockConsumptions.forEach((item) => {
+        const key = consumptionKey(item.articleId, item.componentId, receiptSizeKey(item.size));
+        const current = consumed.get(key) || { leftQty: 0, rightQty: 0 };
+        current.leftQty += Number(item.leftQty) || 0;
+        current.rightQty += Number(item.rightQty) || 0;
+        consumed.set(key, current);
+      });
+      const actualStock = new Map(received);
+      received.clear();
+      new Set([...actualStock.keys(), ...plannedStock.keys(), ...consumed.keys()]).forEach((key) => {
+        const actual = actualStock.get(key) || { leftQty: 0, rightQty: 0 };
+        const planned = plannedStock.get(key) || { leftQty: 0, rightQty: 0 };
+        const used = consumed.get(key) || { leftQty: 0, rightQty: 0 };
+        received.set(key, {
+          leftQty: availableStock(planned.leftQty, actual.leftQty, used.leftQty),
+          rightQty: availableStock(planned.rightQty, actual.rightQty, used.rightQty),
+        });
+      });
+    }
 
     return articles.flatMap((article) => {
       const linkedIds = String(article.bomIds || '').split(',').map((id) => id.trim()).filter(Boolean);
@@ -474,11 +552,12 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
         }];
       });
     });
-  }, [stageKey, stage.fn, clickingPlans, upstream, articles, bomRecords]);
+  }, [stageKey, stage.fn, stockStage, stockConsumptions, clickingPlans, upstream, articles, bomRecords]);
 
   const availableByClickingPlan = useMemo(() => {
     const allocated = new Map();
-    printingPlans.forEach((plan) => {
+    // Stock stages already reduce the stock when a plan is saved.
+    if (!stockStage) printingPlans.forEach((plan) => {
       const sourceId = plan.sourceClickingPlanId;
       if (!sourceId) return;
       allocated.set(sourceId, (allocated.get(sourceId) || 0) + numericQuantity(plan.plannedQty));
@@ -530,8 +609,8 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
   const requirementGroups = useMemo(() => {
     const groups = new Map();
     requirementRows.forEach((plan) => {
-      const code = String(plan.planCode || '').trim() || 'NO PLAN CODE';
-      const date = String(plan.planningDate || '');
+      const code = stockStage ? 'STOCK' : String(plan.planCode || '').trim() || 'NO PLAN CODE';
+      const date = stockStage ? '' : String(plan.planningDate || '');
       const key = `${date}|${code}`;
       if (!groups.has(key)) groups.set(key, { key, code, date, plans: [] });
       groups.get(key).plans.push(plan);
@@ -799,6 +878,27 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
         const quantityRatio = sourceQty > 0 ? plannedQty / sourceQty : 0;
         const selectedComponents = printingComponentsForPlan(source)
           .filter((component) => componentIds.includes(component.id));
+        const leftQty = Math.round(numericQuantity(source.leftQty ?? source.plannedQty) * quantityRatio);
+        const rightQty = Math.round(numericQuantity(source.rightQty ?? source.plannedQty) * quantityRatio);
+        if (stockStage) {
+          const upstreamFunctions = UPSTREAM_FUNCTIONS[stageKey] || [];
+          const childIds = new Set(selectedComponents.flatMap((component) => component.childComponentIds || [])
+            .filter((id) => {
+              const child = bomRecords.find((record) => record.id === id);
+              return child && upstreamFunctions.includes(normalizeMatchValue(child.functionName || child.process));
+            }));
+          childIds.forEach((childId) => {
+            set(ref(db, `${CONSUMPTION_NODE}/${planRef.key}_${childId}`), {
+              planId: planRef.key,
+              fn: stage.fn,
+              articleId: source.articleDataId,
+              componentId: childId,
+              size: receiptSizeKey(source.size),
+              leftQty,
+              rightQty,
+            });
+          });
+        }
         return set(planRef, {
           ...source,
           id: planRef.key,
@@ -808,8 +908,8 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
           planningDate,
           plannedQty,
           caseQty: plannedQty,
-          leftQty: Math.round(numericQuantity(source.leftQty ?? source.plannedQty) * quantityRatio),
-          rightQty: Math.round(numericQuantity(source.rightQty ?? source.plannedQty) * quantityRatio),
+          leftQty,
+          rightQty,
           vendorName,
           printingComponentIds: componentIds,
           remarks: selectedComponents.map(componentLabel).join(', '),
@@ -854,6 +954,9 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
     const updates = {};
     selectedPlanIds.forEach((id) => {
       updates[`${stage.planNode}/${id}`] = null;
+      stockConsumptions.filter((item) => item.planId === id).forEach((item) => {
+        updates[`${CONSUMPTION_NODE}/${item.id}`] = null;
+      });
     });
     try {
       await update(ref(db), updates);
@@ -1483,6 +1586,8 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
     </>
   );
 
+  const requirementColumns = stockStage ? STOCK_REQUIREMENT_COLUMNS : REQUIREMENT_COLUMNS;
+
   const renderRequirementsSheet = () => (
     <>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -1567,12 +1672,12 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
                   <thead className="sticky top-0 z-10 text-xs font-semibold shadow-sm">
                     <tr>
                       <th
-                      colSpan={REQUIREMENT_COLUMNS.length + 8}
+                      colSpan={requirementColumns.length + 8}
                         className="border border-gray-300 bg-teal-200 p-3 text-center font-bold"
                       >
                         <div className="grid grid-cols-3 items-center gap-2">
-                          <span className="text-left">PLAN DATE: {formatPlanDate(group.date)}</span>
-                          <span>{group.code.toUpperCase()}</span>
+                          <span className="text-left">{stockStage ? 'AVAILABLE STOCK' : `PLAN DATE: ${formatPlanDate(group.date)}`}</span>
+                          <span>{stockStage ? 'PLANNING + ACTUAL' : group.code.toUpperCase()}</span>
                           <span className="text-right">
                             TOTAL: {group.plans.reduce((total, plan) => total + numericQuantity(plan.plannedQty ?? plan.caseQty ?? plan.qty), 0)}
                           </span>
@@ -1581,7 +1686,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
                     </tr>
                     <tr className="bg-gray-100 text-center">
                       <th className="p-3 text-left">SI NO</th>
-                      {REQUIREMENT_COLUMNS.map(([key, label]) => (
+                      {requirementColumns.map(([key, label]) => (
                         <th key={key} className="p-3 align-top">
                           <div>{label.toUpperCase()}</div>
                           <input
@@ -1641,7 +1746,9 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
                             {isFirstItemRow && (
                               <>
                                 <td rowSpan={itemRowSpan} className="border border-gray-300 p-3">{itemIndex + 1}</td>
-                                {['sourcePlanCode', 'sourcePlanDate', 'model', 'article', 'gender', 'colour'].map((key) => (
+                                {(stockStage
+                                  ? ['model', 'article', 'gender', 'colour', 'category']
+                                  : ['sourcePlanCode', 'sourcePlanDate', 'model', 'article', 'gender', 'colour']).map((key) => (
                                   <td key={key} rowSpan={itemRowSpan} className="break-words border border-gray-300 p-3">{sourceFields[key]}</td>
                                 ))}
                               </>
@@ -1649,7 +1756,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
                             <td className="border border-gray-300 p-3">{sourceFields.size}</td>
                             <td className="border border-gray-300 p-3">{sourceFields.leftQty}</td>
                             <td className="border border-gray-300 p-3">{sourceFields.rightQty}</td>
-                            {isFirstItemRow && (
+                            {isFirstItemRow && !stockStage && (
                               <>
                                 <td rowSpan={itemRowSpan} className="border border-gray-300 p-3">{displayQuantity(totalCaseQuantity)}</td>
                                 <td rowSpan={itemRowSpan} className="border border-gray-300 p-3">{sourceFields.category}</td>
@@ -1797,7 +1904,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
                       })).flat();
                     })}
                     <tr>
-                      <td colSpan={REQUIREMENT_COLUMNS.length + 8} className="border border-gray-300 p-3 text-right">
+                      <td colSpan={requirementColumns.length + 8} className="border border-gray-300 p-3 text-right">
                         <button
                           type="button"
                           onClick={() => addGroupToPlan(group)}

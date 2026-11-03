@@ -3,6 +3,7 @@ import {Outlet} from "react-router-dom";
 import spareData from './DummyData';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import HelpAssistant from './HelpAssistant';
 import ActionGuard, { deleteKey, modifyKey } from './ActionGuard';
 import { controlKey } from './userControls';
 
@@ -33,6 +34,7 @@ function HomePage({setUser, userRole, preallocatedProcesses, isAdmin, canAccessU
                     <Outlet context={[setSelectedLink, setOpenedTab]}/>
                 </ActionGuard>
             </div>
+            <HelpAssistant />
         </div>
     )
 }

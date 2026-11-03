@@ -34,11 +34,19 @@ function Header({heading, setUser, setHideSideBar}) {
     const bomNotifications = useMemo(() => {
         const byId = new Map(bomRecords.map((record) => [record.id, record]));
         const articleById = new Map(articles.map((article) => [article.id, article]));
-        return bomRecords
+        // Rows sharing an article and component name (e.g. one per child material) count as one component.
+        const groups = new Map();
+        bomRecords
             .filter((record) => functionOf(record) === 'STITCHING' && articleById.has(record.articleId))
-            .filter((record) => !(record.childComponentIds || []).some((id) =>
-                ['CLICKING', 'PRINTING'].includes(functionOf(byId.get(id) || {}))
-            ))
+            .forEach((record) => {
+                const key = `${record.articleId}|${String(record.componentDetails || record.materialDesc || record.id).trim().toLowerCase()}`;
+                groups.set(key, [...(groups.get(key) || []), record]);
+            });
+        return [...groups.values()]
+            .filter((group) => !group.some((record) => (record.childComponentIds || []).some((id) =>
+                functionOf(byId.get(id) || {}) === 'CLICKING'
+            )))
+            .map((group) => group[0])
             .map((record) => {
                 const article = articleById.get(record.articleId);
                 const articleLabel = [article.model, article.article, article.colour ?? article.color].filter(Boolean).join(' ');
@@ -46,7 +54,7 @@ function Header({heading, setUser, setHideSideBar}) {
                     id: `bom:${record.id}`,
                     type: 'error',
                     persistent: true,
-                    message: `BOM incomplete [${articleLabel}]: Stitching component "${record.componentDetails || record.materialDesc || record.id}" has no Clicking or Printing child. Fix in BOM Entry.`,
+                    message: `BOM incomplete [${articleLabel}]: Stitching component "${record.componentDetails || record.materialDesc || record.id}" has no Clicking child (Printing is optional). Fix in BOM Entry.`,
                 };
             });
     }, [bomRecords, articles]);

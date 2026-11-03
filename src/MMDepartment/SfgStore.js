@@ -4,6 +4,7 @@ import { onValue, ref, update } from 'firebase/database';
 import { db } from '../firebase_config';
 import { sizesForGender } from '../requirementMatching';
 import { PLANNED_STORE_NODE } from '../plannedStore';
+import { CONSUMPTION_NODE, stockAfterConsumption } from '../stockConsumption';
 
 const sizeKey = (size) => {
   const normalized = String(size || '').trim();
@@ -26,7 +27,7 @@ const storeConfigFor = (route) => {
   if (STORE_CONFIG[route]) return STORE_CONFIG[route];
   if (!route.startsWith(PLANNING_STORE_PREFIX)) return undefined;
   const actual = STORE_CONFIG[`mmdept/${route.slice(PLANNING_STORE_PREFIX.length)}`];
-  return actual && { fn: actual.fn, altFns: actual.altFns, receiptNode: `${PLANNED_STORE_NODE}/${actual.fn}`, overrideNode: null, planned: true };
+  return actual && { fn: actual.fn, altFns: actual.altFns, receiptNode: `${PLANNED_STORE_NODE}/${actual.fn}`, actualReceiptNode: actual.receiptNode, overrideNode: null, planned: true };
 };
 
 function SfgStore({ title, route, isAdmin = false }) {
@@ -37,6 +38,9 @@ function SfgStore({ title, route, isAdmin = false }) {
   const [bomRecords, setBomRecords] = useState([]);
   const [receipts, setReceipts] = useState([]);
   const [quantityOverrides, setQuantityOverrides] = useState({});
+  const [consumptions, setConsumptions] = useState([]);
+  const [plannedRecords, setPlannedRecords] = useState([]);
+  const [actualReceipts, setActualReceipts] = useState([]);
   const [selectedFilters, setSelectedFilters] = useState({});
   const [openFilterKey, setOpenFilterKey] = useState(null);
   const filterMenuRef = useRef(null);
@@ -71,6 +75,27 @@ function SfgStore({ title, route, isAdmin = false }) {
   }, [route]);
 
   useEffect(() => {
+    if (!config) return undefined;
+    return onValue(ref(db, `${CONSUMPTION_NODE}/`), (snapshot) => {
+      setConsumptions(Object.values(snapshot.val() || {}));
+    });
+  }, [route]);
+
+  useEffect(() => {
+    if (!config?.planned) return undefined;
+    return onValue(ref(db, `${config.actualReceiptNode}/`), (snapshot) => {
+      setActualReceipts(Object.values(snapshot.val() || {}));
+    });
+  }, [route]);
+
+  useEffect(() => {
+    if (!config || config.planned) return undefined;
+    return onValue(ref(db, `${PLANNED_STORE_NODE}/${config.fn}`), (snapshot) => {
+      setPlannedRecords(Object.values(snapshot.val() || {}));
+    });
+  }, [route]);
+
+  useEffect(() => {
     if (!config?.overrideNode) return undefined;
     return onValue(ref(db, `${config.overrideNode}/`), (snapshot) => {
       setQuantityOverrides(snapshot.val() || {});
@@ -95,7 +120,7 @@ function SfgStore({ title, route, isAdmin = false }) {
     };
   }, [openFilterKey]);
 
-  const receivedQuantities = useMemo(() => {
+  const buildQuantities = (records) => {
     const quantities = new Map();
     const bomByArticle = new Map();
     articles.forEach((article) => {
@@ -105,7 +130,7 @@ function SfgStore({ title, route, isAdmin = false }) {
         [config.fn, ...(config.altFns || [])].includes(String(record.functionName || record.process || '').trim().toUpperCase())
       ));
     });
-    receipts.forEach((receipt) => {
+    records.forEach((receipt) => {
       const components = bomByArticle.get(receipt.articleId) || [];
       if (Array.isArray(receipt.componentQuantities)) {
         receipt.componentQuantities.forEach((row) => {
@@ -128,7 +153,28 @@ function SfgStore({ title, route, isAdmin = false }) {
       });
     });
     return quantities;
-  }, [articles, bomRecords, receipts]);
+  };
+
+  const receivedQuantities = useMemo(() => buildQuantities(receipts), [articles, bomRecords, receipts]);
+  const plannedQuantities = useMemo(
+    () => buildQuantities(config?.planned ? receipts : plannedRecords),
+    [articles, bomRecords, receipts, plannedRecords]
+  );
+  const actualQuantities = useMemo(
+    () => buildQuantities(config?.planned ? actualReceipts : receipts),
+    [articles, bomRecords, receipts, actualReceipts]
+  );
+  const consumedQuantities = useMemo(() => {
+    const consumed = new Map();
+    consumptions.forEach((item) => {
+      const key = `${item.articleId}|${item.componentId}|${sizeKey(item.size)}`;
+      const current = consumed.get(key) || { leftQty: 0, rightQty: 0 };
+      current.leftQty += Number(item.leftQty) || 0;
+      current.rightQty += Number(item.rightQty) || 0;
+      consumed.set(key, current);
+    });
+    return consumed;
+  }, [consumptions]);
 
   const saveComponentQuantity = async (articleId, componentId, size, side, value) => {
     if (!canEdit) return;
@@ -158,13 +204,18 @@ function SfgStore({ title, route, isAdmin = false }) {
         [config.fn, ...(config.altFns || [])].includes(String(record.functionName || record.process || '').trim().toUpperCase())
       )];
     }));
-    const componentColumns = [...new Map([...componentsByArticle.values()]
-      .flat()
-      .map((component) => [component.id, component])).values()]
-      .sort((first, second) => String(first.componentDetails || '').localeCompare(String(second.componentDetails || '')))
-      .flatMap((component) => ([
-        { key: `component:${component.id}:left`, label: `${component.componentDetails || component.materialDesc || component.materialNumber || 'Component'} LEFT QTY`, componentId: component.id, side: 'leftQty' },
-        { key: `component:${component.id}:right`, label: `${component.componentDetails || component.materialDesc || component.materialNumber || 'Component'} RIGHT QTY`, componentId: component.id, side: 'rightQty' },
+    // One column pair per distinct component name; duplicate BOM rows share it.
+    const nameOf = (component) => String(component.componentDetails || component.materialDesc || component.materialNumber || 'Component').trim();
+    const groupKeyOf = (component) => nameOf(component).toLowerCase().replace(/\s+/g, ' ');
+    const columnGroups = new Map();
+    [...componentsByArticle.values()].flat().forEach((component) => {
+      if (!columnGroups.has(groupKeyOf(component))) columnGroups.set(groupKeyOf(component), nameOf(component));
+    });
+    const componentColumns = [...columnGroups.entries()]
+      .sort((first, second) => first[1].localeCompare(second[1]))
+      .flatMap(([groupKey, name]) => ([
+        { key: `component:${groupKey}:left`, label: `${name} LEFT QTY`, groupKey, side: 'leftQty' },
+        { key: `component:${groupKey}:right`, label: `${name} RIGHT QTY`, groupKey, side: 'rightQty' },
       ]));
     const tableRows = sizeRows.map(({ article, size }, index) => {
       const row = {
@@ -180,11 +231,39 @@ function SfgStore({ title, route, isAdmin = false }) {
       componentColumns.forEach(({ key }) => {
         row[key] = 0;
       });
-      (componentsByArticle.get(article.id) || []).forEach((component) => {
+      const valuesFor = (component) => {
         const quantities = receivedQuantities.get(`${article.id}|${component.id}|${sizeKey(size)}`) || { leftQty: 0, rightQty: 0 };
         const override = quantityOverrides?.[article.id]?.[component.id]?.[sizeKey(size)] || {};
-        row[`component:${component.id}:left`] = override.leftQty ?? quantities.leftQty;
-        row[`component:${component.id}:right`] = override.rightQty ?? quantities.rightQty;
+        const plannedKey = `${article.id}|${component.id}|${sizeKey(size)}`;
+        const used = consumedQuantities.get(plannedKey) || { leftQty: 0, rightQty: 0 };
+        const planned = plannedQuantities.get(plannedKey) || { leftQty: 0, rightQty: 0 };
+        // Actual stock is consumed first, then Planning stock; a shortfall makes Actual negative.
+        const left = override.leftQty ?? quantities.leftQty;
+        const right = override.rightQty ?? quantities.rightQty;
+        if (config.planned) {
+          // Planning sheet: `quantities` is the planned stock; the actual stock comes from the receipts.
+          const actual = actualQuantities.get(plannedKey) || { leftQty: 0, rightQty: 0 };
+          const side = (key, base) => stockAfterConsumption(base, actual[key], used[key]).planning;
+          return { leftQty: side('leftQty', left), rightQty: side('rightQty', right) };
+        }
+        const side = (key, base) => stockAfterConsumption(planned[key], base, used[key]).actual;
+        return { leftQty: side('leftQty', left), rightQty: side('rightQty', right) };
+      };
+      const duplicates = new Map();
+      (componentsByArticle.get(article.id) || []).forEach((component) => {
+        const groupKey = groupKeyOf(component);
+        duplicates.set(groupKey, [...(duplicates.get(groupKey) || []), component]);
+      });
+      // Duplicate rows count once: use the first one that holds a quantity, else the first.
+      duplicates.forEach((components, groupKey) => {
+        const chosen = components.find((component) => {
+          const values = valuesFor(component);
+          return Number(values.leftQty) || Number(values.rightQty);
+        }) || components[0];
+        const values = valuesFor(chosen);
+        row[`component:${groupKey}:left`] = values.leftQty;
+        row[`component:${groupKey}:right`] = values.rightQty;
+        row[`rep:${groupKey}`] = chosen.id;
       });
       return row;
     });
@@ -298,14 +377,14 @@ function SfgStore({ title, route, isAdmin = false }) {
                       <td className="border border-gray-300 p-3">{row.colour}</td>
                       <td className="border border-gray-300 p-3">{row.priceCategory}</td>
                       <td className="border border-gray-300 p-3">{row.size}</td>
-                      {componentColumns.map(({ key, componentId, side, label }) => (
+                      {componentColumns.map(({ key, groupKey, side, label }) => (
                         <td
                           key={key}
                           className={`border border-gray-300 p-3 ${
                             Number(row[key]) > 0 ? 'bg-green-100' : Number(row[key]) < 0 ? 'bg-red-100' : ''
                           }`}
                         >
-                          {canEdit ? (
+                          {canEdit && row[`rep:${groupKey}`] ? (
                             <input
                               key={`${key}-${row[key]}`}
                               type="number"
@@ -315,7 +394,7 @@ function SfgStore({ title, route, isAdmin = false }) {
                               onBlur={(event) => {
                                 const value = event.target.value;
                                 if (value !== '' && Number(value) !== Number(row[key])) {
-                                  saveComponentQuantity(row.articleId, componentId, row.size, side, value);
+                                  saveComponentQuantity(row.articleId, row[`rep:${groupKey}`], row.size, side, value);
                                 }
                               }}
                               className="w-24 bg-transparent text-center outline-none"

@@ -44,6 +44,18 @@ const childComponentNames = (childIds, records, stockOptions = []) => childIds
   })
   .filter(Boolean);
 
+// The Child Material dropdown is the source of truth; mirror its choice into the text fields.
+const childMaterialFields = (ids, records, stockOptions, current) => {
+  const selected = [...new Set(ids || [])];
+  if (!selected.length) return { childMaterial: current.childMaterial, childMaterialSapNo: current.childMaterialSapNo };
+  const stockMatches = selected.filter((id) => String(id).startsWith(STOCK_CHILD_PREFIX))
+    .map((id) => stockOptions.find((item) => item.childId === id)).filter(Boolean);
+  return {
+    childMaterial: childComponentNames(selected, records, stockOptions).join(', '),
+    childMaterialSapNo: stockMatches.length === 1 ? stockMatches[0].materialNumber : (current.childMaterialSapNo || ''),
+  };
+};
+
 const bomIdsForArticle = (article) => String(article.bomIds || '')
   .split(',')
   .map((id) => id.trim())
@@ -289,14 +301,15 @@ function BomEntry() {
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'NOVA';
       workbook.subject = 'BOM component entry template';
-      const stockListCount = stockMaterials.length;
-      if (stockListCount) {
+      const listMaterials = [{ description: NO_CHILD_MATERIAL_LABEL, materialNumber: '' }, ...stockMaterials];
+      const stockListCount = listMaterials.length;
+      {
         const listSheet = workbook.addWorksheet(STOCK_LIST_SHEET);
         listSheet.columns = [
           { header: 'Material Description', key: 'description', width: 60 },
           { header: 'Material No.', key: 'materialNumber', width: 24 },
         ];
-        stockMaterials.forEach((item) => listSheet.addRow([item.description, item.materialNumber]));
+        listMaterials.forEach((item) => listSheet.addRow([item.description, item.materialNumber]));
       }
       selectedRows.forEach((article) => {
         const worksheet = workbook.addWorksheet(article.sheetName);
@@ -419,6 +432,9 @@ function BomEntry() {
             qtyPerCs: (cellText(row, 'qty/pr') || cellText(row, 'qty/cs')),
             unit: cellText(row, 'unit'),
           };
+          if (details.childMaterial.toLowerCase() === NO_CHILD_MATERIAL_LABEL.toLowerCase()) {
+            details.childComponentIds = [NO_CHILD_MATERIAL];
+          }
           const componentKey = componentRecordKey(matchedFunction, componentValue, details.childMaterialSapNo, details.childMaterial);
           let existingRecord = existingByKey.get(componentKey);
           if (!existingRecord) {
@@ -528,13 +544,15 @@ function BomEntry() {
       process: row.functionName,
       componentDetails: row.componentDetails.trim(),
       sapMaterialNo: String(row.sapMaterialNo || '').trim(),
-      childMaterialSapNo: String(row.childMaterialSapNo || '').trim(),
-      childMaterial: String(row.childMaterial || '').trim(),
       qtyPerCs: String(row.qtyPerCs ?? '').trim(),
       unit: String(row.unit || '').trim(),
       childComponentIds: [...new Set(row.childComponentIds || [])]
         .filter((childId) => childId !== recordId),
     };
+    Object.assign(record, childMaterialFields(record.childComponentIds, articleBomRecords, stockMaterials, {
+      childMaterial: String(row.childMaterial || '').trim(),
+      childMaterialSapNo: String(row.childMaterialSapNo || '').trim(),
+    }));
 
     updateComponentRow(index, 'saving', true);
     try {
@@ -607,13 +625,15 @@ function BomEntry() {
         process: componentEditDraft.functionName,
         componentDetails: componentEditDraft.componentDetails.trim(),
         sapMaterialNo: String(componentEditDraft.sapMaterialNo || '').trim(),
-        childMaterialSapNo: String(componentEditDraft.childMaterialSapNo || '').trim(),
-        childMaterial: String(componentEditDraft.childMaterial || '').trim(),
         qtyPerCs: String(componentEditDraft.qtyPerCs ?? '').trim(),
         unit: String(componentEditDraft.unit || '').trim(),
         childComponentIds: [...new Set(componentEditDraft.childComponentIds)]
           .filter((childId) => childId !== recordId),
       };
+      Object.assign(editedRecord, childMaterialFields(editedRecord.childComponentIds, articleBomRecords, stockMaterials, {
+        childMaterial: String(componentEditDraft.childMaterial || '').trim(),
+        childMaterialSapNo: String(componentEditDraft.childMaterialSapNo || '').trim(),
+      }));
       const previousRecord = bomRecords.find((item) => item.id === recordId) || {};
       await update(ref(db, `bomData/${recordId}`), editedRecord);
       const changes = bomChanges(previousRecord, editedRecord);
@@ -670,7 +690,6 @@ function BomEntry() {
                         <th className="border border-gray-300 p-3">FUNCTIONS</th>
                         <th className="border border-gray-300 p-3">SAP MATERIAL NO</th>
                         <th className="border border-gray-300 p-3">COMPONENT DETAILS</th>
-                        <th className="border border-gray-300 p-3">CHILD</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL SAP NO</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL</th>
                         <th className="border border-gray-300 p-3">QTY/PR</th>
@@ -713,6 +732,9 @@ function BomEntry() {
                               className="w-full rounded border border-gray-300 bg-white p-2 focus:border-blue-500 focus:outline-none"
                             />
                           </td>
+                          {[['childMaterialSapNo', 'Child material SAP no'], ['childMaterial', 'Child material'], ['qtyPerCs', 'Qty per CS'], ['unit', 'Unit']].map(([field, label]) => (
+                            field === 'childMaterial' ? (
+                              <React.Fragment key={field}>
                           <td className="border border-gray-300 p-2">
                             {(() => {
                               const currentDetails = row.componentDetails.trim().toLowerCase();
@@ -758,7 +780,7 @@ function BomEntry() {
                                     }}
                                     className="w-full rounded border border-gray-300 bg-white p-2 text-left"
                                   >
-                                    {selectedNames.length ? selectedNames.join(', ') : 'Select child components'}
+                                    {selectedNames.length ? selectedNames.join(', ') : (row.childMaterial || 'Select child material')}
                                   </button>
                                   {openChildDropdown === index && childDropdownPosition && createPortal(
                                     <div
@@ -831,7 +853,8 @@ function BomEntry() {
                               );
                             })()}
                           </td>
-                          {[['childMaterialSapNo', 'Child material SAP no'], ['childMaterial', 'Child material'], ['qtyPerCs', 'Qty per CS'], ['unit', 'Unit']].map(([field, label]) => (
+                              </React.Fragment>
+                            ) : (
                             <td key={field} className="border border-gray-300 p-2">
                               <input
                                 type={field === 'qtyPerCs' ? 'number' : 'text'}
@@ -850,6 +873,7 @@ function BomEntry() {
                                 className="w-full rounded border border-gray-300 bg-white p-2 focus:border-blue-500 focus:outline-none"
                               />
                             </td>
+                            )
                           ))}
                           <td className="border border-gray-300 p-2 text-center">
                             <button
@@ -890,7 +914,6 @@ function BomEntry() {
                         <th className="border border-gray-300 p-3">FUNCTIONS</th>
                         <th className="border border-gray-300 p-3">SAP MATERIAL NO</th>
                         <th className="border border-gray-300 p-3">COMPONENT DETAILS</th>
-                        <th className="border border-gray-300 p-3">CHILD</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL SAP NO</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL</th>
                         <th className="border border-gray-300 p-3">QTY/PR</th>
@@ -954,6 +977,9 @@ function BomEntry() {
                               <span className="whitespace-pre-wrap p-1">{componentDetailsForRecord(record) || '-'}</span>
                             )}
                           </td>
+                          {['childMaterialSapNo', 'childMaterial', 'qtyPerCs', 'unit'].map((field) => (
+                          field === 'childMaterial' ? (
+                            <React.Fragment key={field}>
                           <td className="border border-gray-300 p-2">
                             {isEditing ? (
                               <>
@@ -987,7 +1013,7 @@ function BomEntry() {
                                   className="w-full rounded border border-gray-300 bg-white p-2 text-left"
                                 >
                                     {childComponentNames(componentEditDraft.childComponentIds, articleBomRecords, stockMaterials)
-                                    .join(', ') || 'Select child components'}
+                                    .join(', ') || componentEditDraft.childMaterial || 'Select child material'}
                                 </button>
                                 {editChildDropdownOpen && editChildDropdownPosition && createPortal(
                                   <div
@@ -1079,11 +1105,12 @@ function BomEntry() {
                               </>
                             ) : (
                               <span className="whitespace-pre-wrap p-1">
-                                {childComponentNames(record.childComponentIds || [], articleBomRecords, stockMaterials).join(', ') || '-'}
+                                {childComponentNames(record.childComponentIds || [], articleBomRecords, stockMaterials).join(', ') || record.childMaterial || '-'}
                               </span>
                             )}
                           </td>
-                          {['childMaterialSapNo', 'childMaterial', 'qtyPerCs', 'unit'].map((field) => (
+                            </React.Fragment>
+                          ) : (
                             <td key={field} className="border border-gray-300 p-2">
                               {isEditing ? (
                                 <input
@@ -1107,6 +1134,7 @@ function BomEntry() {
                                 <span className="p-1">{record[field] || '-'}</span>
                               )}
                             </td>
+                          )
                           ))}
                           <td className="border border-gray-300 p-2 text-center">
                             {isEditing ? (

@@ -547,10 +547,11 @@ function BomEntry() {
       window.alert('Select a function and enter Component Details before saving.');
       return;
     }
-    const bomRef = row.recordId ? null : push(ref(db, 'bomData/'));
-    const recordId = row.recordId || bomRef.key;
-    const record = {
-      id: recordId,
+    const selectedChildIds = [...new Set(row.childComponentIds || [])].filter((childId) => childId !== row.recordId);
+    const realChildIds = selectedChildIds.filter((childId) => childId !== NO_CHILD_MATERIAL);
+    // Several children become separate line items sharing function, SAP material no. and component details.
+    const childGroups = realChildIds.length > 1 ? realChildIds.map((childId) => [childId]) : [selectedChildIds];
+    const baseRecord = {
       articleId: selectedArticle.id,
       functionName: row.functionName,
       process: row.functionName,
@@ -558,26 +559,36 @@ function BomEntry() {
       sapMaterialNo: String(row.sapMaterialNo || '').trim(),
       qtyPerCs: String(row.qtyPerCs ?? '').trim(),
       unit: String(row.unit || '').trim(),
-      childComponentIds: [...new Set(row.childComponentIds || [])]
-        .filter((childId) => childId !== recordId),
     };
-    Object.assign(record, childMaterialFields(record.childComponentIds, articleBomRecords, stockMaterials, {
-      childMaterial: String(row.childMaterial || '').trim(),
-      childMaterialSapNo: String(row.childMaterialSapNo || '').trim(),
-    }));
+    const newKeys = [];
+    const records = childGroups.map((childIds, groupIndex) => {
+      const recordId = groupIndex === 0 && row.recordId
+        ? row.recordId
+        : push(ref(db, 'bomData/')).key;
+      if (!row.recordId || groupIndex > 0) newKeys.push(recordId);
+      const record = { ...baseRecord, id: recordId, childComponentIds: childIds.filter((childId) => childId !== recordId) };
+      Object.assign(record, childMaterialFields(record.childComponentIds, articleBomRecords, stockMaterials, {
+        childMaterial: String(row.childMaterial || '').trim(),
+        childMaterialSapNo: String(row.childMaterialSapNo || '').trim(),
+      }));
+      return record;
+    });
 
     updateComponentRow(index, 'saving', true);
     try {
-      const updates = { [`bomData/${recordId}`]: record };
-      if (!row.recordId) {
-        const updatedBomIds = [...new Set([...bomIdsForArticle(selectedArticle), recordId])];
+      const updates = {};
+      records.forEach((record) => { updates[`bomData/${record.id}`] = record; });
+      if (newKeys.length) {
+        const updatedBomIds = [...new Set([...bomIdsForArticle(selectedArticle), ...newKeys])];
         updates[`articleData/${selectedArticle.id}/bomIds`] = updatedBomIds.join(',');
       }
       await update(ref(db), updates);
-      const previousRecord = bomRecords.find((item) => item.id === recordId);
-      const changes = bomChanges(previousRecord, record);
-      if (!previousRecord || Object.keys(changes).length) {
-        await writeBomHistory({ article: selectedArticle, record, action: previousRecord ? 'edited' : 'created', changes: previousRecord ? changes : bomChanges({}, record) });
+      for (const record of records) {
+        const previousRecord = bomRecords.find((item) => item.id === record.id);
+        const changes = bomChanges(previousRecord, record);
+        if (!previousRecord || Object.keys(changes).length) {
+          await writeBomHistory({ article: selectedArticle, record, action: previousRecord ? 'edited' : 'created', changes: previousRecord ? changes : bomChanges({}, record) });
+        }
       }
       setComponentRows((current) => current.map((currentRow, rowIndex) => (
         rowIndex === index ? emptyComponentRow() : currentRow
@@ -632,6 +643,10 @@ function BomEntry() {
     }
     setSavingComponentEdit(true);
     try {
+      const selectedChildIds = [...new Set(componentEditDraft.childComponentIds)].filter((childId) => childId !== recordId);
+      const realChildIds = selectedChildIds.filter((childId) => childId !== NO_CHILD_MATERIAL);
+      // The first child stays on this line item; each extra child becomes its own line item.
+      const childGroups = realChildIds.length > 1 ? realChildIds.map((childId) => [childId]) : [selectedChildIds];
       const editedRecord = {
         functionName: componentEditDraft.functionName,
         process: componentEditDraft.functionName,
@@ -639,15 +654,42 @@ function BomEntry() {
         sapMaterialNo: String(componentEditDraft.sapMaterialNo || '').trim(),
         qtyPerCs: String(componentEditDraft.qtyPerCs ?? '').trim(),
         unit: String(componentEditDraft.unit || '').trim(),
-        childComponentIds: [...new Set(componentEditDraft.childComponentIds)]
-          .filter((childId) => childId !== recordId),
+        childComponentIds: childGroups[0],
       };
       Object.assign(editedRecord, childMaterialFields(editedRecord.childComponentIds, articleBomRecords, stockMaterials, {
         childMaterial: String(componentEditDraft.childMaterial || '').trim(),
         childMaterialSapNo: String(componentEditDraft.childMaterialSapNo || '').trim(),
       }));
       const previousRecord = bomRecords.find((item) => item.id === recordId) || {};
-      await update(ref(db, `bomData/${recordId}`), editedRecord);
+      const updates = { [`bomData/${recordId}`]: { ...previousRecord, ...editedRecord, id: recordId } };
+      const extraRecords = childGroups.slice(1).map((childIds) => {
+        const key = push(ref(db, 'bomData/')).key;
+        const record = {
+          ...previousRecord,
+          ...editedRecord,
+          id: key,
+          childComponentIds: childIds,
+        };
+        Object.assign(record, childMaterialFields(childIds, articleBomRecords, stockMaterials, { childMaterial: '', childMaterialSapNo: '' }));
+        updates[`bomData/${key}`] = record;
+        return record;
+      });
+      if (extraRecords.length) {
+        const article = articles.find((item) => item.id === previousRecord.articleId) || selectedArticle;
+        updates[`articleData/${article.id}/bomIds`] = [...new Set([
+          ...bomIdsForArticle(article),
+          ...extraRecords.map((record) => record.id),
+        ])].join(',');
+      }
+      await update(ref(db), updates);
+      for (const record of extraRecords) {
+        await writeBomHistory({
+          article: articles.find((item) => item.id === previousRecord.articleId) || selectedArticle,
+          record,
+          action: 'created',
+          changes: bomChanges({}, record),
+        });
+      }
       const changes = bomChanges(previousRecord, editedRecord);
       if (Object.keys(changes).length) {
         await writeBomHistory({

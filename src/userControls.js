@@ -98,6 +98,7 @@ export const CONTROL_TREE = [
       ['mmdept/planning-store/grinding-store', 'Planning — Grinding Store'],
       ['mmdept/planning-store/attaching-store', 'Planning — Attaching Store'],
       ['mmdept/planning-store/packing-store', 'Planning — Packing Store'],
+      ['mmdept/vendor-stock', 'Vendor Stock'],
     ],
   },
   {

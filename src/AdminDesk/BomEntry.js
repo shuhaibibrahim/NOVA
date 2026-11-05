@@ -786,8 +786,8 @@ function BomEntry() {
                         <th className="border border-gray-300 p-3">FUNCTIONS</th>
                         <th className="border border-gray-300 p-3">SAP MATERIAL NO</th>
                         <th className="border border-gray-300 p-3">COMPONENT DETAILS</th>
-                        <th className="border border-gray-300 p-3">CHILD MATERIAL SAP NO</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL</th>
+                        <th className="border border-gray-300 p-3">CHILD MATERIAL SAP NO</th>
                         <th className="border border-gray-300 p-3">QTY/PR</th>
                         <th className="border border-gray-300 p-3">UNIT</th>
                         <th className="w-32 border border-gray-300 p-3 text-center">ACTION</th>
@@ -828,7 +828,7 @@ function BomEntry() {
                               className="w-full rounded border border-gray-300 bg-white p-2 focus:border-blue-500 focus:outline-none"
                             />
                           </td>
-                          {[['childMaterialSapNo', 'Child material SAP no'], ['childMaterial', 'Child material'], ['qtyPerCs', 'Qty per CS'], ['unit', 'Unit']].map(([field, label]) => (
+                          {[['childMaterial', 'Child material'], ['childMaterialSapNo', 'Child material SAP no'], ['qtyPerCs', 'Qty per CS'], ['unit', 'Unit']].map(([field, label]) => (
                             field === 'childMaterial' ? (
                               <React.Fragment key={field}>
                           <td className="border border-gray-300 p-2">
@@ -1028,8 +1028,8 @@ function BomEntry() {
                         <th className="border border-gray-300 p-3">FUNCTIONS</th>
                         <th className="border border-gray-300 p-3">SAP MATERIAL NO</th>
                         <th className="border border-gray-300 p-3">COMPONENT DETAILS</th>
-                        <th className="border border-gray-300 p-3">CHILD MATERIAL SAP NO</th>
                         <th className="border border-gray-300 p-3">CHILD MATERIAL</th>
+                        <th className="border border-gray-300 p-3">CHILD MATERIAL SAP NO</th>
                         <th className="border border-gray-300 p-3">QTY/PR</th>
                         <th className="border border-gray-300 p-3">UNIT</th>
                         <th className="w-28 border border-gray-300 p-3 text-center">ACTION</th>
@@ -1101,7 +1101,7 @@ function BomEntry() {
                               <span className="whitespace-pre-wrap p-1">{componentDetailsForRecord(record) || '-'}</span>
                             )}
                           </td>
-                          {['childMaterialSapNo', 'childMaterial', 'qtyPerCs', 'unit'].map((field) => (
+                          {['childMaterial', 'childMaterialSapNo', 'qtyPerCs', 'unit'].map((field) => (
                           field === 'childMaterial' ? (
                             <React.Fragment key={field}>
                           <td className="border border-gray-300 p-2">

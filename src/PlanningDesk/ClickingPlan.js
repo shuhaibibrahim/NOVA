@@ -991,7 +991,15 @@ function ClickingPlan({ viewOnly = false, isAdmin = false }) {
 
     const flagged = new Set();
     cart.forEach(({ requirement }) => {
-      const article = articleForReceivingItem(requirement);
+      const article = articleForReceivingItem({
+        ...requirement,
+        gender: genderForRequirement(requirement),
+        category: priceCategoryForRequirement(requirement),
+      }) || articles.find((item) => (
+        normalizeMatchValue(item.article) === normalizeMatchValue(requirement.article) &&
+        normalizeMatchValue(item.colour ?? item.color) === normalizeMatchValue(requirement.colour ?? requirement.color) &&
+        bomComponentsForArticle(item).length > 0
+      ));
       const label = `${requirement.article || article?.article || 'Article'} ${requirement.colour || ''}`.trim();
       if (flagged.has(label)) return;
       flagged.add(label);

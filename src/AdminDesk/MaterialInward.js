@@ -5,6 +5,7 @@ import { ref, set, push, onValue, remove, update } from "firebase/database";
 import * as XLSX from 'xlsx';
 import {fieldHeadings, fieldKeys} from "../Requirements"
 import BulkExcelUploadComponent from '../BulkExcelUploadComponent';
+import VendorReturnSheet from '../MMDepartment/VendorReturnSheet';
 import { isArray } from '@craco/craco/lib/utils';
 
 function MaterialInwardEntry() {
@@ -34,6 +35,7 @@ function MaterialInwardEntry() {
     }  
 
     const [materialInwardData, setMaterialInwardData] = useState([])
+    const [inwardSheet, setInwardSheet] = useState('inward')
     const [stockData, setStockData] = useState([])
 
     const [requirementsData, setRequirementsData] = useState([])
@@ -641,6 +643,20 @@ function MaterialInwardEntry() {
 
     return (
         <div className="pb-2 bg-blue-50 h-full px-3 pt-4">
+            <div className="mb-2 flex gap-2">
+                {[['inward', 'Material Inward'], ['fromPlan', 'From Plan']].map(([key, label]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        onClick={() => setInwardSheet(key)}
+                        className={`rounded px-4 py-2 text-sm font-medium ${inwardSheet === key ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 ring-1 ring-blue-300'}`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            {inwardSheet === 'fromPlan' && <VendorReturnSheet />}
+            {inwardSheet === 'inward' && (<>
 
             {validateMessage&&(
                 <div onClick={backdropClickHandler} className="bg-black z-20 bg-opacity-80 fixed inset-0 flex justify-center items-center">
@@ -687,6 +703,7 @@ function MaterialInwardEntry() {
                 </div>
                 {renderItems}
             </div>
+            </>)}
         </div>
 
     )

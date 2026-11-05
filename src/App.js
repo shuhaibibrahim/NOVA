@@ -61,6 +61,7 @@ import ClickerShortage from './Analysis/ClickerShortage';
 import StageDefectDetails from './Analysis/StageDefectDetails';
 import PlanningPlanPlaceholder from './PlanningDesk/PlanningPlanPlaceholder';
 import SfgStore from './MMDepartment/SfgStore';
+import VendorStock from './MMDepartment/VendorStock';
 import UserSettings from './UserSettings';
 import Signup from './Signup';
 import UserRequest from './UserRequest';
@@ -295,6 +296,7 @@ function App() {
                   <Route path="stock-entry" element={canAccessRibbon('mmdept/stock-entry', true) ? <StockEntry user={userData}/> : <Navigate to="/" replace />}/>
                   <Route path="material-outward" element={canAccessRibbon('mmdept/material-outward', true) ? <MaterialIssueEntry userRole={userRole} /> : <Navigate to="/" replace />}/>
                  <Route path="material-inward" element={canAccessRibbon('mmdept/material-inward', true) ? <MaterialInwardEntry userRole={userRole} /> : <Navigate to="/" replace />}/>
+                  <Route path="vendor-stock" element={canAccessRibbon('mmdept/vendor-stock', true) ? <VendorStock /> : <Navigate to="/" replace />}/>
                   <Route path="clicker-comp-store" element={canAccessRibbon('mmdept/clicker-comp-store', true) ? <SfgStore title="Clicker Comp Store" route="mmdept/clicker-comp-store" isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
                   <Route path="printing-comp-store" element={canAccessRibbon('mmdept/printing-comp-store', true) ? <SfgStore title="Printing Comp Store" route="mmdept/printing-comp-store" isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>
                   <Route path="molding-receiving-store" element={canAccessRibbon('mmdept/molding-receiving-store', true) ? <SfgStore title="Molding Store" route="mmdept/molding-receiving-store" isAdmin={isAdmin} /> : <Navigate to="/" replace />}/>

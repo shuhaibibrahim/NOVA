@@ -8,6 +8,8 @@ import { DEFECT_KINDS, defectStatus, effectiveReceivedSizes, goodSizesOf } from 
 import ReceivedDateDialog from '../ReceivedDateDialog';
 import { PLANNED_STORE_NODE, clearPlannedStock, markReceivedUpdates } from '../plannedStore';
 import { CONSUMPTION_NODE, STOCK_STAGES, availableStock, consumptionKey } from '../stockConsumption';
+import { VENDOR_STOCK_NODE, vendorConsumptionUpdates } from '../vendorStock';
+import VendorMaterialIssue from './VendorMaterialIssue';
 import { genderForMaterialNumber, normalizeMatchValue, sizeForRequirement, sizesForGender } from '../requirementMatching';
 
 const receiptSizeKey = (size) => {
@@ -165,7 +167,12 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
   const [defectRows, setDefectRows] = useState({ shortage: [], damage: [], repair: [] });
   const [savingReceipt, setSavingReceipt] = useState(false);
   const [markingItem, setMarkingItem] = useState(null);
+  const [issuingItem, setIssuingItem] = useState(null);
+  const [vendorRecords, setVendorRecords] = useState([]);
 
+  useEffect(() => onValue(ref(db, `${VENDOR_STOCK_NODE}/`), (snapshot) => {
+    setVendorRecords(Object.entries(snapshot.val() || {}).map(([id, record]) => ({ ...record, id })));
+  }), []);
   useEffect(() => {
     setSelectedLink(`${viewOnly ? 'execution' : 'planning-desk'}/${stage.route}`);
     setOpenedTab(viewOnly ? 'execution' : 'planningDesk');
@@ -957,6 +964,9 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
       stockConsumptions.filter((item) => item.planId === id).forEach((item) => {
         updates[`${CONSUMPTION_NODE}/${item.id}`] = null;
       });
+      vendorRecords
+        .filter((record) => record.kind === 'COMPONENT' && (record.planIds || []).includes(id))
+        .forEach((record) => { updates[`${VENDOR_STOCK_NODE}/${record.id}`] = null; });
     });
     try {
       await update(ref(db), updates);
@@ -1090,6 +1100,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
         sizes: item.sizes,
         date,
       });
+      Object.assign(updates, vendorConsumptionUpdates(vendorRecords, item.plans.map((plan) => plan.id), item.sizes));
       await update(ref(db), updates);
       setMarkingItem(null);
     } catch (error) {
@@ -1214,6 +1225,7 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
     setSavingReceipt(true);
     try {
       Object.assign(updates, await clearPlannedStock(stage.fn, receivingItem.plans.map((plan) => plan.id)));
+      Object.assign(updates, vendorConsumptionUpdates(vendorRecords, receivingItem.plans.map((plan) => plan.id), receipt.receivedSizes));
       await update(ref(db), updates);
       setReceivingItem(null);
     } catch (error) {
@@ -1450,6 +1462,15 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
                               <option value="">Select vendor</option>
                               {printingVendors.map((vendor) => <option key={vendor.id} value={vendor.vendorName}>{vendor.vendorName}</option>)}
                             </select>
+                            {item.vendorName && (
+                              <button
+                                type="button"
+                                onClick={() => setIssuingItem(item)}
+                                className="mt-1 block w-full whitespace-nowrap rounded bg-amber-600 px-2 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                              >
+                                ISSUE MATERIAL
+                              </button>
+                            )}
                           </td>
                           {[item.model, item.article, item.gender, item.colour].map((value, index) => (
                             <td key={index} rowSpan={itemSpan} className="border border-gray-400 p-2 align-middle">{String(value ?? '').toUpperCase()}</td>
@@ -1947,6 +1968,25 @@ function PrintingPlan({ viewOnly = false, stage: stageKey = 'printing' }) {
         </div>
         {viewOnly || activeSheet === 'plan' ? renderPlanSheet() : renderRequirementsSheet()}
         {viewOnly && renderReceivingForm()}
+        {issuingItem && (
+          <VendorMaterialIssue
+            item={issuingItem}
+            stage={stage}
+            stageKey={stageKey}
+            stockStage={stockStage}
+            article={articleForPrintingItem(issuingItem)}
+            components={(() => {
+              const all = printingComponentsForPlan(issuingItem.plans[0]);
+              const selected = issuingItem.printingComponentIds || [];
+              return selected.length ? all.filter((component) => selected.includes(component.id)) : all;
+            })()}
+            bomRecords={bomRecords}
+            vendorRecords={vendorRecords}
+            sizeRowsForPlan={sizeRowsForPlan}
+            componentLabel={componentLabel}
+            onClose={() => setIssuingItem(null)}
+          />
+        )}
         {viewOnly && markingItem && (
           <ReceivedDateDialog
             title={`${stage.label} — Mark as Received`}
